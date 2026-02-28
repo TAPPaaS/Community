@@ -1,0 +1,13 @@
+{
+    "description": "TAPPaaS Community Module Registry",
+    "applicationModules": [
+        {
+            "moduleName": "unifi",
+            "vmid": 810,
+            "moduleJson": "src/network/unifi/unifi.json"
+        }
+    ],
+    "foundationModules": [],
+    "proxmoxTemplates": [],
+    "testModules": []
+}
