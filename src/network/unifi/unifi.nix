@@ -12,8 +12,8 @@
 # TAPPaaS
 # Name: UniFi Network Controller
 # Type: APP
-# Version: 0.9.0 
-# Date: 2026-02-09
+# Version: 10.0.162 
+# Date: 2026-03-14
 # Author: @ErikDaniel007 (Tappaas)
 # Products: unifi
 # ----------------------------------------
@@ -98,6 +98,18 @@ in
   programs.ssh.startAgent = true;
 
   # === UniFi Controller Service ===
+  nixpkgs.overlays = [
+    (final: prev: {
+      unifi = prev.unifi.overrideAttrs (old: rec {
+        version = versions.unifi;
+        src = final.fetchurl {
+          url = "https://dl.ui.com/unifi/${version}/unifi_sysvinit_all.deb";
+          sha256 = "sha256-1wuI6Dg/cKBEhtcoLipXa1q4UiKtqOpRAc8FF0dY5T4=";
+        };
+      });
+    })
+  ];
+
   services.unifi = {
     enable = true;
     unifiPackage = pkgs.unifi;

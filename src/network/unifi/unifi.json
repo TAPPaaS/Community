@@ -1,5 +1,5 @@
 {
-    "version": "0.5",
+    "version": "10.0.162",
     "node": "tappaas2",
     "vmid": 810,
     "vmtag": "TAPPaaS,App,Mgmt",
@@ -10,11 +10,11 @@
     "storage": "tanka1",
     "imageType": "clone",
     "image": "8080",
-    "bridge0": "lan",
+    "bridge0": "lan2",
     "zone0": "mgmt",
     "description": "TAPPaaS Unifi Network Controller",
     "author": "@ErikDaniel007",
-    "releaseDate": "2026-02-10",
+    "releaseDate": "2026-03-14",
     "status": "Development",
     "dependsOn": ["cluster:vm", "templates:nixos", "backup:vm"],
     "provides": []
