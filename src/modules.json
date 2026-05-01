@@ -5,7 +5,13 @@
             "moduleName": "unifi",
             "vmid": 810,
             "moduleJson": "src/network/unifi/unifi.json"
+        },
+        {
+            "moduleName": "wordpress",
+            "vmid": 820,
+            "moduleJson": "src/hosting/wordpress.json"
         }
+
     ],
     "foundationModules": [],
     "proxmoxTemplates": [],
