@@ -10,6 +10,11 @@
             "moduleName": "wordpress",
             "vmid": 820,
             "moduleJson": "src/hosting/wordpress.json"
+        },
+        {
+            "moduleName": "eu-office",
+            "vmid": 830,
+            "moduleJson": "src/productivity/eu-office.json"
         }
 
     ],

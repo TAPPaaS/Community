@@ -1,0 +1,39 @@
+{
+  "description": "Euro-Office DocumentServer — collaborative document editing platform (OnlyOffice-compatible). Testing deployment only.",
+  "version": "0.1.0",
+  "releaseDate": "2026-05-01",
+  "maintainer": "@AndreasJe",
+  "status": "Testing",
+  "location": "/home/tappaas/TAPPaaS/src/apps/euro-office",
+
+  "vmname": "euro-office",
+  "vmid": 312,
+  "vmtag": "TAPPaaS,Test",
+  "node": "tappaas1",
+
+  "bios": "ovmf",
+  "ostype": "l26",
+  "cputype": "host",
+  "cores": 4,
+  "memory": 8192,
+  "diskSize": "32G",
+  "storage": "tanka1",
+
+  "imageType": "clone",
+  "image": "8080",
+  "cloudInit": "true",
+
+  "bridge0": "lan",
+  "zone0": "srv",
+
+  "proxyDomain": "eu-office.tappaas.qualiware.com",
+  "proxyPort": 80,
+
+  "dependsOn": [
+    "cluster:vm",
+    "templates:nixos",
+    "backup:vm",
+    "firewall:proxy"
+  ],
+  "provides": []
+}
