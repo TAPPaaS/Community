@@ -9,7 +9,7 @@
 # ============================================================================
 # Version: 1.0.0
 # Date: 2026-05-01
-# Author: @ErikDaniel007 (TAPPaaS)
+# Author: @AndreasJe 
 # Product: Euro-Office DocumentServer (collaborative document editing)
 #
 # Architecture:
