@@ -1,5 +1,5 @@
 {
-    "version": "10.0.162",
+    "version": "10.3.58",
     "node": "tappaas2",
     "vmid": 810,
     "vmtag": "TAPPaaS,App,Mgmt",
@@ -14,7 +14,7 @@
     "zone0": "mgmt",
     "description": "TAPPaaS Unifi Network Controller",
     "author": "@ErikDaniel007",
-    "releaseDate": "2026-03-14",
+    "releaseDate": "2026-05-20",
     "status": "Development",
     "dependsOn": ["cluster:vm", "templates:nixos", "backup:vm"],
     "provides": []

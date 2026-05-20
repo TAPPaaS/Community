@@ -12,8 +12,8 @@
 # TAPPaaS
 # Name: UniFi Network Controller
 # Type: APP
-# Version: 10.0.162 
-# Date: 2026-03-14
+# Version: 10.3.58
+# Date: 2026-05-20
 # Author: @ErikDaniel007 (Tappaas)
 # Products: unifi
 # ----------------------------------------
@@ -22,7 +22,7 @@
 
 let
   versions = {
-    unifi = "10.0.162";
+    unifi = "10.3.58";
   };
 in
 {
@@ -104,7 +104,7 @@ in
         version = versions.unifi;
         src = final.fetchurl {
           url = "https://dl.ui.com/unifi/${version}/unifi_sysvinit_all.deb";
-          sha256 = "sha256-1wuI6Dg/cKBEhtcoLipXa1q4UiKtqOpRAc8FF0dY5T4=";
+          sha256 = "sha256-FVcf8hELLS62lpYtr7mCCvYIKHh/JRQwexqC33lBp40=";
         };
       });
     })
