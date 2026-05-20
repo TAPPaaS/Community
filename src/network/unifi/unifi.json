@@ -13,7 +13,7 @@
     "bridge0": "lan",
     "zone0": "mgmt",
     "description": "TAPPaaS Unifi Network Controller",
-    "author": "@ErikDaniel007",
+    "maintainer": "@ErikDaniel007",
     "releaseDate": "2026-05-20",
     "status": "Development",
     "dependsOn": ["cluster:vm", "templates:nixos", "backup:vm"],
