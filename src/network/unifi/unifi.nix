@@ -24,6 +24,13 @@ let
   versions = {
     unifi = "10.3.58";
   };
+
+  # UniFi 10.3.58 requires Java 25 (class file version 69).
+  # NixOS 25.05 ships max jdk24; pin 25.11 for jdk25_headless only.
+  pkgs-2511 = import (fetchTarball {
+    url = "https://releases.nixos.org/nixos/25.11/nixos-25.11.11112.687f05a9184c/nixexprs.tar.xz";
+    sha256 = "04nacgh0gcm5l9zdi09l4s966zampxqqvlfx2nvv4w541405nc5r";
+  }) { config.allowUnfree = true; };
 in
 {
   imports = [ /etc/nixos/hardware-configuration.nix ];
@@ -113,6 +120,7 @@ in
   services.unifi = {
     enable = true;
     unifiPackage = pkgs.unifi;
+    jrePackage = pkgs-2511.jdk25_headless;
     openFirewall = true;  # Redundant with manual firewall config above, kept for clarity
   };
 
