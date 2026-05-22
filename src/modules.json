@@ -2,6 +2,11 @@
     "description": "TAPPaaS Community Module Registry",
     "applicationModules": [
         {
+            "moduleName": "coturn",
+            "vmid": 341,
+            "moduleJson": "src/AndreasJe/nextcloud-hub/coturn/coturn.json"
+        },
+        {
             "moduleName": "nextcloud",
             "vmid": 340,
             "moduleJson": "src/AndreasJe/nextcloud-hub/nextcloud/nextcloud.json"
