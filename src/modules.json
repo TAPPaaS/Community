@@ -2,6 +2,11 @@
     "description": "TAPPaaS Community Module Registry",
     "applicationModules": [
         {
+            "moduleName": "nextcloud",
+            "vmid": 340,
+            "moduleJson": "src/AndreasJe/nextcloud-hub/nextcloud/nextcloud.json"
+        },
+        {
             "moduleName": "unifi",
             "vmid": 810,
             "moduleJson": "src/network/unifi/unifi.json"
