@@ -12,6 +12,11 @@
             "moduleJson": "src/AndreasJe/nextcloud-hub/nextcloud/nextcloud.json"
         },
         {
+            "moduleName": "nextcloud-hpb",
+            "vmid": 342,
+            "moduleJson": "src/AndreasJe/nextcloud-hub/nextcloud-hpb/nextcloud-hpb.json"
+        },
+        {
             "moduleName": "unifi",
             "vmid": 810,
             "moduleJson": "src/network/unifi/unifi.json"

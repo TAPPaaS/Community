@@ -1,0 +1,39 @@
+{
+  "description": "Nextcloud Talk High-Performance Backend - dedicated WebSocket signaling server (nextcloud-spreed-signaling).",
+  "version": "0.1.0",
+  "releaseDate": "2026-05-14",
+  "maintainer": "@AndreasJe",
+  "status": "Development",
+  "location": "src/AndreasJe/nextcloud-hub/nextcloud-hpb",
+  "vmname": "nextcloud-hpb",
+  "vmid": 342,
+  "vmtag": "TAPPaaS,App",
+  "node": "tappaas2",
+  "bios": "ovmf",
+  "os": "nixos",
+  "ostype": "l26",
+  "cputype": "host",
+  "cores": 4,
+  "memory": 12648,
+  "diskSize": "16G",
+  "storage": "tanka1",
+  "imageType": "clone",
+  "image": "8080",
+  "cloudInit": "true",
+  "bridge0": "lan",
+  "zone0": "srv",
+  "proxyDomain": "hpb.example.com",
+  "proxyPort": 8080,
+  "timeZone": "Europe/Amsterdam",
+  "dependsOn": [
+    "cluster:vm",
+    "templates:nixos",
+    "backup:vm",
+    "firewall:proxy",
+    "nextcloud:vm",
+    "coturn:vm"
+  ],
+  "provides": [
+    "vm"
+  ]
+}
