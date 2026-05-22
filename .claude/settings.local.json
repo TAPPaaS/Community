@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\AndreasJensen\\\\Desktop\\\\TAPPaaS Git\\\\TAPPaaS Community - conrib\\\\Community\\\\src\\\\AndreasJe\\\\nextcloud-hub\\\\\" -Recurse -ErrorAction SilentlyContinue | Select-Object FullName)",
+      "Bash(dir \"c:\\\\Users\\\\AndreasJensen\\\\Desktop\\\\TAPPaaS Git\\\\TAPPaaS Community - conrib\\\\Community\\\\src\\\\AndreasJe\\\\nextcloud-hub\" /s /b)"
+    ]
+  }
+}

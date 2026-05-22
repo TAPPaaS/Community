@@ -1,0 +1,30 @@
+{
+  "description": "WordPress CMS - self-hosted content platform",
+  "version": "0.4.0",
+  "releaseDate": "2026-03-08",
+  "maintainer": "@AndreasJe",
+  "status": "Development",
+  "vmname": "wordpress",
+  "os": "nixos",
+  "vmid": 620,
+  "vmtag": "TAPPaaS,App",
+  "cores": 2,
+  "memory": "4048",
+  "diskSize": "20G",
+  "storage": "tanka1",
+  "imageType": "clone",
+  "image": "8080",
+  "bridge0": "lan",
+  "zone0": "dmz",
+  "proxyDomain": "wordpress.example.com",
+  "proxyPort": 80,
+  "dependsOn": [
+    "cluster:vm",
+    "cluster:ha",
+    "templates:nixos",
+    "backup:vm",
+    "identity:identity",
+    "firewall:proxy"
+  ],
+  "provides": []
+}
