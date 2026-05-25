@@ -1,0 +1,42 @@
+{
+  "description": "Nextcloud file sharing and collaboration platform with Authentik SSO support.",
+  "version": "0.1.0",
+  "releaseDate": "2026-05-04",
+  "maintainer": "@AndreasJe",
+  "status": "Testing",
+  "location": "src/AndreasJe/nextcloud-hub/nextcloud",
+  "vmname": "nextcloud",
+  "vmid": 340,
+  "vmtag": "TAPPaaS,App",
+  "node": "tappaas1",
+  "bios": "ovmf",
+  "os": "nixos",
+  "ostype": "l26",
+  "cputype": "host",
+  "cores": 4,
+  "memory": 8192,
+  "diskSize": "80G",
+  "storage": "tanka1",
+  "imageType": "clone",
+  "image": "8080",
+  "cloudInit": "true",
+  "bridge0": "lan",
+  "zone0": "srv",
+  "proxyDomain": "nextcloud.example.com",
+  "proxyPort": 80,
+  "oidcRedirectUri": "https://nextcloud.example.com/apps/user_oidc/code",
+  "timeZone": "Europe/Amsterdam",
+  "phoneRegion": "DK",
+  "mailSmtpHost": "smtp.example.com",
+  "mailSmtpPort": 587,
+  "dependsOn": [
+    "cluster:vm",
+    "templates:nixos",
+    "backup:vm",
+    "firewall:proxy",
+    "identity:identity"
+  ],
+  "provides": [
+    "vm"
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "description": "coturn TURN/STUN server for Nextcloud Talk WebRTC audio/video calls.",
+  "version": "0.1.0",
+  "releaseDate": "2026-05-12",
+  "maintainer": "@AndreasJe",
+  "status": "Development",
+  "location": "src/AndreasJe/nextcloud-hub/coturn",
+  "vmname": "coturn",
+  "vmid": 341,
+  "vmtag": "TAPPaaS,App",
+  "node": "tappaas1",
+  "bios": "ovmf",
+  "os": "nixos",
+  "ostype": "l26",
+  "cputype": "host",
+  "cores": 1,
+  "memory": 512,
+  "diskSize": "8G",
+  "storage": "tanka1",
+  "imageType": "clone",
+  "image": "8080",
+  "cloudInit": "true",
+  "bridge0": "lan",
+  "zone0": "dmz",
+  "publicDomain": "coturn.example.com",
+  "timeZone": "Europe/Amsterdam",
+  "dependsOn": [
+    "cluster:vm",
+    "templates:nixos",
+    "backup:vm",
+    "nextcloud:vm"
+  ],
+  "provides": [
+    "vm"
+  ]
+}

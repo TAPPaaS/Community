@@ -2,6 +2,26 @@
     "description": "TAPPaaS Community Module Registry",
     "applicationModules": [
         {
+            "moduleName": "nextcloud",
+            "vmid": 340,
+            "moduleJson": "src/AndreasJe/nextcloud-hub/nextcloud/nextcloud.json"
+        },
+        {
+            "moduleName": "coturn",
+            "vmid": 341,
+            "moduleJson": "src/AndreasJe/nextcloud-hub/coturn/coturn.json"
+        },
+        {
+            "moduleName": "nextcloud-hpb",
+            "vmid": 342,
+            "moduleJson": "src/AndreasJe/nextcloud-hub/nextcloud-hpb/nextcloud-hpb.json"
+        },
+        {
+            "moduleName": "euro-office",
+            "vmid": 343,
+            "moduleJson": "src/AndreasJe/nextcloud-hub/euro-office/euro-office.json"
+        },
+        {
             "moduleName": "unifi",
             "vmid": 810,
             "moduleJson": "src/network/unifi/unifi.json"
