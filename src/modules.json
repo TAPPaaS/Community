@@ -5,6 +5,11 @@
             "moduleName": "unifi",
             "vmid": 810,
             "moduleJson": "src/network/unifi/unifi.json"
+        },
+        {
+            "moduleName": "wordpress",
+            "vmid": 620,
+            "moduleJson": "src/AndreasJe/wordpress/wordpress.json"
         }
     ],
     "foundationModules": [],
