@@ -65,6 +65,14 @@
       "description": "Sonos AirPlay RAOP (home zone)"
     }
   ],
+  "egress": [
+    {
+      "to": "srv-home",
+      "ports": [1400],
+      "protocol": "TCP",
+      "description": "Sonos push event callback to Home Assistant subscription listener"
+    }
+  ],
   "provides": [
     "audio",
     "airplay"
