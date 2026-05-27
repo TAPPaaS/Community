@@ -30,6 +30,84 @@
             "moduleName": "wordpress",
             "vmid": 620,
             "moduleJson": "src/AndreasJe/wordpress/wordpress.json"
+        },
+        {
+            "moduleName": "n8n",
+            "vmid": null,
+            "moduleJson": "src/automation/n8n/n8n.json",
+            "_comment": "vmid TBD \u2014 schema-only stub as of 2026-05-23, VM provisioning out of scope for the pfSense migration"
+        },
+        {
+            "moduleName": "alfen",
+            "vmid": null,
+            "moduleJson": "src/iot/alfen/alfen.json",
+            "_comment": "Policy-only \u2014 no VM (NG5 sidestep, #157)"
+        },
+        {
+            "moduleName": "sonos-fleet",
+            "vmid": null,
+            "moduleJson": "src/iot/sonos-fleet/sonos-fleet.json",
+            "_comment": "Policy-only \u2014 no VM"
+        },
+        {
+            "moduleName": "hue",
+            "vmid": null,
+            "moduleJson": "src/iot/hue/hue.json",
+            "_comment": "Policy-only \u2014 no VM"
+        },
+        {
+            "moduleName": "shelly-fleet",
+            "vmid": null,
+            "moduleJson": "src/iot/shelly-fleet/shelly-fleet.json",
+            "_comment": "Policy-only \u2014 no VM"
+        },
+        {
+            "moduleName": "samsung-tv",
+            "vmid": null,
+            "moduleJson": "src/iot/samsung-tv/samsung-tv.json",
+            "_comment": "Policy-only \u2014 no VM"
+        },
+        {
+            "moduleName": "irrigation",
+            "vmid": null,
+            "moduleJson": "src/iot/irrigation/irrigation.json",
+            "_comment": "Policy-only \u2014 no VM"
+        },
+        {
+            "moduleName": "sysap",
+            "vmid": null,
+            "moduleJson": "src/iot/sysap/sysap.json",
+            "_comment": "Policy-only \u2014 no VM (ABB free@home)"
+        },
+        {
+            "moduleName": "wiim-fleet",
+            "vmid": null,
+            "moduleJson": "src/iot/wiim-fleet/wiim-fleet.json",
+            "_comment": "DEFERRED \u2014 no current FW rule; placeholder for future HA integration"
+        },
+        {
+            "moduleName": "synology",
+            "vmid": null,
+            "moduleJson": "src/storage/synology/synology.json",
+            "_comment": "Policy-only \u2014 no VM"
+        },
+        {
+            "moduleName": "solaredge",
+            "vmid": null,
+            "moduleJson": "src/energy/solaredge/solaredge.json",
+            "_comment": "Policy-only \u2014 no VM (SE6K inverter)"
+        },
+        {
+            "moduleName": "cameras-fleet",
+            "vmid": null,
+            "moduleJson": "src/surveillance/cameras-fleet/cameras-fleet.json",
+            "_comment": "Policy-only \u2014 no VM"
+        },
+        {
+            "moduleName": "ps5",
+            "vmid": null,
+            "moduleJson": "src/gaming/ps5/ps5.json",
+            "_comment": "Policy-only \u2014 no VM, no pinhole (outbound NAT only)"
         }
     ],
     "foundationModules": [],

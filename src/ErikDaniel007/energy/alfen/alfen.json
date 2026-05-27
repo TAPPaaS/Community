@@ -1,0 +1,73 @@
+{
+  "description": "Alfen Eve Pro EV charger — policy-only module for firewall rules (no VM)",
+  "version": "0.1.0",
+  "releaseDate": "2026-05-23",
+  "maintainer": "@ErikDaniel007",
+  "status": "Testing",
+  "location": "/home/tappaas/Community/src/ErikDaniel007/energy/alfen",
+  "vmname": "alfen",
+  "vmtag": "TAPPaaS,Community,Energy,Hardware",
+  "zone0": "iot-cloud",
+  "firewallType": "opnsense",
+  "ports": [
+    {
+      "port": 80,
+      "protocol": "TCP",
+      "description": "Alfen web UI (HTTP)"
+    },
+    {
+      "port": 443,
+      "protocol": "TCP",
+      "description": "Alfen web UI (HTTPS)"
+    },
+    {
+      "port": 502,
+      "protocol": "TCP",
+      "description": "Modbus TCP (HA integration)"
+    },
+    {
+      "port": 36549,
+      "protocol": "UDP",
+      "description": "Alfen discovery broadcast"
+    }
+  ],
+  "ingress": [
+    {
+      "from": "home",
+      "ports": [
+        80,
+        443
+      ],
+      "protocol": "TCP",
+      "description": "Alfen web UI for Eve iPhone app (home zone)"
+    },
+    {
+      "from": "home",
+      "ports": [
+        36549
+      ],
+      "protocol": "UDP",
+      "description": "Alfen discovery for Eve app (home zone)"
+    }
+  ],
+  "discoveryUdpRelay": [
+    {
+      "port": 36549,
+      "zones": [
+        "home",
+        "iot-cloud"
+      ]
+    }
+  ],
+  "provides": [
+    "ui",
+    "discovery",
+    "modbus",
+    "nat"
+  ],
+  "dependsOn": [
+    "firewall:rules",
+    "firewall:discovery",
+    "alfen:nat"
+  ]
+}
