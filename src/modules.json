@@ -24,7 +24,7 @@
         {
             "moduleName": "unifi",
             "vmid": 810,
-            "moduleJson": "src/network/unifi/unifi.json"
+            "moduleJson": "src/ErikDaniel007/network/unifi/unifi.json"
         },
         {
             "moduleName": "wordpress",
@@ -40,73 +40,73 @@
         {
             "moduleName": "alfen",
             "vmid": null,
-            "moduleJson": "src/iot/alfen/alfen.json",
+            "moduleJson": "src/ErikDaniel007/energy/alfen/alfen.json",
             "_comment": "Policy-only \u2014 no VM (NG5 sidestep, #157)"
         },
         {
-            "moduleName": "sonos-fleet",
+            "moduleName": "sonos",
             "vmid": null,
-            "moduleJson": "src/iot/sonos-fleet/sonos-fleet.json",
+            "moduleJson": "src/ErikDaniel007/entertainment/sonos/sonos.json",
             "_comment": "Policy-only \u2014 no VM"
         },
         {
             "moduleName": "hue",
             "vmid": null,
-            "moduleJson": "src/iot/hue/hue.json",
+            "moduleJson": "src/ErikDaniel007/home-automation/hue/hue.json",
             "_comment": "Policy-only \u2014 no VM"
         },
         {
             "moduleName": "shelly-fleet",
             "vmid": null,
-            "moduleJson": "src/iot/shelly-fleet/shelly-fleet.json",
+            "moduleJson": "src/ErikDaniel007/home-automation/shelly-fleet/shelly-fleet.json",
             "_comment": "Policy-only \u2014 no VM"
         },
         {
             "moduleName": "samsung-tv",
             "vmid": null,
-            "moduleJson": "src/iot/samsung-tv/samsung-tv.json",
+            "moduleJson": "src/ErikDaniel007/entertainment/samsung-tv/samsung-tv.json",
             "_comment": "Policy-only \u2014 no VM"
         },
         {
             "moduleName": "irrigation",
             "vmid": null,
-            "moduleJson": "src/iot/irrigation/irrigation.json",
+            "moduleJson": "src/ErikDaniel007/home-automation/irrigation/irrigation.json",
             "_comment": "Policy-only \u2014 no VM"
         },
         {
             "moduleName": "sysap",
             "vmid": null,
-            "moduleJson": "src/iot/sysap/sysap.json",
+            "moduleJson": "src/ErikDaniel007/home-automation/sysap/sysap.json",
             "_comment": "Policy-only \u2014 no VM (ABB free@home)"
         },
         {
             "moduleName": "wiim-fleet",
             "vmid": null,
-            "moduleJson": "src/iot/wiim-fleet/wiim-fleet.json",
+            "moduleJson": "src/ErikDaniel007/entertainment/wiim-fleet/wiim-fleet.json",
             "_comment": "DEFERRED \u2014 no current FW rule; placeholder for future HA integration"
         },
         {
             "moduleName": "synology",
             "vmid": null,
-            "moduleJson": "src/storage/synology/synology.json",
+            "moduleJson": "src/ErikDaniel007/storage/synology/synology.json",
             "_comment": "Policy-only \u2014 no VM"
         },
         {
             "moduleName": "solaredge",
             "vmid": null,
-            "moduleJson": "src/energy/solaredge/solaredge.json",
+            "moduleJson": "src/ErikDaniel007/energy/solaredge/solaredge.json",
             "_comment": "Policy-only \u2014 no VM (SE6K inverter)"
         },
         {
             "moduleName": "cameras-fleet",
             "vmid": null,
-            "moduleJson": "src/surveillance/cameras-fleet/cameras-fleet.json",
+            "moduleJson": "src/ErikDaniel007/surveillance/cameras-fleet/cameras-fleet.json",
             "_comment": "Policy-only \u2014 no VM"
         },
         {
             "moduleName": "ps5",
             "vmid": null,
-            "moduleJson": "src/gaming/ps5/ps5.json",
+            "moduleJson": "src/ErikDaniel007/gaming/ps5/ps5.json",
             "_comment": "Policy-only \u2014 no VM, no pinhole (outbound NAT only)"
         }
     ],
