@@ -1,0 +1,27 @@
+{
+  "description": "UniFi Network Controller — manage Ubiquiti access points, switches and gateways",
+  "version": "10.3.58",
+  "releaseDate": "2026-05-20",
+  "maintainer": "@ErikDaniel007",
+  "status": "Development",
+  "location": "/home/tappaas/Community/src/ErikDaniel007/network/unifi",
+  "vmname": "unifi",
+  "vmid": 810,
+  "vmtag": "TAPPaaS,Community,Network,Mgmt",
+  "cores": 1,
+  "memory": "2048",
+  "diskSize": "16G",
+  "storage": "tanka1",
+  "imageType": "clone",
+  "image": "8080",
+  "bridge0": "lan",
+  "zone0": "mgmt",
+  "ports": [
+    { "port": 8443, "protocol": "TCP", "description": "Admin UI (HTTPS)" },
+    { "port": 8080, "protocol": "TCP", "description": "Device communication" },
+    { "port": 3478, "protocol": "UDP", "description": "STUN (device discovery)" },
+    { "port": 10001, "protocol": "UDP", "description": "UniFi device discovery" }
+  ],
+  "dependsOn": ["cluster:vm", "templates:nixos", "backup:vm"],
+  "provides": []
+}
