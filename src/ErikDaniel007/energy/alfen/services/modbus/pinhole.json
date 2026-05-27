@@ -1,5 +1,4 @@
 {
-  "_comment": "Auto-pinhole declaration (#173) for the 'modbus' service exposed by alfen. Modbus TCP 502 — typically consumed by HA for charging-session telemetry.",
   "ports": [
     { "port": 502, "protocol": "TCP", "description": "Modbus TCP (HA integration)" }
   ]

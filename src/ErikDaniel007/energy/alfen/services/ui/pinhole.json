@@ -1,5 +1,4 @@
 {
-  "_comment": "Auto-pinhole declaration (#173) for the 'ui' service exposed by alfen. Cross-zone consumers (HA in srv-home, direct users in home) get ingress rules to TCP 80/443 on the Alfen device's iot-cloud IP.",
   "ports": [
     { "port": 80,  "protocol": "TCP", "description": "Alfen web UI (HTTP)" },
     { "port": 443, "protocol": "TCP", "description": "Alfen web UI (HTTPS)" }

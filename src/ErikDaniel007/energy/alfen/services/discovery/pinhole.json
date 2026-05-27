@@ -1,5 +1,4 @@
 {
-  "_comment": "Auto-pinhole declaration (#173) for the 'discovery' service exposed by alfen. Alfen-specific UDP discovery broadcast on 36549.",
   "ports": [
     { "port": 36549, "protocol": "UDP", "description": "Alfen discovery broadcast" }
   ]
