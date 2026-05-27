@@ -1,0 +1,8 @@
+{
+  "_comment": "Auto-pinhole declaration (#173) for the 'drive' service (Synology Drive web portal and sync client).",
+  "ports": [
+    { "port": 10002, "protocol": "TCP", "description": "Synology Drive portal (HTTP)" },
+    { "port": 10003, "protocol": "TCP", "description": "Synology Drive portal (HTTPS)" },
+    { "port": 6690,  "protocol": "TCP", "description": "Synology Drive desktop client sync" }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "_comment": "Auto-pinhole declaration (#173) for the 'photos' service (Synology Photos web portal).",
+  "ports": [
+    { "port": 5080, "protocol": "TCP", "description": "Synology Photos portal (HTTP)" },
+    { "port": 5443, "protocol": "TCP", "description": "Synology Photos portal (HTTPS)" }
+  ]
+}

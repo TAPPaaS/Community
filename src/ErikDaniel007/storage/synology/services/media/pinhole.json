@@ -1,0 +1,7 @@
+{
+  "_comment": "Auto-pinhole declaration (#173) for the 'media' service (Synology DLNA/media server).",
+  "ports": [
+    { "port": 1900,  "protocol": "UDP", "description": "DLNA/SSDP media discovery" },
+    { "port": 50001, "protocol": "TCP", "description": "DLNA media streaming" }
+  ]
+}

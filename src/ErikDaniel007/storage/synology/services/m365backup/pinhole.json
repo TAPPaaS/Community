@@ -1,0 +1,7 @@
+{
+  "_comment": "Auto-pinhole declaration (#173) for the 'm365backup' service (Active Backup for Microsoft 365 portal).",
+  "ports": [
+    { "port": 28003, "protocol": "TCP", "description": "Active Backup for Microsoft 365 portal (HTTP)" },
+    { "port": 28004, "protocol": "TCP", "description": "Active Backup for Microsoft 365 portal (HTTPS)" }
+  ]
+}

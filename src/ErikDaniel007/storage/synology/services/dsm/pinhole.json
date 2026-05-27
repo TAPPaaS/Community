@@ -1,0 +1,7 @@
+{
+  "_comment": "Auto-pinhole declaration (#173) for the 'dsm' service (Synology DSM administrative web UI).",
+  "ports": [
+    { "port": 5000, "protocol": "TCP", "description": "DSM web UI (HTTP)" },
+    { "port": 5001, "protocol": "TCP", "description": "DSM web UI (HTTPS)" }
+  ]
+}

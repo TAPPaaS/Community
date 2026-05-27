@@ -42,6 +42,12 @@
             "vmid": null,
             "moduleJson": "src/ErikDaniel007/entertainment/sonos/sonos.json",
             "_comment": "Policy-only \u2014 no VM"
+        },
+        {
+            "moduleName": "synology",
+            "vmid": null,
+            "moduleJson": "src/ErikDaniel007/storage/synology/synology.json",
+            "_comment": "Policy-only \u2014 no VM (hardware NAS)"
         }
     ],
     "foundationModules": [],

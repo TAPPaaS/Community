@@ -1,0 +1,6 @@
+{
+  "_comment": "Auto-pinhole declaration (#173) for the 'timemachine' service (macOS Time Machine over SMB).",
+  "ports": [
+    { "port": 445, "protocol": "TCP", "description": "Time Machine over SMB" }
+  ]
+}
