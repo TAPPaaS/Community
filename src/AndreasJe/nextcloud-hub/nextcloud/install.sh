@@ -9,12 +9,42 @@
 # Usage: ./install.sh <vmname>
 # Example: ./install.sh nextcloud
 
+# ── Inject proxyDomain from platform configuration ───────────────────────────
+# Derive the public domain from tappaas.domain and bake it into the module JSON
+# (and sibling module JSONs used by nextcloud.nix) before install-vm.sh runs.
+_GLOBAL_CONFIG="/home/tappaas/config/configuration.json"
+_BASE_DOMAIN="$(jq -r '.tappaas.domain' "${_GLOBAL_CONFIG}")"
+
+_enrich_json() {
+    local json_file="$1"
+    local vmname
+    vmname="$(jq -r '.vmname' "${json_file}")"
+    cp "${json_file}" "${json_file}.orig"
+    jq --arg domain "${vmname}.${_BASE_DOMAIN}" '. + {"proxyDomain": $domain}' \
+        "${json_file}.orig" > "${json_file}"
+}
+
+_restore_json() { local f; for f in "$@"; do [[ -f "${f}.orig" ]] && mv "${f}.orig" "${f}"; done; }
+trap '_restore_json \
+    ./nextcloud.json \
+    ../coturn/coturn.json \
+    ../euro-office/euro-office.json \
+    ../nextcloud-hpb/nextcloud-hpb.json' EXIT
+
+_enrich_json ./nextcloud.json
+_enrich_json ../coturn/coturn.json
+_enrich_json ../euro-office/euro-office.json
+_enrich_json ../nextcloud-hpb/nextcloud-hpb.json
+
+_VMNAME_VAL="$(jq -r '.vmname' ./nextcloud.json.orig)"
+_PROXY_DOMAIN="${_VMNAME_VAL}.${_BASE_DOMAIN}"
+
 . /home/tappaas/bin/install-vm.sh
 
 # run the update script as all update actions is also needed at install time
 . ./update.sh
 
-PROXY_DOMAIN="$(get_config_value 'proxyDomain')"
+PROXY_DOMAIN="${_PROXY_DOMAIN}"
 
 # ── Copy admin password to local secrets file ─────────────────────────────────
 echo ""

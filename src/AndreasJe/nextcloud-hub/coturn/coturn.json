@@ -22,7 +22,6 @@
   "cloudInit": "true",
   "bridge0": "lan",
   "zone0": "dmz",
-  "publicDomain": "coturn.example.com",
   "timeZone": "Europe/Amsterdam",
   "dependsOn": [
     "cluster:vm",

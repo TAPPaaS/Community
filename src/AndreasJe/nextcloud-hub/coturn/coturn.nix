@@ -258,7 +258,7 @@ in
 listening-port=3478
 min-port=49152
 max-port=65535
-realm=${meta.publicDomain}
+realm=${meta.proxyDomain}
 use-auth-secret
 static-auth-secret=$COTURN_SECRET
 no-cli

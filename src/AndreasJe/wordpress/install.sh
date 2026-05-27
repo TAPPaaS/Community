@@ -3,7 +3,8 @@
 # TAPPaaS WordPress Module Installation
 #
 # Copies the NixOS configuration and JSON to the VM and runs nixos-rebuild.
-# Domain is read from wordpress.json (proxyDomain). No domain prompt needed.
+# Domain is derived from the platform configuration (tappaas.domain) and
+# injected as proxyDomain at deploy time. No domain prompt needed.
 # The VM is already provisioned by cluster:vm / templates:nixos before this
 # script is called.
 #
@@ -64,23 +65,34 @@ main() {
     local script_dir
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-    local site_domain
-    site_domain="$(jq -r '.proxyDomain' "${script_dir}/wordpress.json")"
+    # ── Derive public domain from platform configuration ───────────────
+    local global_config base_domain site_domain deploy_json
+    global_config="/home/tappaas/config/configuration.json"
+    base_domain="$(jq -r '.tappaas.domain' "${global_config}")"
+    site_domain="${VMNAME}.${base_domain}"
+
+    # Build a deploy-time JSON that includes the computed proxyDomain.
+    # The source wordpress.json has no proxyDomain; this enriched copy is
+    # what lands on the VM so that wordpress.nix can read meta.proxyDomain.
+    deploy_json="$(mktemp /tmp/wordpress-deploy-XXXXXX.json)"
+    jq --arg domain "${site_domain}" '. + {"proxyDomain": $domain}' \
+        "${script_dir}/wordpress.json" > "${deploy_json}"
+    trap 'rm -f "${deploy_json}"' EXIT
 
     info "Deploying WordPress to ${VM_HOST} (${site_domain})..."
 
-    # ── Step 1: Copy NixOS config and JSON to VM ───────────────────────
+    # ── Step 1: Copy NixOS config and enriched JSON to VM ─────────────
     # shellcheck disable=SC2086
     scp ${SSH_OPTS} \
         "${script_dir}/wordpress.nix" \
-        "${script_dir}/wordpress.json" \
+        "${deploy_json}" \
         "tappaas@${VM_HOST}:/tmp/"
 
     # ── Step 2: Apply NixOS configuration ─────────────────────────────
     # shellcheck disable=SC2086
     ssh ${SSH_OPTS} "tappaas@${VM_HOST}" \
         "sudo cp /tmp/wordpress.nix /etc/nixos/configuration.nix && \
-         sudo cp /tmp/wordpress.json /etc/nixos/wordpress.json && \
+         sudo cp /tmp/$(basename "${deploy_json}") /etc/nixos/wordpress.json && \
          sudo nixos-rebuild switch"
 
     echo ""

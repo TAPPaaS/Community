@@ -9,6 +9,17 @@
 # Usage: ./install.sh <vmname>
 # Example: ./install.sh euro-office
 
+# ── Inject proxyDomain from platform configuration ───────────────────────────
+_GLOBAL_CONFIG="/home/tappaas/config/configuration.json"
+_BASE_DOMAIN="$(jq -r '.tappaas.domain' "${_GLOBAL_CONFIG}")"
+_VMNAME_VAL="$(jq -r '.vmname' ./euro-office.json)"
+_PROXY_DOMAIN="${_VMNAME_VAL}.${_BASE_DOMAIN}"
+
+cp ./euro-office.json ./euro-office.json.orig
+jq --arg domain "${_PROXY_DOMAIN}" '. + {"proxyDomain": $domain}' \
+    ./euro-office.json.orig > ./euro-office.json
+trap 'mv ./euro-office.json.orig ./euro-office.json' EXIT
+
 . /home/tappaas/bin/install-vm.sh
 
 # run the update script as all update actions is also needed at install time
