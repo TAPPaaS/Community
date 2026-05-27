@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# sonos-fleet:airplay install-service — no-op (policy-only module).
+# sonos:airplay install-service — no-op (policy-only module).
 #
 # The 'airplay' service is purely declarative: it exposes its ports via
 # pinhole.json so cross-zone consumers are granted access by auto-pinhole
@@ -18,4 +18,4 @@ if [[ -z "${CONSUMER}" ]]; then
     exit 1
 fi
 
-info "sonos-fleet:airplay install-service for consumer '${CONSUMER}' — no provider-side work needed (auto-pinhole handled by consumer's firewall:rules)."
+info "sonos:airplay install-service for consumer '${CONSUMER}' — no provider-side work needed (auto-pinhole handled by consumer's firewall:rules)."
