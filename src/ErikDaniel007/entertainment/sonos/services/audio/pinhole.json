@@ -1,0 +1,8 @@
+{
+  "ports": [
+    { "port": 1400, "protocol": "TCP", "description": "Sonos control API (SOAP)" },
+    { "port": 1443, "protocol": "TCP", "description": "Sonos control HTTPS (WSS)" },
+    { "port": 4070, "protocol": "TCP", "description": "Spotify Connect endpoint" },
+    { "port": 4444, "protocol": "TCP", "description": "Sonos firmware OTA updates" }
+  ]
+}

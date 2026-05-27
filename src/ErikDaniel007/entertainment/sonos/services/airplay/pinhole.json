@@ -1,0 +1,6 @@
+{
+  "ports": [
+    { "port": 7000,        "protocol": "TCP", "description": "Sonos AirPlay control" },
+    { "port": "7000-7100", "protocol": "UDP", "description": "Sonos AirPlay RAOP audio timing" }
+  ]
+}
