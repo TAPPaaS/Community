@@ -1,0 +1,6 @@
+{
+  "ports": [
+    { "port": 80,  "protocol": "TCP", "description": "Alfen web UI (HTTP)" },
+    { "port": 443, "protocol": "TCP", "description": "Alfen web UI (HTTPS)" }
+  ]
+}

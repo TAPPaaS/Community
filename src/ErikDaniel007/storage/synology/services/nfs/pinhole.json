@@ -1,0 +1,9 @@
+{
+  "_comment": "Auto-pinhole declaration (#173) for the 'nfs' service (NFS file shares).",
+  "ports": [
+    { "port": 2049, "protocol": "TCP", "description": "NFS file shares" },
+    { "port": 2049, "protocol": "UDP", "description": "NFS file shares" },
+    { "port": 111,  "protocol": "TCP", "description": "NFS portmapper" },
+    { "port": 111,  "protocol": "UDP", "description": "NFS portmapper" }
+  ]
+}

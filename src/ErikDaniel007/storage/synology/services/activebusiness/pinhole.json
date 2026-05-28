@@ -1,0 +1,8 @@
+{
+  "_comment": "Auto-pinhole declaration (#173) for the 'activebusiness' service (Synology Active Backup for Business).",
+  "ports": [
+    { "port": 5510, "protocol": "TCP", "description": "Active Backup for Business agent communication" },
+    { "port": 8001, "protocol": "TCP", "description": "Active Backup for Business portal (HTTP)" },
+    { "port": 8002, "protocol": "TCP", "description": "Active Backup for Business portal (HTTPS)" }
+  ]
+}

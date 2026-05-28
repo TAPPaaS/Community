@@ -1,0 +1,68 @@
+{
+  "description": "Synology DiskStation NAS — policy-only module for firewall rules (no VM)",
+  "version": "0.1.0",
+  "releaseDate": "2026-05-27",
+  "maintainer": "@ErikDaniel007",
+  "status": "Development",
+  "location": "/home/tappaas/Community/src/ErikDaniel007/storage/synology",
+  "vmname": "synology",
+  "vmtag": "TAPPaaS,Community,Storage,Hardware",
+  "zone0": "srv-home",
+  "aliasType": "network",
+  "firewallType": "opnsense",
+  "proxyPort": 5001,
+  "proxyUpstreamTls": "true",
+  "proxyAllowedZones": ["home", "work", "mgmt"],
+  "ports": [
+    { "port": 5000, "protocol": "TCP", "description": "DSM web UI (HTTP)" },
+    { "port": 5001, "protocol": "TCP", "description": "DSM web UI (HTTPS)" },
+    { "port": 445,  "protocol": "TCP", "description": "SMB/CIFS file shares and Time Machine" },
+    { "port": 139,  "protocol": "TCP", "description": "SMB NetBIOS session" },
+    { "port": 137,  "protocol": "UDP", "description": "NetBIOS name service" },
+    { "port": 138,  "protocol": "UDP", "description": "NetBIOS datagram" },
+    { "port": 2049, "protocol": "TCP", "description": "NFS file shares" },
+    { "port": 2049, "protocol": "UDP", "description": "NFS file shares" },
+    { "port": 111,  "protocol": "TCP", "description": "NFS portmapper" },
+    { "port": 111,  "protocol": "UDP", "description": "NFS portmapper" },
+    { "port": 6690, "protocol": "TCP", "description": "Synology Drive desktop client sync" },
+    { "port": 9900, "protocol": "TCP", "description": "Surveillance Station web UI (HTTP)" },
+    { "port": 9901, "protocol": "TCP", "description": "Surveillance Station web UI (HTTPS)" },
+    { "port": 554,  "protocol": "TCP", "description": "Surveillance Station RTSP live view" },
+    { "port": 1900, "protocol": "UDP", "description": "DLNA/SSDP media discovery" },
+    { "port": 50001,"protocol": "TCP", "description": "DLNA media streaming" },
+    { "port": 10002,"protocol": "TCP", "description": "Synology Drive web portal (HTTP)" },
+    { "port": 10003,"protocol": "TCP", "description": "Synology Drive web portal (HTTPS)" },
+    { "port": 5080, "protocol": "TCP", "description": "Synology Photos web portal (HTTP)" },
+    { "port": 5443, "protocol": "TCP", "description": "Synology Photos web portal (HTTPS)" },
+    { "port": 28003,"protocol": "TCP", "description": "Active Backup for Microsoft 365 portal (HTTP)" },
+    { "port": 28004,"protocol": "TCP", "description": "Active Backup for Microsoft 365 portal (HTTPS)" },
+    { "port": 8001, "protocol": "TCP", "description": "Active Backup for Business portal (HTTP)" },
+    { "port": 8002, "protocol": "TCP", "description": "Active Backup for Business portal (HTTPS)" },
+    { "port": 5510, "protocol": "TCP", "description": "Active Backup for Business agent communication" }
+  ],
+  "egress": [
+    {
+      "to": "mgmt",
+      "ports": [22],
+      "protocol": "TCP",
+      "description": "Hyper Backup outbound to PBS (rsync over SSH)"
+    }
+  ],
+  "provides": [
+    "dsm",
+    "smb",
+    "nfs",
+    "drive",
+    "photos",
+    "media",
+    "surveillance",
+    "timemachine",
+    "m365backup",
+    "activebusiness"
+  ],
+  "dependsOn": [
+    "firewall:rules",
+    "firewall:proxy",
+    "identity:identity"
+  ]
+}

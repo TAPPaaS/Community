@@ -24,12 +24,30 @@
         {
             "moduleName": "unifi",
             "vmid": 810,
-            "moduleJson": "src/network/unifi/unifi.json"
+            "moduleJson": "src/ErikDaniel007/network/unifi/unifi.json"
         },
         {
             "moduleName": "wordpress",
             "vmid": 620,
             "moduleJson": "src/AndreasJe/wordpress/wordpress.json"
+        },
+        {
+            "moduleName": "alfen",
+            "vmid": null,
+            "moduleJson": "src/ErikDaniel007/energy/alfen/alfen.json",
+            "_comment": "Policy-only \u2014 no VM (NG5 sidestep, #157)"
+        },
+        {
+            "moduleName": "sonos",
+            "vmid": null,
+            "moduleJson": "src/ErikDaniel007/entertainment/sonos/sonos.json",
+            "_comment": "Policy-only \u2014 no VM"
+        },
+        {
+            "moduleName": "synology",
+            "vmid": null,
+            "moduleJson": "src/ErikDaniel007/storage/synology/synology.json",
+            "_comment": "Policy-only \u2014 no VM (hardware NAS)"
         }
     ],
     "foundationModules": [],

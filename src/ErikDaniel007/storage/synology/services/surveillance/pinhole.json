@@ -1,0 +1,8 @@
+{
+  "_comment": "Auto-pinhole declaration (#173) for the 'surveillance' service (Synology Surveillance Station).",
+  "ports": [
+    { "port": 9900, "protocol": "TCP", "description": "Surveillance Station portal (HTTP)" },
+    { "port": 9901, "protocol": "TCP", "description": "Surveillance Station portal (HTTPS)" },
+    { "port": 554,  "protocol": "TCP", "description": "Surveillance Station RTSP live view" }
+  ]
+}

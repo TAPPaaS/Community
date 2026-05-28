@@ -1,0 +1,84 @@
+{
+  "description": "Sonos speaker system — policy-only module for firewall rules (no VM)",
+  "version": "0.1.0",
+  "releaseDate": "2026-05-23",
+  "maintainer": "@ErikDaniel007",
+  "status": "Testing",
+  "location": "/home/tappaas/Community/src/ErikDaniel007/entertainment/sonos",
+  "vmname": "sonos",
+  "vmtag": "TAPPaaS,Community,Entertainment,Hardware",
+  "zone0": "iot-cloud",
+  "aliasType": "network",
+  "firewallType": "opnsense",
+  "ports": [
+    {
+      "port": 1400,
+      "protocol": "TCP",
+      "description": "Sonos control API (SOAP)"
+    },
+    {
+      "port": 1443,
+      "protocol": "TCP",
+      "description": "Sonos control HTTPS (WSS)"
+    },
+    {
+      "port": 4070,
+      "protocol": "TCP",
+      "description": "Spotify Connect endpoint"
+    },
+    {
+      "port": 4444,
+      "protocol": "TCP",
+      "description": "Sonos firmware OTA updates"
+    },
+    {
+      "port": 7000,
+      "protocol": "TCP",
+      "description": "Sonos AirPlay control"
+    },
+    {
+      "port": "7000-7100",
+      "protocol": "UDP",
+      "description": "Sonos AirPlay RAOP audio timing"
+    }
+  ],
+  "discoveryMdns": true,
+  "ingress": [
+    {
+      "from": "home",
+      "ports": [
+        1400,
+        1443,
+        4070,
+        4444,
+        7000
+      ],
+      "protocol": "TCP",
+      "description": "Sonos app direct control (home zone)"
+    },
+    {
+      "from": "home",
+      "ports": [
+        "7000-7100"
+      ],
+      "protocol": "UDP",
+      "description": "Sonos AirPlay RAOP (home zone)"
+    }
+  ],
+  "egress": [
+    {
+      "to": "srv-home",
+      "ports": [1400],
+      "protocol": "TCP",
+      "description": "Sonos push event callback to Home Assistant subscription listener"
+    }
+  ],
+  "provides": [
+    "audio",
+    "airplay"
+  ],
+  "dependsOn": [
+    "firewall:rules",
+    "firewall:discovery"
+  ]
+}

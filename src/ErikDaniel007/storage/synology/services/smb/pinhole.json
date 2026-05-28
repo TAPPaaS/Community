@@ -1,0 +1,9 @@
+{
+  "_comment": "Auto-pinhole declaration (#173) for the 'smb' service (Synology file shares over SMB / NetBIOS).",
+  "ports": [
+    { "port": 139, "protocol": "TCP", "description": "SMB NetBIOS session" },
+    { "port": 445, "protocol": "TCP", "description": "SMB over TCP" },
+    { "port": 137, "protocol": "UDP", "description": "NetBIOS name service" },
+    { "port": 138, "protocol": "UDP", "description": "NetBIOS datagram" }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "_comment": "Outbound NAT (masquerade) config for alfen:nat. Lists source zones whose traffic to zone0 must be masqueraded. Required because Alfen NG5 firmware only accepts TCP connections originating from its own /24 subnet (iot-cloud); masquerade rewrites the source IP to the zone0 interface address.",
+  "masquerade": ["home", "srv-home"]
+}

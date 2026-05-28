@@ -1,0 +1,5 @@
+{
+  "ports": [
+    { "port": 502, "protocol": "TCP", "description": "Modbus TCP (HA integration)" }
+  ]
+}

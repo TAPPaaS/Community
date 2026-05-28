@@ -1,0 +1,5 @@
+{
+  "ports": [
+    { "port": 36549, "protocol": "UDP", "description": "Alfen discovery broadcast" }
+  ]
+}
