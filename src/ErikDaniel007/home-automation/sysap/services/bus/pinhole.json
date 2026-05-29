@@ -1,0 +1,7 @@
+{
+  "_comment": "Auto-pinhole declaration (#173) for the 'bus' service of the ABB free@home SysAP. TCP 443 is the official local REST + WSS endpoint (firmware ≥ 2.6.0); TCP 80 kept for backward compatibility with older firmware.",
+  "ports": [
+    { "port": 80,  "protocol": "TCP", "description": "free@home SysAP HTTP API (legacy, FW < 2.6.0)" },
+    { "port": 443, "protocol": "TCP", "description": "free@home SysAP HTTPS + WSS (official FW ≥ 2.6.0)" }
+  ]
+}

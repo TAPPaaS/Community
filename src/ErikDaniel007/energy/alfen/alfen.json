@@ -8,6 +8,7 @@
   "vmname": "alfen",
   "vmtag": "TAPPaaS,Community,Energy,Hardware",
   "zone0": "iot-cloud",
+  "aliasType": "host",
   "firewallType": "opnsense",
   "ports": [
     {

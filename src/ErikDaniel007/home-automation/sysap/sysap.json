@@ -1,0 +1,34 @@
+{
+  "description": "ABB free@home SysAP — policy-only module for firewall rules (no VM)",
+  "version": "0.1.0",
+  "releaseDate": "2026-05-23",
+  "maintainer": "@ErikDaniel007",
+  "status": "Development",
+  "location": "/home/tappaas/Community/src/ErikDaniel007/home-automation/sysap",
+  "vmname": "sysap",
+  "vmtag": "TAPPaaS,Community,HomeAutomation,Hardware",
+  "zone0": "iot-cloud",
+  "aliasType": "host",
+  "firewallType": "opnsense",
+  "ports": [
+    {
+      "port": 80,
+      "protocol": "TCP",
+      "description": "free@home SysAP HTTP API (legacy, FW < 2.6.0)"
+    },
+    {
+      "port": 443,
+      "protocol": "TCP",
+      "description": "free@home SysAP HTTPS + WSS (official FW ≥ 2.6.0)"
+    }
+  ],
+  "discoveryMdns": ["home"],
+  "provides": [
+    "bus"
+  ],
+  "dependsOn": [
+    "firewall:rules",
+    "firewall:discovery"
+  ],
+  "_comment_direct_access": "No-HA scenario: add egress to iot-local ports 80/443 + hue:bridge in dependsOn. See INSTALL.md advanced section. Not recommended: breaks zone isolation."
+}

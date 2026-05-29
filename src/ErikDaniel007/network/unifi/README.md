@@ -1,6 +1,5 @@
 # UniFi Network Controller
 
-Primary audience: home user, network administrator.
 
 Centrally manage all Ubiquiti network devices — access points, switches and
 gateways — from a single local dashboard. No UniFi cloud account required.
@@ -22,14 +21,14 @@ gateways — from a single local dashboard. No UniFi cloud account required.
 ## Requirements
 
 - Proxmox node with storage pool `tanka1`
-- NixOS template (VMID 8080) on the target node
+- NixOS template on the target node
 - `mgmt` network zone
 
 ## Known limitation
 
 Ubiquiti has announced that future UniFi Network versions will only be
 supported on UniFi OS Server, not the standalone controller. This module
-tracks version 10.3.58 and will be replaced by `unifi-os-server` in a
+tracks the last supported standalone version and will be replaced by `unifi-os-server` in a
 future TAPPaaS release.
 
 ## Dependencies

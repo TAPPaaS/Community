@@ -1,6 +1,6 @@
 # UniFi Network Controller — Installation
 
-Primary audience: TAPPaaS admin. Manual steps that cannot be automated.
+Only manual steps are listed here. Scripts handle everything else automatically.
 
 ## Prerequisites
 
@@ -19,6 +19,20 @@ install-module.sh unifi
 This creates the VM and configures:
 - UniFi Network Controller service (NixOS declarative)
 - Daily backup job to `/var/backup/unifi` (30-day retention)
+
+## Customisation (optional)
+
+Override any JSON field at install time:
+
+```bash
+install-module.sh unifi --node tappaas1 --vmid 811
+```
+
+| Flag | Default | Controls |
+|---|---|---|
+| `--node` | `tappaas2` | Proxmox node |
+| `--vmid` | `810` | Proxmox VM ID |
+| `--memory` | `2048` | RAM in MB |
 
 ## Post-install
 

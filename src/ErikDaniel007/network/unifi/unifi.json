@@ -1,6 +1,7 @@
 {
   "description": "UniFi Network Controller — manage Ubiquiti access points, switches and gateways",
-  "version": "10.3.58",
+  "version": "0.1.0",
+  "appVersion": "10.3.58",
   "releaseDate": "2026-05-20",
   "maintainer": "@ErikDaniel007",
   "status": "Development",
