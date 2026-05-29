@@ -1,6 +1,5 @@
 # Synology DiskStation NAS
 
-Primary audience: home user, household administrator.
 
 Centralised file storage, photo management, device backup and home
 surveillance. Runs DiskStation Manager (DSM) — no TAPPaaS software

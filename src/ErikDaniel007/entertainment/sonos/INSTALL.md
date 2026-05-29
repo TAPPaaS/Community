@@ -1,6 +1,5 @@
 # Sonos — Installation
 
-Primary audience: TAPPaaS admin. Manual steps that cannot be automated.
 
 ## Prerequisites
 

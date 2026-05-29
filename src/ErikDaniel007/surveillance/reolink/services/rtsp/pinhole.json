@@ -1,0 +1,7 @@
+{
+  "_comment": "Auto-pinhole declaration (#173) for the 'rtsp' service. Standard RTSP ports — works with any RTSP-capable camera. Consumers that only need live streaming or HA generic_camera declare dependsOn: [\"reolink:rtsp\"].",
+  "ports": [
+    { "port": 554,  "protocol": "TCP", "description": "RTSP standard" },
+    { "port": 8554, "protocol": "TCP", "description": "RTSP alt" }
+  ]
+}

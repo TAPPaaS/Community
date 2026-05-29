@@ -1,0 +1,9 @@
+{
+  "_comment": "Auto-pinhole declaration (#173) for the 'api' service. Reolink-specific ports required by the Home Assistant native Reolink integration (motion events, two-way audio, PTZ, smart detection). Consumers using HA generic_camera do not need this service.",
+  "ports": [
+    { "port": 80,   "protocol": "TCP", "description": "Reolink HTTP API" },
+    { "port": 443,  "protocol": "TCP", "description": "Reolink HTTPS API" },
+    { "port": 8000, "protocol": "TCP", "description": "ONVIF / Reolink HTTP management" },
+    { "port": 9000, "protocol": "TCP", "description": "Reolink Basic Port (required by HA native integration)" }
+  ]
+}

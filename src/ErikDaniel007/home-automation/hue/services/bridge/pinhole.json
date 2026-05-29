@@ -1,0 +1,7 @@
+{
+  "_comment": "Auto-pinhole declaration (#173) for the 'bridge' service of the Philips Hue bridge. HTTP(S) API for HA-side scene/light control.",
+  "ports": [
+    { "port": 80,  "protocol": "TCP", "description": "Hue bridge HTTP API" },
+    { "port": 443, "protocol": "TCP", "description": "Hue bridge HTTPS API" }
+  ]
+}

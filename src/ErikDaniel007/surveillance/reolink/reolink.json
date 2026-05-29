@@ -1,0 +1,28 @@
+{
+  "description": "Reolink IP cameras — policy-only module for firewall rules (no VM)",
+  "version": "0.1.0",
+  "releaseDate": "2026-05-29",
+  "maintainer": "@ErikDaniel007",
+  "status": "Development",
+  "location": "/home/tappaas/Community/src/ErikDaniel007/surveillance/reolink",
+  "vmname": "reolink",
+  "vmtag": "TAPPaaS,Community,Surveillance,Hardware",
+  "zone0": "iot-cams",
+  "aliasType": "network",
+  "firewallType": "opnsense",
+  "ports": [
+    { "port": 554,  "protocol": "TCP", "description": "RTSP standard" },
+    { "port": 8554, "protocol": "TCP", "description": "RTSP alt" },
+    { "port": 80,   "protocol": "TCP", "description": "Reolink HTTP API" },
+    { "port": 443,  "protocol": "TCP", "description": "Reolink HTTPS API" },
+    { "port": 8000, "protocol": "TCP", "description": "ONVIF / Reolink HTTP management" },
+    { "port": 9000, "protocol": "TCP", "description": "Reolink Basic Port" }
+  ],
+  "provides": [
+    "rtsp",
+    "api"
+  ],
+  "dependsOn": [
+    "firewall:rules"
+  ]
+}

@@ -1,6 +1,5 @@
 # Sonos — Multi-room Audio
 
-Primary audience: home user, Home Assistant administrator.
 
 Whole-home audio streaming with app control and smart home integration.
 Play music from any streaming service on any speaker or group; control
