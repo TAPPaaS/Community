@@ -545,10 +545,10 @@ in
         export PATH="/run/current-system/sw/bin:${pkgs.coreutils}/bin:$PATH"
 
         nextcloud-occ config:app:set spreed stun_servers \
-          --value='["${coturnMeta.publicDomain}:3478"]'
+          --value='["${coturnMeta.proxyDomain}:3478"]'
 
         nextcloud-occ config:app:set spreed turn_servers \
-          --value="[{\"server\":\"${coturnMeta.publicDomain}:3478\",\"secret\":\"$COTURN_SECRET\",\"protocols\":\"udp,tcp\"}]"
+          --value="[{\"server\":\"${coturnMeta.proxyDomain}:3478\",\"secret\":\"$COTURN_SECRET\",\"protocols\":\"udp,tcp\"}]"
 
         echo "Nextcloud Talk STUN/TURN servers configured successfully."
       '';

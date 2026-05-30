@@ -17,6 +17,12 @@ set -euo pipefail
 
 . /home/tappaas/bin/common-install-routines.sh
 
+# Derive public domain from platform configuration
+GLOBAL_CONFIG="/home/tappaas/config/configuration.json"
+BASE_DOMAIN="$(jq -r '.tappaas.domain' "${GLOBAL_CONFIG}")"
+COTURN_VMNAME="$(jq -r '.vmname' "$(dirname "${BASH_SOURCE[0]}")/coturn.json")"
+COTURN_DOMAIN="${COTURN_VMNAME}.${BASE_DOMAIN}"
+
 COTURN_HOST="coturn.dmz.internal"
 NEXTCLOUD_HOST="nextcloud.srv.internal"
 readonly MGMT_SECRETS="/home/tappaas/secrets/coturn.env"
@@ -102,7 +108,7 @@ echo ""
 warn "Ensure OPNsense has the following (not configured automatically):"
 warn "  - NAT rule: WAN:3478 (UDP+TCP) -> coturn DMZ IP:3478"
 warn "  - NAT rule: WAN:49152-65535 (UDP) -> coturn DMZ IP:49152-65535"
-warn "  - DNS A record: $(jq -r '.publicDomain' coturn.json) -> public WAN IP"
+warn "  - DNS A record: ${COTURN_DOMAIN} -> public WAN IP"
 
 echo ""
 info "${GN}✓${CL} coturn installation completed successfully."

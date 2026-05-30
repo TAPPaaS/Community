@@ -11,7 +11,10 @@ set -euo pipefail
 TARGET="nextcloud-hpb.srv.internal"
 NEXTCLOUD_HOST="nextcloud.srv.internal"
 SSH_CMD="ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o BatchMode=yes tappaas@${TARGET}"
-HPB_PROXY_DOMAIN="$(jq -r '.proxyDomain' "$(dirname "${BASH_SOURCE[0]}")/nextcloud-hpb.json")"
+_HPB_DIR="$(dirname "${BASH_SOURCE[0]}")"
+_BASE_DOMAIN="$(jq -r '.tappaas.domain' /home/tappaas/config/configuration.json)"
+HPB_PROXY_DOMAIN="$(jq -r '.vmname' "${_HPB_DIR}/nextcloud-hpb.json").${_BASE_DOMAIN}"
+unset _HPB_DIR _BASE_DOMAIN
 TIMESTAMP=$(date '+%Y-%m-%d_%H%M%S')
 LOG_DIR="/home/tappaas/logs"
 LOG_FILE="${LOG_DIR}/nextcloud-hpb-test-${TIMESTAMP}.log"

@@ -35,7 +35,7 @@ let
   coturnMeta    = builtins.fromJSON (builtins.readFile ../coturn/coturn.json);
 
   nextcloudUrl = "https://${nextcloudMeta.proxyDomain}";
-  coturnHost   = coturnMeta.publicDomain;
+  coturnHost   = coturnMeta.proxyDomain;
   secretsDir   = "/var/lib/nextcloud-hpb/secrets";
 in
 {

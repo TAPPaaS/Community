@@ -22,7 +22,6 @@
   "cloudInit": "true",
   "bridge0": "lan",
   "zone0": "srv",
-  "proxyDomain": "hpb.example.com",
   "proxyPort": 8080,
   "timeZone": "Europe/Amsterdam",
   "dependsOn": [

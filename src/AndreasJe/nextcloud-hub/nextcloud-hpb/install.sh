@@ -14,6 +14,17 @@
 # Usage: ./install.sh <vmname>
 # Example: ./install.sh nextcloud-hpb
 
+# ── Inject proxyDomain from platform configuration ───────────────────────────
+_GLOBAL_CONFIG="/home/tappaas/config/configuration.json"
+_BASE_DOMAIN="$(jq -r '.tappaas.domain' "${_GLOBAL_CONFIG}")"
+_VMNAME_VAL="$(jq -r '.vmname' ./nextcloud-hpb.json)"
+_PROXY_DOMAIN="${_VMNAME_VAL}.${_BASE_DOMAIN}"
+
+cp ./nextcloud-hpb.json ./nextcloud-hpb.json.orig
+jq --arg domain "${_PROXY_DOMAIN}" '. + {"proxyDomain": $domain}' \
+    ./nextcloud-hpb.json.orig > ./nextcloud-hpb.json
+trap 'mv ./nextcloud-hpb.json.orig ./nextcloud-hpb.json' EXIT
+
 . /home/tappaas/bin/install-vm.sh
 
 # run the update script as all update actions are also needed at install time
@@ -21,9 +32,9 @@
 
 HPB_HOST="nextcloud-hpb.srv.internal"
 NEXTCLOUD_HOST="nextcloud.srv.internal"
-PROXY_DOMAIN="$(get_config_value 'proxyDomain')"
-HPB_HOST_PART="${PROXY_DOMAIN%%.*}"
-HPB_DOMAIN_PART="${PROXY_DOMAIN#*.}"
+PROXY_DOMAIN="${_PROXY_DOMAIN}"
+HPB_HOST_PART="${_VMNAME_VAL}"
+HPB_DOMAIN_PART="${_BASE_DOMAIN}"
 MGMT_SECRETS="/home/tappaas/secrets/nextcloud-hpb.env"
 COTURN_MGMT_SECRETS="/home/tappaas/secrets/coturn.env"
 # Runtime secrets directory — must match secretsDir in nextcloud-hpb.nix

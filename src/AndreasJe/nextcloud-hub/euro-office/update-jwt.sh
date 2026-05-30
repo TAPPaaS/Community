@@ -18,9 +18,11 @@ set -euo pipefail
 EUROOFFICE_HOST="euro-office.srv.internal"
 NEXTCLOUD_HOST="nextcloud.srv.internal"
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ONLYOFFICE_URL="https://$(jq -r '.proxyDomain' "${_SCRIPT_DIR}/euro-office.json")"
-NEXTCLOUD_URL="https://$(jq -r '.proxyDomain' "${_SCRIPT_DIR}/../nextcloud/nextcloud.json")/"
-unset _SCRIPT_DIR
+_GLOBAL_CONFIG="/home/tappaas/config/configuration.json"
+_BASE_DOMAIN="$(jq -r '.tappaas.domain' "${_GLOBAL_CONFIG}")"
+ONLYOFFICE_URL="https://$(jq -r '.vmname' "${_SCRIPT_DIR}/euro-office.json").${_BASE_DOMAIN}"
+NEXTCLOUD_URL="https://$(jq -r '.vmname' "${_SCRIPT_DIR}/../nextcloud/nextcloud.json").${_BASE_DOMAIN}/"
+unset _SCRIPT_DIR _GLOBAL_CONFIG _BASE_DOMAIN
 
 info "Reading JWT_SECRET from ${EUROOFFICE_HOST}…"
 JWT_SECRET=$(ssh -o BatchMode=yes -o ConnectTimeout=15 \

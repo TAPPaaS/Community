@@ -79,14 +79,26 @@ main() {
 
     # ── Step 1: Deploy NixOS configuration ────────────────────────────
     info "Step 1: Deploy wordpress.nix"
+
+    # Derive public domain from platform configuration and inject it into
+    # the deploy JSON (the source JSON has no proxyDomain field).
+    local global_config base_domain site_domain deploy_json
+    global_config="/home/tappaas/config/configuration.json"
+    base_domain="$(jq -r '.tappaas.domain' "${global_config}")"
+    site_domain="${VMNAME}.${base_domain}"
+    deploy_json="$(mktemp /tmp/wordpress-deploy-XXXXXX.json)"
+    jq --arg domain "${site_domain}" '. + {"proxyDomain": $domain}' \
+        "${SCRIPT_DIR}/wordpress.json" > "${deploy_json}"
+    trap 'rm -f "${deploy_json}"' EXIT
+
     # shellcheck disable=SC2086
-    scp ${SSH_OPTS} "${SCRIPT_DIR}/wordpress.nix" "${SCRIPT_DIR}/wordpress.json" "tappaas@${VM_HOST}:/tmp/"
+    scp ${SSH_OPTS} "${SCRIPT_DIR}/wordpress.nix" "${deploy_json}" "tappaas@${VM_HOST}:/tmp/"
     # shellcheck disable=SC2086
     ssh ${SSH_OPTS} "tappaas@${VM_HOST}" \
         "sudo cp /tmp/wordpress.nix /etc/nixos/configuration.nix && \
-         sudo cp /tmp/wordpress.json /etc/nixos/wordpress.json && \
+         sudo cp /tmp/$(basename "${deploy_json}") /etc/nixos/wordpress.json && \
          sudo nixos-rebuild switch"
-    info "${GN}✓${CL} NixOS configuration applied"
+    info "${GN}✓${CL} NixOS configuration applied (${site_domain})"
 
     # ── Step 2: Optional container image update ────────────────────────
     if [[ "${update_container}" == "true" ]]; then
