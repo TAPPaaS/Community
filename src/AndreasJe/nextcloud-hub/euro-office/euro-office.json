@@ -25,7 +25,7 @@
   "proxyDomain": "eu-office.example.com",
   "proxyPort": 80,
   "_containerEnv": "Fields below map directly to container environment variables in euro-office.nix",
-  "containerImage": "ghcr.io/euro-office/documentserver:nightly",
+  "containerImage": "ghcr.io/euro-office/documentserver:build-document-server-custom",
   "exampleEnabled": "false",
   "timeZone": "Europe/Amsterdam",
   "dependsOn": [
@@ -35,7 +35,5 @@
     "firewall:proxy",
     "nextcloud:vm"
   ],
-  "provides": [
-    "vm"
-  ]
+  "provides": []
 }
