@@ -41,12 +41,6 @@ let
     nextcloudPkg = pkgs.nextcloud33;
   };
 
-  meta           = builtins.fromJSON (builtins.readFile ./nextcloud.json);
-  coturnMeta     = builtins.fromJSON (builtins.readFile ../coturn/coturn.json);
-  euroOfficeMeta = builtins.fromJSON (builtins.readFile ../euro-office/euro-office.json);
-  hpbMeta        = builtins.fromJSON (builtins.readFile ../nextcloud-hpb/nextcloud-hpb.json);
-
-  nextcloudHostName = meta.proxyDomain;
 in
 {
   # ============================================================================
@@ -78,7 +72,7 @@ in
   # NETWORKING
   # ============================================================================
 
-  networking.hostName = lib.mkDefault meta.vmname;
+  networking.hostName = lib.mkDefault "nextcloud";
   networking.networkmanager.enable = true;
   networking.networkmanager.ensureProfiles.profiles.tappaas-ethernet = {
     connection = { id = "tappaas-ethernet"; type = "ethernet"; autoconnect = "true"; autoconnect-priority = "100"; };
@@ -107,7 +101,7 @@ in
   # TIME ZONE
   # ============================================================================
 
-  time.timeZone = lib.mkDefault meta.timeZone;
+  time.timeZone = lib.mkDefault "Europe/Amsterdam";
 
   # ============================================================================
   # USERS & SECURITY
@@ -285,6 +279,15 @@ in
       ExecStart = pkgs.writeShellScript "nextcloud-apply-db-pass" ''
         set -euo pipefail
         DB_PASS="$(${pkgs.coreutils}/bin/cat /var/lib/nextcloud/db-pass)"
+        # Wait for the nextcloud role to exist (ensureUsers runs in postgresql postStart)
+        for i in $(seq 1 10); do
+          if ${pkgs.util-linux}/bin/runuser -u postgres -- \
+              ${versions.postgresPkg}/bin/psql -tAc \
+              "SELECT 1 FROM pg_roles WHERE rolname='nextcloud'" | grep -q 1; then
+            break
+          fi
+          sleep 2
+        done
         ${pkgs.coreutils}/bin/printf "ALTER ROLE nextcloud WITH ENCRYPTED PASSWORD '%s';\n" "$DB_PASS" \
           | ${pkgs.util-linux}/bin/runuser -u postgres -- ${versions.postgresPkg}/bin/psql
       '';
@@ -297,7 +300,7 @@ in
 
   services.nextcloud = {
     enable   = true;
-    hostName = nextcloudHostName;
+    hostName = config.networking.hostName;
     package  = versions.nextcloudPkg;
 
     extraApps = {
@@ -361,35 +364,44 @@ in
       # Required for Authentik (same srv zone) to be reachable as OIDC provider
       allow_local_remote_servers = true;
 
-      trusted_domains   = [ nextcloudHostName "nextcloud.srv.internal" "localhost" ];
-      trusted_proxies   = [ "127.0.0.1" "::1" "10.2.10.0/24" ];
+      # trusted_domains: hostName is auto-added by NixOS module. Public domain
+      # added by install.sh via nextcloud-occ (index 1+) — not set here to
+      # avoid Nix store overriding occ-set values at index 0.
+      trusted_domains = [ config.networking.hostName "localhost" ];
+
+      # trusted_proxies: Caddy runs on the OPNsense firewall which holds the
+      # gateway IP of every TAPPaaS zone (10.x.y.1). Including 10.0.0.0/8
+      # covers all zones generically — safe in a private TAPPaaS deployment.
+      # With a trusted proxy, Nextcloud reads the Host header directly, so
+      # overwritehost and overwrite.cli.url are not needed here.
+      trusted_proxies   = [ "127.0.0.1" "::1" "10.0.0.0/8" ];
       overwriteprotocol = "https";
-      "overwrite.cli.url" = "https://${nextcloudHostName}";
 
       # Maintenance window: 01:00 UTC — avoids peak usage hours
       maintenance_window_start = 1;
 
       # Default phone region for profile phone number validation
-      default_phone_region = meta.phoneRegion;
+      # default_phone_region: not set — operator configures locale per deployment
+      # via nextcloud-occ config:system:set default_phone_region --value="NL"
 
       # Use file log so the logreader app can display logs in the admin panel
       log_type = "file";
 
       # Unique identifier for this server — silences the admin panel warning
-      server_id = meta.vmname;
+      server_id = config.networking.hostName;
 
       # SMTP host — encryption/auth/credentials set via nextcloud-configure-mail.service
       # because the NixOS module's type system does not accept "tls" (STARTTLS) here
       mail_smtpmode = "smtp";
-      mail_smtphost = meta.mailSmtpHost;
-      mail_smtpport = meta.mailSmtpPort;
+      # mail_smtphost and mail_smtpport set via nextcloud-configure-mail.service
+      # when /etc/secrets/mail.env is present (operator-supplied SMTP credentials)
     };
   };
 
   # HSTS header — Caddy terminates TLS but Nextcloud's security check reads headers
   # from the internal nginx response. Add it here so the check passes.
   # /socket.io/ proxied to the co-located whiteboard server (port 3002).
-  services.nginx.virtualHosts.${nextcloudHostName} = {
+  services.nginx.virtualHosts.${config.networking.hostName} = {
     extraConfig = ''
       add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
     '';
@@ -500,9 +512,9 @@ in
         set -euo pipefail
         export PATH="/run/current-system/sw/bin:${pkgs.coreutils}/bin:$PATH"
 
-        nextcloud-occ config:app:set onlyoffice DocumentServerUrl         --value="https://${euroOfficeMeta.proxyDomain}"
-        nextcloud-occ config:app:set onlyoffice DocumentServerInternalUrl --value="http://${euroOfficeMeta.vmname}.${euroOfficeMeta.zone0}.internal/"
-        nextcloud-occ config:app:set onlyoffice StorageUrl                --value="https://${nextcloudHostName}/"
+        nextcloud-occ config:app:set onlyoffice DocumentServerUrl         --value="$EURO_OFFICE_URL"
+        nextcloud-occ config:app:set onlyoffice DocumentServerInternalUrl --value="$EURO_OFFICE_INTERNAL_URL"
+        nextcloud-occ config:app:set onlyoffice StorageUrl                --value="https://$NEXTCLOUD_PUBLIC_URL/"
         nextcloud-occ config:app:set onlyoffice jwt_secret                --value="$JWT_SECRET"
         nextcloud-occ config:app:set onlyoffice jwt_header                --value="Authorization"
 
@@ -545,10 +557,10 @@ in
         export PATH="/run/current-system/sw/bin:${pkgs.coreutils}/bin:$PATH"
 
         nextcloud-occ config:app:set spreed stun_servers \
-          --value='["${coturnMeta.publicDomain}:3478"]'
+          --value="[\"$COTURN_HOST:3478\"]"
 
         nextcloud-occ config:app:set spreed turn_servers \
-          --value="[{\"server\":\"${coturnMeta.publicDomain}:3478\",\"secret\":\"$COTURN_SECRET\",\"protocols\":\"udp,tcp\"}]"
+          --value="[{\"server\":\"$COTURN_HOST:3478\",\"secret\":\"$COTURN_SECRET\",\"protocols\":\"udp,tcp\"}]"
 
         echo "Nextcloud Talk STUN/TURN servers configured successfully."
       '';
@@ -610,7 +622,7 @@ in
         export PATH="/run/current-system/sw/bin:${pkgs.coreutils}/bin:$PATH"
 
         nextcloud-occ config:app:set spreed signaling_servers \
-          --value='[{"server":"wss://${hpbMeta.proxyDomain}/spreed","verify":false}]'
+          --value="[{\"server\":\"wss://$HPB_URL/spreed\",\"verify\":false}]"
         nextcloud-occ config:app:set spreed signaling_secret \
           --value="$HPB_SECRET"
 
@@ -657,7 +669,7 @@ in
   services.nextcloud-whiteboard-server = {
     enable   = true;
     settings = {
-      NEXTCLOUD_URL    = "https://${nextcloudHostName}";
+      NEXTCLOUD_URL    = "http://${config.networking.hostName}";
       STORAGE_STRATEGY = "lru";
       PORT             = "3002";
     };
@@ -687,7 +699,7 @@ in
         export PATH="/run/current-system/sw/bin:${pkgs.coreutils}/bin:$PATH"
 
         nextcloud-occ config:app:set whiteboard collabBackendUrl \
-          --value="https://${nextcloudHostName}"
+          --value="$NEXTCLOUD_PUBLIC_URL"
 
         nextcloud-occ config:app:set whiteboard jwt_secret_key \
           --value="$JWT_SECRET_KEY"

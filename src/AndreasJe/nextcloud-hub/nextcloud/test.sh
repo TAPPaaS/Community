@@ -10,8 +10,17 @@
 
 set -euo pipefail
 
-# Configuration
-TARGET="nextcloud.srv.internal"
+# Configuration — read vmname and zone from installed config, not hardcoded
+readonly CONFIG_DIR="/home/tappaas/config"
+readonly MODULE_JSON="${CONFIG_DIR}/nextcloud.json"
+if [[ -f "${MODULE_JSON}" ]]; then
+    VMNAME=$(jq -r '.vmname // "nextcloud"' "${MODULE_JSON}")
+    ZONE=$(jq -r '.zone0 // "srv"' "${MODULE_JSON}")
+else
+    VMNAME="nextcloud"
+    ZONE="srv"
+fi
+TARGET="${VMNAME}.${ZONE}.internal"
 SSH_CMD="ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o BatchMode=yes tappaas@${TARGET}"
 TIMESTAMP=$(date '+%Y-%m-%d_%H%M%S')
 LOG_DIR="/home/tappaas/logs"

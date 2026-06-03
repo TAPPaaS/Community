@@ -28,7 +28,18 @@ if [[ -z "${MODULE}" ]]; then
 fi
 
 readonly CONFIG_DIR="/home/tappaas/config"
-readonly NEXTCLOUD_JSON="${CONFIG_DIR}/nextcloud.json"
+
+# Resolve Nextcloud config: prefer variant-aware module name via common-install-routines,
+# fall back to nextcloud.json (standard single deployment).
+NEXTCLOUD_MODULE="nextcloud"
+for _candidate in "${CONFIG_DIR}/nextcloud.json" "${CONFIG_DIR}"/nextcloud-*.json; do
+    [[ -f "${_candidate}" ]] || continue
+    if jq -e '.provides // [] | index("vm") != null' "${_candidate}" >/dev/null 2>&1; then
+        NEXTCLOUD_MODULE="$(basename "${_candidate}" .json)"
+        break
+    fi
+done
+readonly NEXTCLOUD_JSON="${CONFIG_DIR}/${NEXTCLOUD_MODULE}.json"
 
 if [[ ! -f "${NEXTCLOUD_JSON}" ]]; then
     error "Nextcloud config not found: ${NEXTCLOUD_JSON}"
@@ -57,20 +68,28 @@ else
     fail "Nextcloud not responding at ${INTERNAL_URL} (HTTP ${http_code})"
 fi
 
-# ── Test 2: OnlyOffice connector has a DocumentServerUrl set ─────────
+# ── Test 2: OnlyOffice connector (conditional — only if euro-office is installed) ──
 
-info "  Check 2: OnlyOffice connector configured"
-DOC_URL=$(ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no \
-    "tappaas@${VMNAME}.${ZONE}.internal" \
-    "sudo -u postgres psql -d nextcloud -tAc \
-    \"SELECT configvalue FROM oc_appconfig WHERE appid='onlyoffice' AND configkey='DocumentServerUrl'\" \
-    2>/dev/null" 2>/dev/null || echo "")
-DOC_URL="${DOC_URL// /}"
+info "  Check 2: OnlyOffice connector (if euro-office installed)"
+EURO_INSTALLED=false
+for _eo in "${CONFIG_DIR}/euro-office.json" "${CONFIG_DIR}"/euro-office-*.json; do
+    [[ -f "${_eo}" ]] && EURO_INSTALLED=true && break
+done
 
-if [[ -n "${DOC_URL}" ]]; then
-    pass "OnlyOffice DocumentServerUrl is set (${DOC_URL})"
+if [[ "${EURO_INSTALLED}" == "true" ]]; then
+    DOC_URL=$(ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no \
+        "tappaas@${VMNAME}.${ZONE}.internal" \
+        "sudo -u postgres psql -d nextcloud -tAc \
+        \"SELECT configvalue FROM oc_appconfig WHERE appid='onlyoffice' AND configkey='DocumentServerUrl'\" \
+        2>/dev/null" 2>/dev/null || echo "")
+    DOC_URL="${DOC_URL// /}"
+    if [[ -n "${DOC_URL}" ]]; then
+        pass "OnlyOffice DocumentServerUrl is set (${DOC_URL})"
+    else
+        fail "OnlyOffice DocumentServerUrl not configured — euro-office installed but connector not set up"
+    fi
 else
-    fail "OnlyOffice DocumentServerUrl not configured in Nextcloud"
+    pass "OnlyOffice check skipped — euro-office not installed"
 fi
 
 # ── Summary ──────────────────────────────────────────────────────────
