@@ -2,7 +2,7 @@
 # TAPPaaS Community Module
 # Name:    Forgejo — self-hosted Git service (Gitea fork)
 # Type:    NixOS VM
-# Zone:    srv_work
+# Zone:    srv
 # Version: 9.0.3
 # Date:    2026-06-01
 # Author:  @ErikDaniel007

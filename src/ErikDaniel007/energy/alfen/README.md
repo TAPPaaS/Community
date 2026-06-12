@@ -10,7 +10,7 @@ connection required after initial device setup.
 
 | Capability | Access from | How |
 |------------|-------------|-----|
-| Charger web UI | Home WiFi | `https://alfen.iot-cloud.internal` |
+| Charger web UI | Home WiFi | `https://alfen.iotCloud.internal` |
 | MyEve iPhone app | Home WiFi | UDP discovery (auto-configured) |
 | Home Assistant integration | Home Assistant | Modbus TCP — `alfen_wallbox` HACS integration |
 
@@ -23,14 +23,14 @@ connection required after initial device setup.
 ## Requirements
 
 - Alfen Eve Pro hardware (NG5 firmware or compatible)
-- Home WiFi zone (`home`) or Home Assistant (`srv-home`) for consumer access
-- Static IP reservation for the charger on the `iot-cloud` network
+- Home WiFi zone (`home`) or Home Assistant (`srvHome`) for consumer access
+- Static IP reservation for the charger on the `iotCloud` network
 - Home Assistant with HACS — for the Modbus integration only
 
 ## Known limitation
 
 The Alfen firmware only accepts TCP connections from its own subnet. Cross-VLAN
-access from `home` and `srv-home` requires outbound NAT, which is configured
+access from `home` and `srvHome` requires outbound NAT, which is configured
 automatically during install. No manual firewall steps needed.
 
 ## Dependencies
@@ -39,6 +39,7 @@ automatically during install. No manual firewall steps needed.
 |------------|---------|
 | `firewall:rules` | Firewall pass rules for web UI and discovery ports |
 | `firewall:discovery` | UDP broadcast relay so MyEve app finds the charger across VLANs |
+| `firewall:dns` | DNS host override `alfen.iotCloud.internal → ip` (lifecycle-managed; added in v0.2.0) |
 | `alfen:nat` | Outbound NAT masquerade for cross-VLAN TCP acceptance |
 
 For installation steps see [INSTALL.md](./INSTALL.md).

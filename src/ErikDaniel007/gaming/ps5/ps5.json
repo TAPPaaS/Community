@@ -1,0 +1,17 @@
+{
+  "description": "PlayStation 5 console — policy-only module (no VM, no current pinhole; outbound NAT handled natively by OPNsense)",
+  "version": "1.0.0",
+  "releaseDate": "2026-05-23",
+  "maintainer": "@ErikDaniel007",
+  "status": "Development",
+  "location": "/home/tappaas/Community/src/ErikDaniel007/gaming/ps5",
+  "vmname": "ps5",
+  "vmtag": "TAPPaaS,Community,Gaming,Hardware",
+  "zone0": "home",
+  "firewallType": "opnsense",
+  "ports": [],
+  "provides": [],
+  "dependsOn": [
+    "firewall:rules"
+  ]
+}

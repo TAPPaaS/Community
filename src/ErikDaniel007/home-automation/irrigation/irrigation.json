@@ -1,0 +1,30 @@
+{
+  "description": "Irrigation controller — policy-only module for firewall rules (no VM)",
+  "version": "1.0.0",
+  "releaseDate": "2026-05-23",
+  "maintainer": "@ErikDaniel007",
+  "status": "Development",
+  "location": "/home/tappaas/Community/src/ErikDaniel007/home-automation/irrigation",
+  "vmname": "irrigation",
+  "vmtag": "TAPPaaS,Community,HomeAutomation,Hardware",
+  "zone0": "iotCloud",
+  "firewallType": "opnsense",
+  "ports": [
+    {
+      "port": 80,
+      "protocol": "TCP",
+      "description": "Irrigation controller HTTP API"
+    },
+    {
+      "port": 443,
+      "protocol": "TCP",
+      "description": "Irrigation controller HTTPS API"
+    }
+  ],
+  "provides": [
+    "controller"
+  ],
+  "dependsOn": [
+    "firewall:rules"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "_comment": "Auto-pinhole declaration (#173) for the 'modbus' service of the SolarEdge SE6K inverter. Modbus TCP 1502 — HA-driven readout. Pre-migration pfSense rule was 'tcp/any'; narrowed here to Modbus only. Revisit if HA needs additional ports (e.g. 22222 for setup).",
+  "ports": [
+    { "port": 1502, "protocol": "TCP", "description": "SolarEdge inverter Modbus TCP (HA readout)" }
+  ]
+}

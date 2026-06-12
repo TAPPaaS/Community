@@ -11,9 +11,9 @@ installed on the device.
 |---|---|---|
 | DSM admin UI | Home network, work | `https://synology.<your-domain>` (via Caddy — internal zones only) |
 | File shares | Home network, TAPPaaS apps | SMB (`\\synology`) or NFS mount |
-| Synology Drive | Home network, mobile | `https://synology.srv-home.internal:5001/drive/` · Synology Drive app |
-| Synology Photos | Home network, mobile | `https://synology.srv-home.internal:5001/photo/` · Synology Photos app |
-| Surveillance Station | Home network | `https://synology.srv-home.internal:9901` |
+| Synology Drive | Home network, mobile | `https://synology.srv.internal:5001/drive/` · Synology Drive app |
+| Synology Photos | Home network, mobile | `https://synology.srv.internal:5001/photo/` · Synology Photos app |
+| Surveillance Station | Home network | `https://synology.srv.internal:9901` |
 | Mac Time Machine | Home network | SMB Time Machine share — zero-config on macOS |
 | M365 backup | Internal (outbound) | Active Backup for Microsoft 365 — Exchange, OneDrive, Teams, SharePoint |
 | DLNA media streaming | Home network | Smart TVs and UPnP media players |
@@ -26,9 +26,9 @@ installed on the device.
 
 ## Requirements
 
-- Synology DiskStation on `srv-home` network (VLAN 210)
+- Synology DiskStation on `srv` network (VLAN 210)
 - Static DHCP reservation per unit
-- DNS host override: `synology.srv-home.internal`
+- DNS host override: `synology.srv.internal`
 
 ## Dependencies
 

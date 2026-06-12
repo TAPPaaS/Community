@@ -1,14 +1,15 @@
 {
   "description": "Alfen Eve Pro EV charger — policy-only module for firewall rules (no VM)",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "releaseDate": "2026-05-23",
   "maintainer": "@ErikDaniel007",
   "status": "Testing",
   "location": "/home/tappaas/Community/src/ErikDaniel007/energy/alfen",
   "vmname": "alfen",
   "vmtag": "TAPPaaS,Community,Energy,Hardware",
-  "zone0": "iot-cloud",
+  "zone0": "iotCloud",
   "aliasType": "host",
+  "ip": "10.4.20.25",
   "firewallType": "opnsense",
   "ports": [
     {
@@ -56,7 +57,7 @@
       "port": 36549,
       "zones": [
         "home",
-        "iot-cloud"
+        "iotCloud"
       ]
     }
   ],
@@ -69,6 +70,7 @@
   "dependsOn": [
     "firewall:rules",
     "firewall:discovery",
+    "firewall:dns",
     "alfen:nat"
   ]
 }

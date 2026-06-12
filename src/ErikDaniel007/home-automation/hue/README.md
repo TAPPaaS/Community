@@ -9,7 +9,7 @@ or voice assistants — all via local API, no cloud required.
 
 | Capability | Access from | How |
 |---|---|---|
-| Home Assistant integration | Home Assistant (`srv-home`) | Hue integration (built-in, auto-discovered) |
+| Home Assistant integration | Home Assistant (`srvHome`) | Hue integration (built-in, auto-discovered) |
 | Hue app control | Home WiFi (`home`) | Philips Hue app (auto-discovered via mDNS) |
 | Local API | Home Assistant | REST API on TCP 443 |
 
@@ -22,8 +22,8 @@ or voice assistants — all via local API, no cloud required.
 ## Requirements
 
 - Philips Hue Bridge gen 2 (BSB002)
-- Static DHCP reservation on `iot-local` (current: 10.4.10.226)
-- DNS override: `hue.iot-local.internal` → 10.4.10.226
+- Static DHCP reservation on `iotLocal` (current: 10.4.10.226)
+- DNS override: `hue.iotLocal.internal` → 10.4.10.226
 
 ## Services offered (`provides`)
 
@@ -35,12 +35,12 @@ or voice assistants — all via local API, no cloud required.
 ## Known limitations
 
 - Single bridge per module instance. Multiple bridges = multiple module entries.
-- mDNS relayed to `home` and `srv-home` only. Other zones require direct IP.
+- mDNS relayed to `home` and `srvHome` only. Other zones require direct IP.
 
 ## Security note
 
-**iot-local is isolated by design.** The Hue bridge has no internet access.
-Only HA (srv-home) can reach it via pinhole. Direct SysAP→Hue access is
+**iotLocal is isolated by design.** The Hue bridge has no internet access.
+Only HA (srvHome) can reach it via pinhole. Direct SysAP→Hue access is
 intentionally not configured — see `_comment_direct_access` in the JSON and
 INSTALL.md for the advanced (non-recommended) alternative.
 
@@ -49,6 +49,6 @@ INSTALL.md for the advanced (non-recommended) alternative.
 | Depends on | Purpose |
 |---|---|
 | `firewall:rules` | Pinhole from Home Assistant → Hue bridge (TCP 80/443) |
-| `firewall:discovery` | mDNS relay so Hue app and HA find bridge from `home`/`srv-home` |
+| `firewall:discovery` | mDNS relay so Hue app and HA find bridge from `home`/`srvHome` |
 
 For installation steps see [INSTALL.md](./INSTALL.md).

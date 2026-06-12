@@ -7,7 +7,7 @@
   "location": "/home/tappaas/Community/src/ErikDaniel007/storage/synology",
   "vmname": "synology",
   "vmtag": "TAPPaaS,Community,Storage,Hardware",
-  "zone0": "srv-home",
+  "zone0": "srv",
   "aliasType": "network",
   "firewallType": "opnsense",
   "proxyPort": 5001,

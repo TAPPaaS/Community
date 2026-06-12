@@ -22,20 +22,26 @@ sessions from the Sonos app, AirPlay, or Home Assistant.
 ## Requirements
 
 - One or more Sonos S2-compatible speakers
-- Static DHCP reservation per speaker on the `iot-cloud` network
+- Static DHCP reservation per speaker on the `iotCloud` network
 - Home WiFi zone (`home`) for direct app and AirPlay access
 
-## Known limitation
+## Known limitations
 
 AirPlay RAOP requires UDP ports 7000–7100 in addition to TCP 7000.
 Without the UDP range, audio streams drop out after ~10 seconds.
 Both are configured automatically during install.
 
+Home Assistant rediscovers speakers via **SSDP (UDP 1900)** as well as mDNS.
+When HA and the speakers are in different VLANs (`srvHome` ↔ `iotCloud`), SSDP
+multicast must be relayed across zones — otherwise HA shows the speakers as
+`unavailable` after a restart (it cannot re-find them). This is handled by the
+`discoveryUdpRelay` for port 1900 (added in v0.2.0).
+
 ## Dependencies
 
 | Depends on | Purpose |
 |------------|---------|
-| `firewall:rules` | Firewall pass rules for control and AirPlay ports |
-| `firewall:discovery` | mDNS relay so Sonos app and AirPlay find speakers across VLANs |
+| `firewall:rules` | Firewall pass rules for control, AirPlay, and SSDP discovery ports |
+| `firewall:discovery` | mDNS + SSDP (1900) relay so the Sonos app, AirPlay, and Home Assistant discover/rediscover speakers across VLANs |
 
 For installation steps see [INSTALL.md](./INSTALL.md).

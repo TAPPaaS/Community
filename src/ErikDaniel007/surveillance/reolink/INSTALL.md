@@ -4,9 +4,9 @@ Only manual steps are listed here. Scripts handle everything else automatically.
 
 ## Prerequisites
 
-1. **Static DHCP reservation** — assign fixed IPs to each camera MAC address in OPNsense (`iot-cams` network, VLAN 430).
+1. **Static DHCP reservation** — assign fixed IPs to each camera MAC address in OPNsense (`iotCams` network, VLAN 430).
 2. **Enable RTSP** — in each camera: Settings → Network → Advanced → enable RTSP. Note the stream path and port.
-3. **Verify camera reachable** from `iot-cams` subnet: `nc -zv -w 5 <camera-ip> 554`
+3. **Verify camera reachable** from `iotCams` subnet: `nc -zv -w 5 <camera-ip> 554`
 
 ## Install
 
@@ -14,7 +14,9 @@ Only manual steps are listed here. Scripts handle everything else automatically.
 install-module.sh reolink
 ```
 
-Configures: firewall pinholes from Home Assistant → cameras (TCP 554, 8554).
+Configures:
+- Firewall pinholes from Home Assistant → cameras (TCP 554, 8554; plus API 80/443/8000/9000 when the consumer declares `reolink:api`).
+- mDNS relay (`iotCams` ↔ `srvHome`/`home`) so ONVIF/mDNS camera discovery works across VLANs (v0.2.0+).
 
 ## Post-install: Home Assistant integration
 
@@ -58,4 +60,10 @@ Verify RTSP is enabled on the camera and the stream path is correct. Test with `
 Confirm `reolink:api` is in your module's `dependsOn` and `install-module.sh` was re-run after adding it.
 
 **Camera not reachable at all**
-Check static DHCP reservation and confirm the camera is in the `iot-cams` subnet (10.4.30.0/24).
+Check static DHCP reservation and confirm the camera is in the `iotCams` subnet (10.4.30.0/24).
+
+**HA shows cameras `unavailable` after a network/zone change**
+ONVIF/mDNS-discovered cameras need the `iotCams` interface in the mDNS relay —
+verify with `firewall:discovery test-service.sh reolink` (v0.2.0+). Note that
+`generic_camera` entries connect by a fixed IP: if a camera was renumbered, update
+the `stream_source` IP in HA (the firewall/discovery fix cannot change a hard-coded IP).

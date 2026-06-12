@@ -1,13 +1,13 @@
 {
   "description": "Sonos speaker system — policy-only module for firewall rules (no VM)",
-  "version": "0.1.0",
-  "releaseDate": "2026-05-23",
+  "version": "0.2.0",
+  "releaseDate": "2026-06-11",
   "maintainer": "@ErikDaniel007",
   "status": "Testing",
   "location": "/home/tappaas/Community/src/ErikDaniel007/entertainment/sonos",
   "vmname": "sonos",
   "vmtag": "TAPPaaS,Community,Entertainment,Hardware",
-  "zone0": "iot-cloud",
+  "zone0": "iotCloud",
   "aliasType": "network",
   "firewallType": "opnsense",
   "ports": [
@@ -40,9 +40,20 @@
       "port": "7000-7100",
       "protocol": "UDP",
       "description": "Sonos AirPlay RAOP audio timing"
+    },
+    {
+      "port": 1900,
+      "protocol": "UDP",
+      "description": "SSDP/UPnP discovery (Sonos S1 + HA re-discovery)"
     }
   ],
-  "discoveryMdns": true,
+  "discoveryMdns": ["home", "srvHome"],
+  "discoveryUdpRelay": [
+    {
+      "port": 1900,
+      "zones": ["home", "srvHome", "iotCloud"]
+    }
+  ],
   "ingress": [
     {
       "from": "home",
@@ -67,7 +78,7 @@
   ],
   "egress": [
     {
-      "to": "srv-home",
+      "to": "srvHome",
       "ports": [1400],
       "protocol": "TCP",
       "description": "Sonos push event callback to Home Assistant subscription listener"

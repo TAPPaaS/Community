@@ -8,7 +8,7 @@ Home Assistant and the free@home iPhone app.
 
 | Capability | Access from | How |
 |---|---|---|
-| Home Assistant integration | Home Assistant (`srv-home`) | free@home integration (jheling or kingsleyadam) |
+| Home Assistant integration | Home Assistant (`srvHome`) | free@home integration (jheling or kingsleyadam) |
 | free@home iPhone app | Home WiFi (`home`) | Auto-discovered via mDNS |
 | SysAP web UI | Home WiFi (`home`) | Browser → `https://10.4.20.101` |
 
@@ -23,8 +23,8 @@ Home Assistant and the free@home iPhone app.
 - ABB free@home System Access Point 2.0
 - Firmware ≥ 2.6.0 (local REST API)
 - Local API enabled: free@home app → Settings → System Access Point → Local API
-- Static DHCP reservation on `iot-cloud` (current: 10.4.20.101)
-- DNS override: `sysap.iot-cloud.internal` → 10.4.20.101
+- Static DHCP reservation on `iotCloud` (current: 10.4.20.101)
+- DNS override: `sysap.iotCloud.internal` → 10.4.20.101
 
 ## Services offered (`provides`)
 

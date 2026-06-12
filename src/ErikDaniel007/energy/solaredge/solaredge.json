@@ -1,0 +1,43 @@
+{
+  "description": "SolarEdge SE6K inverter — policy-only module for firewall rules (no VM)",
+  "version": "1.0.0",
+  "releaseDate": "2026-05-23",
+  "maintainer": "@ErikDaniel007",
+  "status": "Development",
+  "location": "/home/tappaas/Community/src/ErikDaniel007/energy/solaredge",
+  "vmname": "solaredge",
+  "vmtag": "TAPPaaS,Community,Energy,Hardware",
+  "zone0": "iotCloud",
+  "firewallType": "opnsense",
+  "ports": [
+    {
+      "port": 1502,
+      "protocol": "TCP",
+      "description": "SolarEdge inverter Modbus TCP (HA readout)"
+    }
+  ],
+  "provides": [
+    "modbus"
+  ],
+  "egress": [
+    {
+      "to": "alias:solaredge_cloud",
+      "ports": [
+        443
+      ],
+      "description": "Inverter telemetry to SolarEdge cloud (prod2.solaredge.com)"
+    }
+  ],
+  "aliases": {
+    "solaredge_cloud": {
+      "type": "host",
+      "addresses": [
+        "prod2.solaredge.com"
+      ],
+      "description": "SolarEdge vendor cloud endpoint for inverter telemetry"
+    }
+  },
+  "dependsOn": [
+    "firewall:rules"
+  ]
+}

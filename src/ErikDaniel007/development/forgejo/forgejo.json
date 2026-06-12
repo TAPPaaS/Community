@@ -17,7 +17,7 @@
   "imageType": "clone",
   "image": "8080",
   "bridge0": "lan",
-  "zone0": "srv_work",
+  "zone0": "srv",
   "firewallType": "opnsense",
   "proxyPort": 3000,
   "proxyAllowedZones": ["work", "mgmt"],

@@ -1,0 +1,7 @@
+{
+  "_comment": "Auto-pinhole declaration (#173) for the 'controller' service of the irrigation controller. HTTP(S) for HA-side schedule/zone control.",
+  "ports": [
+    { "port": 80,  "protocol": "TCP", "description": "Irrigation controller HTTP API" },
+    { "port": 443, "protocol": "TCP", "description": "Irrigation controller HTTPS API" }
+  ]
+}

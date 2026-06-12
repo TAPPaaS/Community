@@ -1,0 +1,19 @@
+{
+  "description": "Wiim Pro Plus audio streamer — DEFERRED policy-only stub (no current rules)",
+  "version": "0.1.0",
+  "releaseDate": "2026-05-23",
+  "maintainer": "@ErikDaniel007",
+  "status": "Deprecated",
+  "location": "/home/tappaas/Community/src/ErikDaniel007/entertainment/wiim-fleet",
+  "vmname": "wiim-fleet",
+  "vmtag": "TAPPaaS,Community,Entertainment,Hardware",
+  "zone0": "iotCloud",
+  "firewallType": "opnsense",
+  "ports": [],
+  "discoveryMdns": true,
+  "provides": [],
+  "dependsOn": [
+    "firewall:rules",
+    "firewall:discovery"
+  ]
+}

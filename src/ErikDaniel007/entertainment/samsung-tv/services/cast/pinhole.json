@@ -1,0 +1,8 @@
+{
+  "_comment": "Auto-pinhole declaration (#173) for the 'cast' service of the Samsung TV. SmartView API ports + Wake-on-LAN (UDP 9) so HA can wake the TV from standby.",
+  "ports": [
+    { "port": 8001, "protocol": "TCP", "description": "Samsung SmartView API (HTTP)" },
+    { "port": 8002, "protocol": "TCP", "description": "Samsung SmartView API (HTTPS)" },
+    { "port": 9,    "protocol": "UDP", "description": "Wake-on-LAN magic packet (HA wakes TV from standby)" }
+  ]
+}

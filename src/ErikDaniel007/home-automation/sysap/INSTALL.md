@@ -4,8 +4,8 @@
 ## Prerequisites
 
 1. **Static DHCP reservation** — assign a fixed IP to the SysAP MAC address
-   in OPNsense (`iot-cloud` network, current: 10.4.20.101).
-2. **DNS override** — `sysap.iot-cloud.internal` → 10.4.20.101 in OPNsense
+   in OPNsense (`iotCloud` network, current: 10.4.20.101).
+2. **DNS override** — `sysap.iotCloud.internal` → 10.4.20.101 in OPNsense
    (Services → Unbound DNS → Host Overrides).
 3. **Local API enabled** — free@home app → Settings → System Access Point →
    Local API → Enable.
@@ -27,7 +27,7 @@ This configures:
 
 1. HACS → Custom repositories → `https://github.com/kingsleyadam/local-abbfreeathome-hass`
 2. Settings → Devices & Services → Add integration → "ABB free@home"
-3. Host: `https://sysap.iot-cloud.internal` (or `https://10.4.20.101`)
+3. Host: `https://sysap.iotCloud.internal` (or `https://10.4.20.101`)
 4. Username: `installer`, Password: SysAP password
 5. SSL verify: off (self-signed cert)
 

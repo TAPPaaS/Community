@@ -4,8 +4,8 @@
 ## Prerequisites
 
 1. **Static DHCP reservation** — assign a fixed IP to the Hue bridge MAC
-   in OPNsense (`iot-local` network, current: 10.4.10.226, MAC: 00:17:88:6d:2c:22).
-2. **DNS override** — `hue.iot-local.internal` → 10.4.10.226 in OPNsense
+   in OPNsense (`iotLocal` network, current: 10.4.10.226, MAC: 00:17:88:6d:2c:22).
+2. **DNS override** — `hue.iotLocal.internal` → 10.4.10.226 in OPNsense
    (Services → Unbound DNS → Host Overrides).
 
 ## Install
@@ -17,7 +17,7 @@ install-module.sh hue
 
 This configures:
 - Firewall pinhole: Home Assistant → Hue bridge (TCP 80, 443)
-- mDNS relay: bridge discoverable from `home` and `srv-home` zones
+- mDNS relay: bridge discoverable from `home` and `srvHome` zones
 
 ## Post-install: Home Assistant integration
 
@@ -50,7 +50,7 @@ Verify mDNS relay: `bash /home/tappaas/TAPPaaS/src/foundation/firewall/services/
 Update DHCP reservation to new IP, update DNS override, re-run install.
 
 **Hue app does not find bridge on home WiFi**
-Same as above — verify mDNS relay is present for both `home` and `srv-home`.
+Same as above — verify mDNS relay is present for both `home` and `srvHome`.
 
 ## Advanced: direct SysAP → Hue (no HA)
 
@@ -58,7 +58,7 @@ Same as above — verify mDNS relay is present for both `home` and `srv-home`.
 
 Add to `sysap.json`:
 ```json
-"egress": [{"to": "iot-local", "ports": [80, 443], "protocol": "TCP",
+"egress": [{"to": "iotLocal", "ports": [80, 443], "protocol": "TCP",
   "description": "Direct SysAP → Hue bridge (no-HA fallback)"}],
 ```
 Add `"hue:bridge"` to `sysap.dependsOn`, then re-run `install-module.sh sysap`.
