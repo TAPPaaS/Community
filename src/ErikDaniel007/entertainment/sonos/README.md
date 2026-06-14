@@ -38,4 +38,12 @@ Both are configured automatically during install.
 | `firewall:rules` | Firewall pass rules for control and AirPlay ports |
 | `firewall:discovery` | mDNS relay so Sonos app and AirPlay find speakers across VLANs |
 
+## Network requirements
+
+Beyond the firewall policy (`sonos.json`), the Sonos fleet imposes L2/WiFi/transport
+requirements on the network (dedicated 2.4 GHz IoT SSID, roaming off, single VLAN,
+SonosNet anchor/STP or all-WiFi multicast). These are the module's consumer-stated
+requirement — see [`sonos-network-requirements.md`](./sonos-network-requirements.md)
+(per gdty-core-ip ADR-ADM-0059; the network's generic baseline references it).
+
 For installation steps see [INSTALL.md](./INSTALL.md).
