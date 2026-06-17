@@ -7,7 +7,7 @@
   "vmname": "deconz",
   "vmid": 213,
   "vmtag": "TAPPaaS,App,HomeAutomation",
-  "node": "tappaas2",
+  "node": "tappaas1",
   "zone0": "iotCloud",
   "dependsOn": [
     "cluster:vm",
@@ -39,9 +39,21 @@
     },
     "firewall:rules": {
       "ports": [
-        { "port": 8080, "protocol": "TCP", "description": "deCONZ REST + Hue-compat API (Phoscon UI via proxy; SysAP Hue control INTRA-zone iotCloud; HA REST cross-zone srvHome->iotCloud)" },
-        { "port": 8443, "protocol": "TCP", "description": "deCONZ websocket (HA deconz integration live events) — cross-zone srvHome->iotCloud pinhole" },
-        { "port": 1900, "protocol": "UDP", "description": "SSDP discovery — SysAP finds the Hue-emulated bridge INTRA-zone (iotCloud); no cross-zone relay (ADR-COM-0006)" }
+        {
+          "port": 8080,
+          "protocol": "TCP",
+          "description": "deCONZ REST + Hue-compat API (Phoscon UI via proxy; SysAP Hue control INTRA-zone iotCloud; HA REST cross-zone srvHome->iotCloud)"
+        },
+        {
+          "port": 8443,
+          "protocol": "TCP",
+          "description": "deCONZ websocket (HA deconz integration live events) — cross-zone srvHome->iotCloud pinhole"
+        },
+        {
+          "port": 1900,
+          "protocol": "UDP",
+          "description": "SSDP discovery — SysAP finds the Hue-emulated bridge INTRA-zone (iotCloud); no cross-zone relay (ADR-COM-0006)"
+        }
       ]
     }
   }
