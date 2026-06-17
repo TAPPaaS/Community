@@ -142,8 +142,13 @@ in
                                 # the SysAP->deCONZ pinhole is dropped at the module/firewall layer.
     httpPort = 8080;        # REST + Hue-compat API + Phoscon UI
     wsPort = 8443;          # websocket (HA deconz integration)
-    openFirewall = false;   # firewall handled explicitly above (also need UDP 1900)
+    openFirewall = false;   # firewall handled explicitly above
     allowRestartService = true;  # let the OTA/maintenance flow restart deCONZ via API
+    # Disable deCONZ's own SSDP/UPnP: it's internalised (HA uses explicit IP, diyHue
+    # uses localhost) and must NOT contend with diyHue for UDP 1900 / advertise a
+    # duplicate Hue bridge at the same IP (the SysAP dedups by IP -> locks onto deCONZ).
+    # Authoritative community fix for diyHue+deCONZ coexistence: deconz-rest-plugin#274 / #754.
+    extraArgs = [ "--upnp=0" ];
   };
 
   # ── CONTAINER RUNTIME (podman) ───────────────────────────────────────────────
