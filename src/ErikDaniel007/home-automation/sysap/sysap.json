@@ -29,8 +29,8 @@
   "dependsOn": [
     "firewall:rules",
     "firewall:discovery",
-    "deconz:bridge",
+    "deconz:hue-bridge",
     "hue:bridge"
   ],
-  "_comment_zoning": "ADR-COM-0006: SysAP, deconz and hue are co-located in iotCloud. The SysAP consumes deconz:bridge and hue:bridge INTRA-zone (native SSDP/mDNS discovery + control, no cross-zone relay, no egress-to-iotLocal). deconz:bridge and hue:bridge are interchangeable Hue-bridge providers (same capability name). HA remains a redundant secondary controller via its own srvHome->iotCloud pinhole."
+  "_comment_zoning": "ADR-COM-0006/0007: SysAP, the Zigbee gateway (deconz+diyHue) and the real Philips Hue bridge are co-located in iotCloud. The SysAP consumes two Hue bridges INTRA-zone: deconz:hue-bridge (diyHue, the ConBee/IKEA fleet — genuine-grade emulation, since deCONZ-direct was rejected by free@home) and hue:bridge (the real Philips Hue bridge, its own lamps). HA controls the Zigbee fleet via deconz:zigbee (native, srvHome->iotCloud) — not through diyHue."
 }

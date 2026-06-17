@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# deconz:bridge test-service
+# deconz:hue-bridge test-service
 #
 # Verifies the deCONZ Hue-compat API is reachable and the consumer's pinholes
 # (REST + SSDP) exist.
@@ -16,7 +16,7 @@ if [[ -z "${CONSUMER}" ]]; then
     exit 1
 fi
 
-info "deconz:bridge test-service for consumer: ${BL}${CONSUMER}${CL}"
+info "deconz:hue-bridge test-service for consumer: ${BL}${CONSUMER}${CL}"
 
 TARGET="$(dig +short deconz.srvHome.internal 2>/dev/null | head -1)"
 if [[ -z "${TARGET}" ]]; then
@@ -37,7 +37,7 @@ fi
 # ── Pinhole rules (REST 8080/TCP + SSDP 1900/UDP) ────────────────────
 for SPEC in "8080:tcp" "1900:udp"; do
     PORT="${SPEC%%:*}"
-    RULE="tappaas-svcdep:${CONSUMER}:bridge:deconz:${PORT}"
+    RULE="tappaas-svcdep:${CONSUMER}:hue-bridge:deconz:${PORT}"
     if rules-manager list-rules --no-ssl-verify 2>/dev/null | grep -qF "${RULE}"; then
         info "  Pinhole ${SPEC} (${CONSUMER}→deconz): ${GN}present${CL}"
     else
@@ -47,9 +47,9 @@ for SPEC in "8080:tcp" "1900:udp"; do
 done
 
 if (( FAILURES == 0 )); then
-    info "${GN}deconz:bridge test-service passed for ${CONSUMER}${CL}"
+    info "${GN}deconz:hue-bridge test-service passed for ${CONSUMER}${CL}"
     exit 0
 else
-    error "${RD}deconz:bridge test-service: ${FAILURES} failure(s) for ${CONSUMER}${CL}"
+    error "${RD}deconz:hue-bridge test-service: ${FAILURES} failure(s) for ${CONSUMER}${CL}"
     exit 1
 fi
