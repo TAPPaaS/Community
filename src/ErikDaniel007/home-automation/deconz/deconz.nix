@@ -170,6 +170,10 @@ in
       MAC   = diyhueMac;        # bridge identity (bridgeid + cert derive from this)
       IP    = diyhueIp;
       DEBUG = "false";
+      # TZ MUST match diyHue's config.yaml `timezone` (and the user's browser tz),
+      # else the Hue link-button timestamp check fails (press never registers ->
+      # cannot pair the SysAP). RCA: container defaulted to UTC + config to Europe/London.
+      TZ    = "Europe/Amsterdam";
     };
     volumes = [ "/var/lib/diyhue:/opt/hue-emulator/config" ];
   };
@@ -182,13 +186,15 @@ in
     requires = [ "deconz.service" ];
   };
 
-  # ── diyHue <- deCONZ backend link ────────────────────────────────────────────
-  # diyHue's deCONZ integration (config.json `deconz`: ip 127.0.0.1, port 8080,
-  # websocketport 8443, deCONZ api-key) is provisioned ONCE post-deploy via the
-  # diyHue API/config (spike step — diyHue config schema verified at deploy).
-  # The deCONZ api-key lives in /etc/secrets/diyhue-deconz.key (not in nix store).
-  # NOTE: deCONZ's own UPnP/SSDP must not contend with diyHue for UDP 1900 —
-  # verified at deploy (deCONZ is internalised, it need not advertise).
+  # ── diyHue <- deCONZ backend link (authoritative method) ─────────────────────
+  # diyHue config (persisted in the /var/lib/diyhue volume) `config.deconz`:
+  #   deconzHost: 127.0.0.1   deconzPort: 8080   deconzUser: <deCONZ api-key>
+  #   (websocketport is auto-fetched from deCONZ /config). Lights+sensors import;
+  #   GROUPS are NOT imported (rooms are defined in free@home / diyHue, not deCONZ).
+  # Out-of-the-box registration (diyHue docs): unlock the deCONZ gateway, then open
+  #   http://<this-vm>/deconz  -> diyHue auto-registers + imports. The settings FORM
+  #   is the flaky path (2s UI timeout) — use /deconz (or seed config.deconz directly).
+  # SSDP: deCONZ runs with --upnp=0 (above) so ONLY diyHue advertises on UDP 1900.
 
   # ── SYSTEM STATE VERSION — DO NOT CHANGE after initial install ──────────────
   system.stateVersion = "25.05";
