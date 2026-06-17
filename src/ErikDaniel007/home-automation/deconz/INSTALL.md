@@ -85,9 +85,13 @@ advertise on UDP 1900). Remove the half-paired entry in the SysAP and re-add.
 **diyHue link button "please check timezone setting"** — `TZ` / `config.yaml
 timezone` / browser tz mismatch. Align all three to `Europe/Amsterdam`.
 
-**Noticeable fan-out delay switching a multi-lamp fixture** — diyHue addresses
-lights per-light (no groupcast). Make the fixture a **deCONZ group** so it
-switches as one Zigbee groupcast.
+**Lights respond after seconds / not at all** — upstream diyHue's deCONZ adapter
+has an unconditional `sleep(0.7)` per light (a 24-light room ≈ 17 s). `deconz.nix`
+ships a patched adapter (bind-mounted, image pinned by digest) — see README →
+Performance. Confirm `/etc/diyhue/deconz.py` is mounted into the container if slow.
+
+**Want a fixture/room as ONE entity in the SysAP** (not N lamps) — expose the
+deCONZ group as a single diyHue entity (groupcast), see UPGRADE.md → grouping.
 
 **Aqara device won't pair / no battery** — per-model DDF; hard-reset the device,
 keep it close to a router during join, check the deCONZ compatibility list.

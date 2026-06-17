@@ -46,10 +46,23 @@ ConBee/coordinator stays the single source of truth, migration is safe.
 ## SSOT for grouping
 
 **deCONZ is the SSOT** for lights + Zigbee groups; diyHue / HA / SysAP are
-satellites. A physical multi-lamp fixture (e.g. "bedroom south" = 4 lamps) should
-be a **deCONZ group** so it switches as one with one Zigbee groupcast (avoids the
-per-light fan-out delay diyHue otherwise incurs). Device fleet + grouping
-declaration: `gdty-vsm .../delbuschy/operations/home-automation/deconz/zigbee-fleet.yaml`.
+satellites. Device fleet + grouping declaration:
+`gdty-vsm .../delbuschy/operations/home-automation/deconz/zigbee-fleet.yaml`.
+A physical multi-lamp fixture (e.g. "bedroom south" = 4 lamps) is one **deCONZ
+group**. To present it to the SysAP as a *single* entity (not 4 lamps) — and get
+one atomic Zigbee groupcast — expose the deCONZ group as one diyHue entity rather
+than importing the member lights individually (see UPGRADE.md → grouping).
+
+## Performance — diyHue latency patch (required)
+
+Upstream diyHue's deCONZ adapter (`lights/protocols/deconz.py`) has an
+**unconditional `sleep(0.7)`** after each state write — it fires on every
+on/off/dim, so one light = 0.7 s and a 24-light group action ≈ 17 s (diyHue
+iterates per-light; it does *not* groupcast). `deconz.nix` ships a patched adapter
+(bind-mounted via `environment.etc."diyhue/deconz.py"`) that only waits when a
+colour change follows. **Measured: single light 0.707 s → 0.007 s, group of 24
+16.9 s → 0.10 s; colour change keeps its 0.71 s power-on delay.** Because the patch
+tracks the upstream file, the diyHue image is **pinned by digest** (not `:latest`).
 
 ## Device support
 

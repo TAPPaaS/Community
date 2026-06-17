@@ -36,10 +36,13 @@
 { config, lib, pkgs, modulesPath, system, ... }:
 
 let
-  # Version pinning — bump here only. (Pin diyHue to a verified tag once the
-  # spike validates free@home pairing; :latest is acceptable during the spike.)
+  # Version pinning — bump here only. Pinned by DIGEST (not :latest) since the
+  # diyHue deconz.py sleep-patch below is tied to the exact upstream file layout
+  # of this image. Digest validated 2026-06-17 (free@home pairing + latency fix).
+  # To upgrade: pull the new tag, re-verify lights/protocols/deconz.py still
+  # matches the patched copy, then update this digest.
   versions = {
-    diyhue = "latest";
+    diyhue = "sha256:97c4a5d21806bbdef110b95277c8f0c46d47ecfb65a161ed874ef177c6278bbd";
   };
   # diyHue bridge identity: bridgeid + self-signed cert derive from this MAC.
   # Start with the VM's own NIC MAC; if free@home is picky about the bridgeid,
@@ -161,7 +164,7 @@ in
   # from deCONZ over the REST API (configured post-start, see the link service
   # below) — never touches the ConBee/Zigbee network.
   virtualisation.oci-containers.containers.diyhue = {
-    image = "docker.io/diyhue/core:${versions.diyhue}";
+    image = "docker.io/diyhue/core@${versions.diyhue}";
     extraOptions = [
       "--network=host"          # SSDP/mDNS + Hue ports 80/443/1900/2100/1982
       "--log-driver=journald"
@@ -175,10 +178,83 @@ in
       # cannot pair the SysAP). RCA: container defaulted to UTC + config to Europe/London.
       TZ    = "Europe/Amsterdam";
     };
-    volumes = [ "/var/lib/diyhue:/opt/hue-emulator/config" ];
+    volumes = [
+      "/var/lib/diyhue:/opt/hue-emulator/config"
+      # LATENCY PATCH (see environment.etc below): override the deconz protocol
+      # adapter so on/off/dim is ~ms instead of 0.7s/light (group of 24: 0.1s vs 17s).
+      "/etc/diyhue/deconz.py:/opt/hue-emulator/lights/protocols/deconz.py:ro"
+    ];
   };
 
   systemd.tmpfiles.rules = [ "d /var/lib/diyhue 0750 root root -" ];
+
+  # ── diyHue LATENCY PATCH — deconz protocol adapter ───────────────────────────
+  # RCA 2026-06-17: upstream lights/protocols/deconz.py does an UNCONDITIONAL
+  # `sleep(0.7)` after the state PUT, before an (often empty) colour PUT. It was
+  # meant to let a lamp power on before a colour is applied, but it fires on EVERY
+  # on/off/dim (the wall-switch path) even when no colour follows -> 1 light = 0.7s,
+  # a 24-light group action = 24 x 0.7 = ~16.9s (diyHue iterates per-light; it does
+  # NOT groupcast). MEASURED: single 0.707s->0.007s, group/0 16.9s->0.10s after the
+  # fix; colour change stays 0.71s (delay preserved). The patched file is bind-
+  # mounted over the image path above. Pinned digest (versions.diyhue) keeps the
+  # upstream file layout stable. Upstream candidate: make the sleep conditional.
+  environment.etc."diyhue/deconz.py".text = ''
+    import json
+    import logManager
+    import requests
+    from time import sleep
+    logging = logManager.logger.get_logger(__name__)
+
+    def set_light(light, data):
+        url = "http://" + light.protocol_cfg["ip"] + "/api/" + light.protocol_cfg["deconzUser"] + "/lights/" + light.protocol_cfg["deconzId"] + "/state"
+        payload = {}
+        payload.update(data)
+        color = {}
+        if "xy" in payload:
+            color["xy"] = payload["xy"]
+            del(payload["xy"])
+        elif "ct" in payload:
+            color["ct"] = payload["ct"]
+            del(payload["ct"])
+        elif "hue" in payload:
+            color["hue"] = payload["hue"]
+            del(payload["hue"])
+        elif "sat" in payload:
+            color["sat"] = payload["sat"]
+            del(payload["sat"])
+        if len(payload) != 0:
+            requests.put(url, json=payload, timeout=3)
+            if len(color) != 0:          # TAPPaaS: only wait when a colour PUT follows
+                sleep(0.7)
+        if len(color) != 0:
+            requests.put(url, json=color, timeout=3)
+
+    def get_light_state(light):
+        state = requests.get("http://" + light.protocol_cfg["ip"] + "/api/" + light.protocol_cfg["deconzUser"] + "/lights/" + light.protocol_cfg["deconzId"], timeout=3)
+        return state.json()["state"]
+
+    def discover(detectedLights, credentials):
+        if "deconzUser" in credentials and credentials["deconzUser"] != "":
+            logging.debug("deconz: <discover> invoked!")
+            try:
+                response = requests.get("http://" + credentials["deconzHost"] + ":" + str(credentials["deconzPort"]) + "/api/" + credentials["deconzUser"] + "/lights", timeout=3)
+                if response.status_code == 200:
+                    logging.debug(response.text)
+                    lights = json.loads(response.text)
+                    for id, light in lights.items():
+                        modelid = "LCT015"
+                        if light["type"] == "Dimmable light":
+                            modelid = "LWB010"
+                        elif light["type"] == "Color temperature light":
+                            modelid = "LTW001"
+                        elif light["type"] == "On/Off plug-in unit":
+                            modelid = "LOM001"
+                        elif light["type"] == "Color light":
+                            modelid = "LLC010"
+                        detectedLights.append({"protocol": "deconz", "name": light["name"], "modelid": modelid, "protocol_cfg": {"ip": credentials["deconzHost"] + ":" + str(credentials["deconzPort"]), "deconzUser": credentials["deconzUser"], "modelid": light["modelid"], "deconzId": id, "uniqueid": light["uniqueid"]}})
+            except Exception as e:
+                logging.info("Error connecting to Deconz: %s", e)
+  '';
 
   # diyHue starts after deCONZ (its backend) is up.
   systemd.services.podman-diyhue = {
