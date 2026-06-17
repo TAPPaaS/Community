@@ -205,8 +205,16 @@ in
     from time import sleep
     logging = logManager.logger.get_logger(__name__)
 
+    def _base(cfg):
+        # TAPPaaS: protocol_cfg.deconzType == "group" -> target the deCONZ GROUP action
+        # endpoint = ONE Zigbee groupcast (atomic, fast). Otherwise the per-light state
+        # endpoint as upstream does. Lets a synthetic "group light" front a whole fixture.
+        if cfg.get("deconzType") == "group":
+            return "http://" + cfg["ip"] + "/api/" + cfg["deconzUser"] + "/groups/" + str(cfg["deconzId"]) + "/action"
+        return "http://" + cfg["ip"] + "/api/" + cfg["deconzUser"] + "/lights/" + str(cfg["deconzId"]) + "/state"
+
     def set_light(light, data):
-        url = "http://" + light.protocol_cfg["ip"] + "/api/" + light.protocol_cfg["deconzUser"] + "/lights/" + light.protocol_cfg["deconzId"] + "/state"
+        url = _base(light.protocol_cfg)
         payload = {}
         payload.update(data)
         color = {}
@@ -230,7 +238,14 @@ in
             requests.put(url, json=color, timeout=3)
 
     def get_light_state(light):
-        state = requests.get("http://" + light.protocol_cfg["ip"] + "/api/" + light.protocol_cfg["deconzUser"] + "/lights/" + light.protocol_cfg["deconzId"], timeout=3)
+        cfg = light.protocol_cfg
+        if cfg.get("deconzType") == "group":
+            group = requests.get("http://" + cfg["ip"] + "/api/" + cfg["deconzUser"] + "/groups/" + str(cfg["deconzId"]), timeout=3).json()
+            state = dict(group.get("action", {}))
+            state["on"] = group.get("state", {}).get("any_on", False)
+            state["reachable"] = True
+            return state
+        state = requests.get("http://" + cfg["ip"] + "/api/" + cfg["deconzUser"] + "/lights/" + cfg["deconzId"], timeout=3)
         return state.json()["state"]
 
     def discover(detectedLights, credentials):
@@ -257,9 +272,13 @@ in
   '';
 
   # diyHue starts after deCONZ (its backend) is up.
+  # restartTriggers: recreate the container when the bind-mounted adapter changes —
+  # otherwise the running container keeps the OLD nix-store file resolved at create
+  # time (changing environment.etc content alone does NOT restart an oci-container).
   systemd.services.podman-diyhue = {
     after = [ "deconz.service" ];
     requires = [ "deconz.service" ];
+    restartTriggers = [ config.environment.etc."diyhue/deconz.py".source ];
   };
 
   # ── diyHue <- deCONZ backend link (authoritative method) ─────────────────────
