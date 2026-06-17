@@ -1,6 +1,6 @@
 {
   "description": "Zigbee gateway — deCONZ engine (ConBee II, native zigbee for HA) + diyHue front-end (hue-bridge for free@home/SysAP). See README.md / INSTALL.md.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "releaseDate": "2026-06-17",
   "maintainer": "@ErikDaniel007",
   "status": "Development",
