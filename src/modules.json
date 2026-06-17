@@ -1,56 +1,74 @@
 {
-    "description": "TAPPaaS Community Module Registry",
-    "applicationModules": [
-        {
-            "moduleName": "nextcloud",
-            "vmid": 340,
-            "moduleJson": "src/AndreasJe/nextcloud-hub/nextcloud/nextcloud.json"
-        },
-        {
-            "moduleName": "coturn",
-            "vmid": 341,
-            "moduleJson": "src/AndreasJe/nextcloud-hub/coturn/coturn.json"
-        },
-        {
-            "moduleName": "nextcloud-hpb",
-            "vmid": 342,
-            "moduleJson": "src/AndreasJe/nextcloud-hub/nextcloud-hpb/nextcloud-hpb.json"
-        },
-        {
-            "moduleName": "euro-office",
-            "vmid": 343,
-            "moduleJson": "src/AndreasJe/nextcloud-hub/euro-office/euro-office.json"
-        },
-        {
-            "moduleName": "unifi",
-            "vmid": 810,
-            "moduleJson": "src/ErikDaniel007/network/unifi/unifi.json"
-        },
-        {
-            "moduleName": "wordpress",
-            "vmid": 620,
-            "moduleJson": "src/AndreasJe/wordpress/wordpress.json"
-        },
-        {
-            "moduleName": "alfen",
-            "vmid": null,
-            "moduleJson": "src/ErikDaniel007/energy/alfen/alfen.json",
-            "_comment": "Policy-only \u2014 no VM (NG5 sidestep, #157)"
-        },
-        {
-            "moduleName": "sonos",
-            "vmid": null,
-            "moduleJson": "src/ErikDaniel007/entertainment/sonos/sonos.json",
-            "_comment": "Policy-only \u2014 no VM"
-        },
-        {
-            "moduleName": "synology",
-            "vmid": null,
-            "moduleJson": "src/ErikDaniel007/storage/synology/synology.json",
-            "_comment": "Policy-only \u2014 no VM (hardware NAS)"
-        }
-    ],
-    "foundationModules": [],
-    "proxmoxTemplates": [],
-    "testModules": []
+  "description": "TAPPaaS Community Module Registry",
+  "applicationModules": [
+    {
+      "moduleName": "nextcloud",
+      "vmid": 340,
+      "moduleJson": "src/AndreasJe/nextcloud-hub/nextcloud/nextcloud.json"
+    },
+    {
+      "moduleName": "coturn",
+      "vmid": 341,
+      "moduleJson": "src/AndreasJe/nextcloud-hub/coturn/coturn.json"
+    },
+    {
+      "moduleName": "nextcloud-hpb",
+      "vmid": 342,
+      "moduleJson": "src/AndreasJe/nextcloud-hub/nextcloud-hpb/nextcloud-hpb.json"
+    },
+    {
+      "moduleName": "euro-office",
+      "vmid": 343,
+      "moduleJson": "src/AndreasJe/nextcloud-hub/euro-office/euro-office.json"
+    },
+    {
+      "moduleName": "unifi",
+      "vmid": 810,
+      "moduleJson": "src/ErikDaniel007/network/unifi/unifi.json"
+    },
+    {
+      "moduleName": "wordpress",
+      "vmid": 620,
+      "moduleJson": "src/AndreasJe/wordpress/wordpress.json"
+    },
+    {
+      "moduleName": "alfen",
+      "vmid": null,
+      "moduleJson": "src/ErikDaniel007/energy/alfen/alfen.json",
+      "_comment": "Policy-only — no VM (NG5 sidestep, #157)"
+    },
+    {
+      "moduleName": "sonos",
+      "vmid": null,
+      "moduleJson": "src/ErikDaniel007/entertainment/sonos/sonos.json",
+      "_comment": "Policy-only — no VM"
+    },
+    {
+      "moduleName": "synology",
+      "vmid": null,
+      "moduleJson": "src/ErikDaniel007/storage/synology/synology.json",
+      "_comment": "Policy-only — no VM (hardware NAS)"
+    },
+    {
+      "moduleName": "hue",
+      "vmid": null,
+      "moduleJson": "src/ErikDaniel007/home-automation/hue/hue.json",
+      "_comment": "Policy-only — no VM (firewall/DNS/mDNS for Philips Hue bridge; iotCloud per ADR-COM-0006)"
+    },
+    {
+      "moduleName": "sysap",
+      "vmid": null,
+      "moduleJson": "src/ErikDaniel007/home-automation/sysap/sysap.json",
+      "_comment": "Policy-only — no VM (firewall rules for ABB free@home SysAP; iotCloud)"
+    },
+    {
+      "moduleName": "deconz",
+      "vmid": 213,
+      "moduleJson": "src/ErikDaniel007/home-automation/deconz/deconz.json",
+      "_comment": "NixOS VM — ConBee II Zigbee + native Hue-API (iotCloud, ADR-COM-0006)"
+    }
+  ],
+  "foundationModules": [],
+  "proxmoxTemplates": [],
+  "testModules": []
 }

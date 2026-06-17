@@ -1,12 +1,20 @@
 # hue — Installation
 
 
+> **Zoning (ADR-COM-0006):** the Hue bridge lives in **`iotCloud`** (co-located with the SysAP
+> control plane), not `iotLocal`. This lets the SysAP discover+control it natively intra-zone
+> (no cross-zone relay) and lets the bridge pull firmware (cloud-only). Migration from the old
+> iotLocal placement: re-tag the bridge's switch port to the iotCloud VLAN, then redo the
+> reservation + DNS below.
+
 ## Prerequisites
 
 1. **Static DHCP reservation** — assign a fixed IP to the Hue bridge MAC
-   in OPNsense (`iotLocal` network, current: 10.4.10.226, MAC: 00:17:88:6d:2c:22).
-2. **DNS override** — `hue.iotLocal.internal` → 10.4.10.226 in OPNsense
-   (Services → Unbound DNS → Host Overrides).
+   in OPNsense (`iotCloud` network 10.4.20.0/24, MAC: 00:17:88:6d:2c:22). Pick a free
+   iotCloud host address (verify it is unused first; e.g. 10.4.20.226). Old iotLocal
+   reservation 10.4.10.226 is retired.
+2. **DNS override** — `hue.iotCloud.internal` → the chosen 10.4.20.x in OPNsense
+   (Services → Unbound DNS → Host Overrides). Old `hue.iotLocal.internal` override is removed.
 
 ## Install
 
@@ -39,7 +47,7 @@ Manual checks:
 |---|---|
 | Hue app on home WiFi | Bridge found automatically |
 | HA → Devices & Services | Hue integration shows bridge connected |
-| `nc -zv -w 5 10.4.10.226 443` | Connection succeeded |
+| `nc -zv -w 5 <hue-iotCloud-ip> 443` | Connection succeeded |
 
 ## Troubleshooting
 
@@ -52,13 +60,16 @@ Update DHCP reservation to new IP, update DNS override, re-run install.
 **Hue app does not find bridge on home WiFi**
 Same as above — verify mDNS relay is present for both `home` and `srvHome`.
 
-## Advanced: direct SysAP → Hue (no HA)
+## SysAP → Hue (native, intra-zone — ADR-COM-0006)
 
-> **Not recommended.** Breaks zone isolation. Only use if HA is not available.
+Since the Hue bridge and the SysAP both live in `iotCloud`, the SysAP controls Hue
+**directly and intra-zone** — no egress hack, no cross-zone relay. This is the ratified
+default (it replaced the old "not recommended, no-HA fallback" note).
 
-Add to `sysap.json`:
-```json
-"egress": [{"to": "iotLocal", "ports": [80, 443], "protocol": "TCP",
-  "description": "Direct SysAP → Hue bridge (no-HA fallback)"}],
-```
-Add `"hue:bridge"` to `sysap.dependsOn`, then re-run `install-module.sh sysap`.
+`sysap.json` declares `"hue:bridge"` in `dependsOn` → an intra-zone pinhole (no `egress`
+block to `iotLocal` is needed any more). To pair: log into the SysAP web UI as **Installer**,
+then **Settings → Managing Hue Bridges** (the "NEW HUE BRIDGE DETECTED" popup fires once the
+bridge is reachable intra-zone), and press the bridge link button.
+
+HA keeps its own access cross-zone (`srvHome → iotCloud` pinhole) — Hue can be driven by both
+controllers (redundant), or migrated entirely to deCONZ post-cutover.

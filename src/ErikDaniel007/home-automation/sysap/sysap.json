@@ -28,7 +28,9 @@
   ],
   "dependsOn": [
     "firewall:rules",
-    "firewall:discovery"
+    "firewall:discovery",
+    "deconz:bridge",
+    "hue:bridge"
   ],
-  "_comment_direct_access": "No-HA scenario: add egress to iotLocal ports 80/443 + hue:bridge in dependsOn. See INSTALL.md advanced section. Not recommended: breaks zone isolation."
+  "_comment_zoning": "ADR-COM-0006: SysAP, deconz and hue are co-located in iotCloud. The SysAP consumes deconz:bridge and hue:bridge INTRA-zone (native SSDP/mDNS discovery + control, no cross-zone relay, no egress-to-iotLocal). deconz:bridge and hue:bridge are interchangeable Hue-bridge providers (same capability name). HA remains a redundant secondary controller via its own srvHome->iotCloud pinhole."
 }

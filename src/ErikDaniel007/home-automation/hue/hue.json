@@ -7,7 +7,7 @@
   "location": "/home/tappaas/Community/src/ErikDaniel007/home-automation/hue",
   "vmname": "hue",
   "vmtag": "TAPPaaS,Community,HomeAutomation,Hardware",
-  "zone0": "iotLocal",
+  "zone0": "iotCloud",
   "aliasType": "host",
   "firewallType": "opnsense",
   "ports": [
@@ -30,5 +30,5 @@
     "firewall:rules",
     "firewall:discovery"
   ],
-  "_comment_direct_access": "No-HA scenario: add egress iotLocal ports 80/443 to sysap.json + hue:bridge in sysap.dependsOn. See INSTALL.md advanced section. Not recommended: breaks zone isolation."
+  "_comment_zoning": "ADR-COM-0006: Hue moved iotLocal->iotCloud to co-locate with the SysAP control plane (deconz+sysap). SysAP discovers+controls Hue INTRA-zone (native SSDP/mDNS, no cross-zone relay); enables firmware updates (cloud-only). HA/app still discover via udpbroadcastrelay to srvHome/home (discoveryMdns). Trade: shares flat iotCloud segment (accepted blast radius). Promotion path -> dedicated domotica zone (ADR-COM-0006 alt C)."
 }
