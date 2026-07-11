@@ -92,7 +92,17 @@
             "status": "beta"
         }
     ],
-    "foundationModules": [],
+    "foundationModules": [
+        {
+            "moduleName": "mailserver",
+            "repo": "community",
+            "moduleJson": "src/AndreasJe/mailserver-hub/mailserver/mailserver.json",
+            "vmid": null,
+            "stack": "communication",
+            "category": "email",
+            "status": "beta"
+        }
+    ],
     "proxmoxTemplates": [],
     "testModules": []
 }

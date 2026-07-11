@@ -1,0 +1,76 @@
+{
+  "description": "Full mail stack (Postfix + Dovecot + Rspamd + ClamAV + OpenDKIM via nixos-mailserver)",
+  "version": "0.1.0",
+  "releaseDate": "2026-07-05",
+  "maintainer": "@larsrossen",
+  "status": "Development",
+  "tier": "foundation",
+  "vmname": "mailserver",
+  "vmid": 160,
+  "vmtag": "TAPPaaS,Foundation",
+  "zone0": "dmz",
+  "ip": "10.6.0.10",
+  "dependsOn": [
+    "cluster:vm",
+    "cluster:ha",
+    "templates:nixos",
+    "backup:vm",
+    "network:nat",
+    "network:dns",
+    "network:rules"
+  ],
+  "provides": [
+    "smtp",
+    "mailbox"
+  ],
+  "egress": [
+    {
+      "to": "identity",
+      "ports": [
+        9000
+      ],
+      "protocol": "TCP",
+      "description": "LDAP outpost -> Authentik core API"
+    }
+  ],
+  "config": {
+    "cluster:vm": {
+      "cores": 2,
+      "memory": 4608,
+      "diskSize": "32G",
+      "storage": "tanka1",
+      "imageType": "clone",
+      "image": "8080",
+      "bridge0": "lan"
+    },
+    "network:nat": {
+      "natRules": [
+        {
+          "externalPort": 25,
+          "protocol": "TCP",
+          "description": "SMTP (inbound MX)"
+        },
+        {
+          "externalPort": 465,
+          "protocol": "TCP",
+          "description": "SMTPS (implicit-TLS submission)"
+        },
+        {
+          "externalPort": 587,
+          "protocol": "TCP",
+          "description": "Submission (STARTTLS)"
+        },
+        {
+          "externalPort": 993,
+          "protocol": "TCP",
+          "description": "IMAPS"
+        },
+        {
+          "externalPort": 995,
+          "protocol": "TCP",
+          "description": "POP3S"
+        }
+      ]
+    }
+  }
+}
