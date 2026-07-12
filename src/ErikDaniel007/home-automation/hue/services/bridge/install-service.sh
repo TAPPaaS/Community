@@ -4,7 +4,7 @@
 #
 # The 'bridge' service is purely declarative: it exposes its ports via
 # pinhole.json so cross-zone consumers are granted access by auto-pinhole
-# (#173). There is no provider-side work — the consumer's firewall:rules
+# (#173). There is no provider-side work — the consumer's network:rules
 # install-service.sh handles compilation.
 #
 # Usage: install-service.sh <consumer-module-name>
@@ -18,4 +18,4 @@ if [[ -z "${CONSUMER}" ]]; then
     exit 1
 fi
 
-info "hue:bridge install-service for consumer '${CONSUMER}' — no provider-side work needed (auto-pinhole handled by consumer's firewall:rules)."
+info "hue:bridge install-service for consumer '${CONSUMER}' — no provider-side work needed (auto-pinhole handled by consumer's network:rules)."

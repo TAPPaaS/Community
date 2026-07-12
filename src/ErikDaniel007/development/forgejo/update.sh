@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VMNAME="$(get_config_value 'vmname' "${1:-forgejo}")"
 VMID="$(get_config_value 'vmid')"
 NODE="$(get_config_value 'node' "$(get_node_hostname 0)")"
-ZONE0NAME="$(get_config_value 'zone0' 'srv_work')"
+ZONE0NAME="$(get_config_value 'zone0' 'srvWork')"
 VM_HOST="${VMNAME}.${ZONE0NAME}.internal"
 SSH_OPTS="-o ConnectTimeout=30 -o StrictHostKeyChecking=accept-new -o BatchMode=yes"
 

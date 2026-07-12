@@ -22,7 +22,7 @@ Office document editing is provided by the **separate** `euro-office` module.
 | notify_push | Client Push backend — desktop clients receive instant file-change notifications |
 | nextcloud-whiteboard-server | Co-located WebSocket backend for the Whiteboard app (port 3002, proxied via nginx) |
 | nginx | Internal only (port 80); TLS terminated by Caddy on the firewall |
-| Caddy proxy | Managed by `firewall:proxy` (not on this VM) |
+| Caddy proxy | Managed by `network:proxy` (not on this VM) |
 
 **Data:** `/var/lib/nextcloud/`
 **Backups:** PostgreSQL dump at 02:00 + data-dir tar at 02:30, 30-day retention in `/var/backup/nextcloud/`
@@ -38,7 +38,7 @@ Resolved automatically by `install-module.sh`:
 | `cluster:vm` | Proxmox VM creation |
 | `templates:nixos` | Clones NixOS base image (8080), runs `nixos-rebuild` with `nextcloud.nix` |
 | `backup:vm` | Registers VM in Proxmox Backup Server |
-| `firewall:proxy` | Adds Caddy HTTPS rule + Unbound host override for internal DNS hairpin fix |
+| `network:proxy` | Adds Caddy HTTPS rule + Unbound host override for internal DNS hairpin fix |
 | `identity:identity` | Creates Authentik OIDC app, writes `/etc/secrets/nextcloud.env`, triggers OIDC setup |
 
 ---
@@ -112,7 +112,7 @@ install-module.sh nextcloud
 │
 ├── backup:vm           → Registers VM 340 in Proxmox Backup Server
 │
-├── firewall:proxy      → Adds Caddy HTTPS proxy rule for nextcloud.example.com
+├── network:proxy      → Adds Caddy HTTPS proxy rule for nextcloud.example.com
 │                         Adds Unbound host override: nextcloud.example.com → 10.2.10.1
 │                         (required: internal VMs cannot reach the WAN IP directly)
 │
@@ -597,7 +597,7 @@ Workaround for nixos-rebuild: `--option substitute false` (skips binary cache DN
 
 Root cause: hairpin NAT — `*.example.com` resolves via Azure DNS to the WAN IP (87.54.122.90). OPNsense cannot NAT from inside its own WAN interface, so connections time out.
 
-Fix: `firewall:proxy` install-service adds an Unbound host override pointing each module's public domain to `10.2.10.1` (the OPNsense srv zone interface). Verify:
+Fix: `network:proxy` install-service adds an Unbound host override pointing each module's public domain to `10.2.10.1` (the OPNsense srv zone interface). Verify:
 ```bash
 dig @10.50.0.1 nextcloud.example.com
 # Should return 10.2.10.1, not the WAN IP

@@ -65,7 +65,7 @@ multiple HPB nodes for horizontal scaling.
 | `proxyPort` | 8080 |
 
 Caddy auto-proxies `hpb.example.com` → `nextcloud-hpb.srv.internal:8080`
-via the existing `firewall:proxy` service install hook. Caddy natively upgrades
+via the existing `network:proxy` service install hook. Caddy natively upgrades
 WebSocket connections, so no nginx on the VM is needed.
 
 ---
@@ -79,7 +79,7 @@ Resolved automatically by `install-module.sh`:
 | `cluster:vm` | Proxmox VM creation |
 | `templates:nixos` | Deploys nextcloud-hpb.nix, runs `nixos-rebuild`, reboots VM |
 | `backup:vm` | Registers VM in Proxmox Backup Server |
-| `firewall:proxy` | Adds Caddy WebSocket proxy rule + internal DNS override for `hpb.example.com` |
+| `network:proxy` | Adds Caddy WebSocket proxy rule + internal DNS override for `hpb.example.com` |
 | `nextcloud:vm` | Nextcloud VM must exist — HPB registers its signaling backend with Nextcloud during install |
 | `coturn:vm` | coturn must be installed first — `COTURN_SECRET` must be present on the management plane |
 

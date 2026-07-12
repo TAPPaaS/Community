@@ -6,7 +6,7 @@ Primary audience: TAPPaaS admin. Steps the scripts cannot automate.
 
 - `tappaas@tappaas-cicd` with the usual cluster SSH/sudo access.
 - The dependencies are pulled in automatically (`cluster:vm`, `templates:debian`,
-  `backup:vm`, `firewall:proxy`).
+  `backup:vm`, `network:proxy`).
 - For the friendly HTTPS name to present a valid certificate, the TAPPaaS wildcard must be in
   OPNsense Trust (run `acme-setup.sh` once — INSTALL.md §2.3). Until then the internal endpoint
   still works, with a cert warning.
@@ -87,12 +87,12 @@ container + web app. `systemctl status uosserver` on the VM; retry `:11443`.
 
 **Friendly name unreachable**
 Confirm you are in `mgmt`/`home`/`work` (others get 403 by design). Check the Caddy route:
-`firewall:proxy test-service.sh unifi-os`. Re-apply with `install-module.sh unifi-os --force`.
+`network:proxy test-service.sh unifi-os`. Re-apply with `install-module.sh unifi-os --force`.
 
 **Friendly name loads a blank page (valid cert, no UI)**
 The UniFi OS console SPA rides a WebSocket; behind a TLS reverse proxy Caddy must talk HTTP/1.1
 to the upstream or the WebSocket returns 500 and the page stays blank (#339). This module sets
-`proxyUpstreamHttp1: true`, which `firewall:proxy` passes as `caddy-manager --upstream-http1`
+`proxyUpstreamHttp1: true`, which `network:proxy` passes as `caddy-manager --upstream-http1`
 (os-caddy `HttpVersion=http1`). If you see a blank page, verify the handler has HTTP Version =
 HTTP/1.1 and re-apply: `install-module.sh unifi-os --force`. (Requires an `opnsense-controller`
 new enough to have `--upstream-http1`.) The direct console `https://<vm-ip>:11443` always works.

@@ -249,7 +249,7 @@ in
     backends.nextcloud = {
       # Nextcloud URL: install.sh sets the actual URL via nixos-rebuild.
       # Default: internal hostname of co-deployed nextcloud in same zone.
-      urls      = [ "https://nextcloud.srv_work.internal" ];
+      urls      = [ "https://nextcloud.srvWork.internal" ];
       secretFile = "${secretsDir}/hpb-secret";
     };
   };

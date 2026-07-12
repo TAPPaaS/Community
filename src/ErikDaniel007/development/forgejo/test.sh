@@ -17,7 +17,7 @@ set -euo pipefail
 
 VMNAME="$(get_config_value 'vmname' "${1:-forgejo}")"
 VMID="${TAPPAAS_VMID_OVERRIDE:-$(get_config_value 'vmid')}"
-ZONE0NAME="${TAPPAAS_ZONE0_OVERRIDE:-$(get_config_value 'zone0' 'srv_work')}"
+ZONE0NAME="${TAPPAAS_ZONE0_OVERRIDE:-$(get_config_value 'zone0' 'srvWork')}"
 VM_HOST="${VMNAME}.${ZONE0NAME}.internal"
 SSH_OPTS="-o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -o BatchMode=yes"
 

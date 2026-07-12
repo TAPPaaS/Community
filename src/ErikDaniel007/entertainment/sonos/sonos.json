@@ -67,7 +67,7 @@
   ],
   "egress": [
     {
-      "to": "srv-home",
+      "to": "srvHome",
       "ports": [1400],
       "protocol": "TCP",
       "description": "Sonos push event callback to Home Assistant subscription listener"
@@ -78,7 +78,7 @@
     "airplay"
   ],
   "dependsOn": [
-    "firewall:rules",
-    "firewall:discovery"
+    "network:rules",
+    "network:discovery"
   ]
 }

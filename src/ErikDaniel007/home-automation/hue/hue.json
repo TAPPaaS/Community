@@ -7,7 +7,7 @@
   "location": "/home/tappaas/Community/src/ErikDaniel007/home-automation/hue",
   "vmname": "hue",
   "vmtag": "TAPPaaS,Community,HomeAutomation,Hardware",
-  "zone0": "iot-local",
+  "zone0": "iotLocal",
   "aliasType": "host",
   "firewallType": "opnsense",
   "ports": [
@@ -22,13 +22,13 @@
       "description": "Hue bridge HTTPS API"
     }
   ],
-  "discoveryMdns": ["home", "srv-home"],
+  "discoveryMdns": ["home", "srvHome"],
   "provides": [
     "bridge"
   ],
   "dependsOn": [
-    "firewall:rules",
-    "firewall:discovery"
+    "network:rules",
+    "network:discovery"
   ],
-  "_comment_direct_access": "No-HA scenario: add egress iot-local ports 80/443 to sysap.json + hue:bridge in sysap.dependsOn. See INSTALL.md advanced section. Not recommended: breaks zone isolation."
+  "_comment_direct_access": "No-HA scenario: add egress iotLocal ports 80/443 to sysap.json + hue:bridge in sysap.dependsOn. See INSTALL.md advanced section. Not recommended: breaks zone isolation."
 }

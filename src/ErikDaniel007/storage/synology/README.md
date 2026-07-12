@@ -11,9 +11,9 @@ installed on the device.
 |---|---|---|
 | DSM admin UI | Home network, work | `https://synology.<your-domain>` (via Caddy — internal zones only) |
 | File shares | Home network, TAPPaaS apps | SMB (`\\synology`) or NFS mount |
-| Synology Drive | Home network, mobile | `https://synology.srv-home.internal:5001/drive/` · Synology Drive app |
-| Synology Photos | Home network, mobile | `https://synology.srv-home.internal:5001/photo/` · Synology Photos app |
-| Surveillance Station | Home network | `https://synology.srv-home.internal:9901` |
+| Synology Drive | Home network, mobile | `https://synology.srvHome.internal:5001/drive/` · Synology Drive app |
+| Synology Photos | Home network, mobile | `https://synology.srvHome.internal:5001/photo/` · Synology Photos app |
+| Surveillance Station | Home network | `https://synology.srvHome.internal:9901` |
 | Mac Time Machine | Home network | SMB Time Machine share — zero-config on macOS |
 | M365 backup | Internal (outbound) | Active Backup for Microsoft 365 — Exchange, OneDrive, Teams, SharePoint |
 | DLNA media streaming | Home network | Smart TVs and UPnP media players |
@@ -26,16 +26,16 @@ installed on the device.
 
 ## Requirements
 
-- Synology DiskStation on `srv-home` network (VLAN 210)
+- Synology DiskStation on `srvHome` network (VLAN 210)
 - Static DHCP reservation per unit
-- DNS host override: `synology.srv-home.internal`
+- DNS host override: `synology.srvHome.internal`
 
 ## Dependencies
 
 | Depends on | Purpose |
 |---|---|
-| `firewall:rules` | Firewall pinholes for all DSM services |
-| `firewall:proxy` | Caddy reverse proxy — `synology.<your-domain>` (home/work/mgmt only) |
+| `network:rules` | Firewall pinholes for all DSM services |
+| `network:proxy` | Caddy reverse proxy — `synology.<your-domain>` (home/work/mgmt only) |
 | `identity:identity` | Authentik SSO for DSM login (optional) |
 | `backup` | PBS backup target — Synology pushes Hyper Backup via rsync/SSH to PBS (optional) |
 

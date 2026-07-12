@@ -52,7 +52,7 @@ Only port 80 is exposed to the host network. All other ports are internal to the
 | `cluster:vm` | Creates the Proxmox VM |
 | `templates:nixos` | Provides the NixOS base image (template VMID 8080) |
 | `backup:vm` | Registers the VM with Proxmox Backup Server |
-| `firewall:proxy` | Configures Caddy reverse proxy for `eu-office.example.com` |
+| `network:proxy` | Configures Caddy reverse proxy for `eu-office.example.com` |
 | `nextcloud:vm` | Nextcloud instance this server integrates with |
 
 ## Lifecycle

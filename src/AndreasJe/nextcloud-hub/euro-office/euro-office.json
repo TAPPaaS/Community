@@ -30,7 +30,7 @@
     "cluster:vm",
     "templates:nixos",
     "backup:vm",
-    "firewall:proxy",
+    "network:proxy",
     "nextcloud:nextcloud"
   ],
   "provides": []

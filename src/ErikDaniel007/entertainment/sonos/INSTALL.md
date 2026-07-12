@@ -193,7 +193,7 @@ Checklist:
    and Sonos Community sources in README.md external references
 
 **Sonos app does not find speakers from home WiFi**
-Verify mDNS relay: `firewall:discovery test-service.sh sonos` — relay should be present.
+Verify mDNS relay: `network:discovery test-service.sh sonos` — relay should be present.
 
 **AirPlay audio drops after ~10 seconds**
 Verify UDP 7000–7100 rules: `test-module.sh sonos` — no failures. If missing: `install-module.sh sonos --force`.
@@ -204,4 +204,4 @@ No module reinstall needed.
 
 **HA shows speakers unavailable after restart**
 SSDP 1900 relay `srvHome → iotCloud` must be present (added in v0.2.0). Run
-`firewall:discovery test-service.sh sonos`; if missing, `install-module.sh sonos --force`.
+`network:discovery test-service.sh sonos`; if missing, `install-module.sh sonos --force`.

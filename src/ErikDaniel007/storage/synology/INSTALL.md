@@ -6,12 +6,12 @@
 1. **LAGG (optional but recommended)** — if your switch supports LACP (802.3ad):
    - Configure Bond in DSM **first**: Control Panel → Network → Network Interface → Create → Bond → select LAN 1 + LAN 2 → IEEE 802.3ad.
    - Then create the LAG on your switch. DSM must be configured first to avoid connectivity loss.
-2. **Static DHCP reservation** — assign a fixed IP to the Synology MAC address (bond MAC if LAGG is used) on the `srv-home` network (VLAN 210) via OPNsense: Services → DHCPv4 → VLAN210 → Static Mappings → Add.
+2. **Static DHCP reservation** — assign a fixed IP to the Synology MAC address (bond MAC if LAGG is used) on the `srvHome` network (VLAN 210) via OPNsense: Services → DHCPv4 → VLAN210 → Static Mappings → Add.
 3. **DNS host override** — add via `dns-manager`:
    ```bash
-   dns-manager --no-ssl-verify add synology srv-home.internal <ip>
+   dns-manager --no-ssl-verify add synology srvHome.internal <ip>
    ```
-4. **DSM reachable** at `https://synology.srv-home.internal:5001` before applying this module.
+4. **DSM reachable** at `https://synology.srvHome.internal:5001` before applying this module.
 5. **DSM ports at defaults** — Control Panel → Network → DSM Settings: HTTP 5000, HTTPS 5001.
 
 ## Install
@@ -32,22 +32,22 @@ Configure per-service ports in DSM → Control Panel → Login Portal → Applic
 
 | App | HTTP | HTTPS | Domain | Alias |
 |---|---|---|---|---|
-| DSM | 5000 | 5001 | `synology.srv-home.internal` | — |
-| Synology Drive | 10002 | 10003 | `drive.srv-home.internal` | — |
-| Synology Photos | 5080 | 5443 | `photos.srv-home.internal` | — |
-| Surveillance Station | 9900 | 9901 | `surveillance.srv-home.internal` | — |
-| Active Backup M365 | 28003 | 28004 | `m365backup.srv-home.internal` | — |
-| Active Backup Business | 8001 | 8002 | `activebusiness.srv-home.internal` | — |
+| DSM | 5000 | 5001 | `synology.srvHome.internal` | — |
+| Synology Drive | 10002 | 10003 | `drive.srvHome.internal` | — |
+| Synology Photos | 5080 | 5443 | `photos.srvHome.internal` | — |
+| Surveillance Station | 9900 | 9901 | `surveillance.srvHome.internal` | — |
+| Active Backup M365 | 28003 | 28004 | `m365backup.srvHome.internal` | — |
+| Active Backup Business | 8001 | 8002 | `activebusiness.srvHome.internal` | — |
 | File Station | — | — | — | — |
 
 Then add per-service DNS overrides (all point to the same Synology IP):
 
 ```bash
-dns-manager --no-ssl-verify add drive           srv-home.internal <ip>
-dns-manager --no-ssl-verify add photos          srv-home.internal <ip>
-dns-manager --no-ssl-verify add surveillance    srv-home.internal <ip>
-dns-manager --no-ssl-verify add m365backup      srv-home.internal <ip>
-dns-manager --no-ssl-verify add activebusiness  srv-home.internal <ip>
+dns-manager --no-ssl-verify add drive           srvHome.internal <ip>
+dns-manager --no-ssl-verify add photos          srvHome.internal <ip>
+dns-manager --no-ssl-verify add surveillance    srvHome.internal <ip>
+dns-manager --no-ssl-verify add m365backup      srvHome.internal <ip>
+dns-manager --no-ssl-verify add activebusiness  srvHome.internal <ip>
 ```
 
 ### DSM hardening (one-time)
@@ -90,12 +90,12 @@ dns-manager --no-ssl-verify add activebusiness  srv-home.internal <ip>
 
 1. Install from Synology Package Center.
 2. Add cameras: Main Menu → IP Camera → Add → enter camera RTSP URL.
-3. Cameras must be on `iot-cloud` zone — the firewall rule for TCP 554 is applied during module install.
+3. Cameras must be on `iotCloud` zone — the firewall rule for TCP 554 is applied during module install.
 
 ### Authentik SSO (optional — requires `identity:identity`)
 
 1. In Authentik: create OAuth2/OIDC provider. Redirect URI:
-   `https://synology.srv-home.internal:5001/webman/sso/SSOOauth.cgi`
+   `https://synology.srvHome.internal:5001/webman/sso/SSOOauth.cgi`
 2. In DSM: Control Panel → Domain/LDAP → SSO Client → OIDC → enter Authentik issuer URL and credentials.
 
 ## Verification
@@ -108,12 +108,12 @@ Manual checks:
 
 | Check | Expected |
 |---|---|
-| `https://synology.srv-home.internal:5001` | DSM login page |
-| `https://drive.srv-home.internal:10003` | Synology Drive portal |
-| `https://photos.srv-home.internal:5443` | Synology Photos portal |
-| `https://surveillance.srv-home.internal:9901` | Surveillance Station |
+| `https://synology.srvHome.internal:5001` | DSM login page |
+| `https://drive.srvHome.internal:10003` | Synology Drive portal |
+| `https://photos.srvHome.internal:5443` | Synology Photos portal |
+| `https://surveillance.srvHome.internal:9901` | Surveillance Station |
 | SMB mount from home client | Share visible and writable |
-| NFS mount from TAPPaaS VM | `mount synology.srv-home.internal:/volume1/share /mnt/test` succeeds |
+| NFS mount from TAPPaaS VM | `mount synology.srvHome.internal:/volume1/share /mnt/test` succeeds |
 
 ## Troubleshooting
 
@@ -127,4 +127,4 @@ Check NFS export permissions in DSM — the VM IP must be listed in the NFS Perm
 Confirm SMB2+ is enabled (DSM default). Enable Bonjour in File Services → Advanced.
 
 **Surveillance Station cameras offline**
-Verify cameras are on `iot-cloud` zone and can reach Synology TCP 554.
+Verify cameras are on `iotCloud` zone and can reach Synology TCP 554.

@@ -7,7 +7,7 @@
   "location": "/home/tappaas/Community/src/ErikDaniel007/surveillance/reolink",
   "vmname": "reolink",
   "vmtag": "TAPPaaS,Community,Surveillance,Hardware",
-  "zone0": "iot-cams",
+  "zone0": "iotCams",
   "aliasType": "network",
   "firewallType": "opnsense",
   "ports": [
@@ -23,6 +23,6 @@
     "api"
   ],
   "dependsOn": [
-    "firewall:rules"
+    "network:rules"
   ]
 }

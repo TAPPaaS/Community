@@ -63,7 +63,7 @@ API="https://${FW_HOST}:8443/api"
 CURL=(-sk -u "${KEY}:${SECRET}")
 
 # ── Resolve zone name → OPNsense interface identifier ───────────────
-# Uses the mDNS repeater interface map (available once firewall:discovery runs).
+# Uses the mDNS repeater interface map (available once network:discovery runs).
 
 MDNS_RESP=$(curl "${CURL[@]}" "${API}/mdnsrepeater/settings/get")
 if ! echo "${MDNS_RESP}" | jq -e '.mdnsrepeater.interfaces' >/dev/null 2>&1; then

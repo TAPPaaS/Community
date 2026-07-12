@@ -47,7 +47,7 @@ through the UniFi OS API.
 
 ## Access (internal only)
 
-`firewall:proxy` publishes the friendly name **`https://unifi-os.<domain>`** (split-horizon
+`network:proxy` publishes the friendly name **`https://unifi-os.<domain>`** (split-horizon
 DNS → Caddy → the VM's `:11443`, HTTPS upstream), with an access-list permitting only the
 `mgmt`, `home`, and `work` zones — **not reachable from the internet**.
 
@@ -58,7 +58,7 @@ DNS → Caddy → the VM's `:11443`, HTTPS upstream), with an access-list permit
 | `cluster:vm` | Creates the Debian 13 VM from the cloud image |
 | `templates:debian` | OS prep (apt update/upgrade + qemu-guest-agent) |
 | `backup:vm` | Scheduled VM backup to PBS |
-| `firewall:proxy` | Internal-only reverse proxy for `unifi-os.<domain>` |
+| `network:proxy` | Internal-only reverse proxy for `unifi-os.<domain>` |
 
 ## Sizing
 

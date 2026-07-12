@@ -12,7 +12,7 @@ own infrastructure with no external dependencies.
 | Web UI (browse, review, settings) | `work`, `mgmt` networks | Same URL as above |
 | REST API | `work`, `mgmt` networks | `https://forgejo.<domain>/api/v1` |
 | SSH git clone / push | `work` network, LAN | `git@forgejo.<domain>:org/repo.git` |
-| Incoming webhooks | Other services on `srv_work` | HTTP POST to `http://forgejo.srv-work.internal:3000` |
+| Incoming webhooks | Other services on `srvWork` | HTTP POST to `http://forgejo.srvWork.internal:3000` |
 
 ## What is not included
 
@@ -24,8 +24,8 @@ own infrastructure with no external dependencies.
 ## Requirements
 
 - Proxmox node: `tappaas1` with `tanka1` storage pool
-- Zone: `srv_work` (VLAN 220)
-- Dependencies: `cluster:vm`, `backup:vm`, `firewall:proxy`, `firewall:rules`
+- Zone: `srvWork` (VLAN 220)
+- Dependencies: `cluster:vm`, `backup:vm`, `network:proxy`, `network:rules`
 
 ## Services offered (`provides`)
 
@@ -49,7 +49,7 @@ own infrastructure with no external dependencies.
 |---|---|
 | `cluster:vm` | Creates and manages the NixOS VM |
 | `backup:vm` | PBS backup of the VM (daily snapshot) |
-| `firewall:proxy` | Caddy reverse proxy — HTTPS endpoint on `work`/`mgmt` |
-| `firewall:rules` | Firewall pinholes (dmz → srv_work TCP 3000) |
+| `network:proxy` | Caddy reverse proxy — HTTPS endpoint on `work`/`mgmt` |
+| `network:rules` | Firewall pinholes (dmz → srvWork TCP 3000) |
 
 For installation steps see [INSTALL.md](./INSTALL.md).

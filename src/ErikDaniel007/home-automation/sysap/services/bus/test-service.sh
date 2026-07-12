@@ -23,9 +23,9 @@ info "sysap:bus test-service for consumer: ${BL}${CONSUMER}${CL}"
 
 [[ -f "${MODULE_JSON}" ]] || die "Module config not found: ${MODULE_JSON}"
 
-SYSAP_IP=$(dig +short sysap.iot-cloud.internal 2>/dev/null | head -1)
+SYSAP_IP=$(dig +short sysap.iotCloud.internal 2>/dev/null | head -1)
 if [[ -z "${SYSAP_IP}" ]]; then
-    warn "  sysap.iot-cloud.internal does not resolve — falling back to alias lookup"
+    warn "  sysap.iotCloud.internal does not resolve — falling back to alias lookup"
     SYSAP_IP=$(rules-manager list-rules --no-ssl-verify 2>/dev/null \
         | grep -oE "tappaas-svcdep:${CONSUMER}:bus:sysap" | head -1 || true)
 fi

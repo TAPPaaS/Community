@@ -23,9 +23,9 @@ info "hue:bridge test-service for consumer: ${BL}${CONSUMER}${CL}"
 
 [[ -f "${MODULE_JSON}" ]] || die "Module config not found: ${MODULE_JSON}"
 
-HUE_IP=$(dig +short hue.iot-local.internal 2>/dev/null | head -1)
+HUE_IP=$(dig +short hue.iotLocal.internal 2>/dev/null | head -1)
 if [[ -z "${HUE_IP}" ]]; then
-    warn "  hue.iot-local.internal does not resolve — using alias lookup"
+    warn "  hue.iotLocal.internal does not resolve — using alias lookup"
 fi
 
 FAILURES=0

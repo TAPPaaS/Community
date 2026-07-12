@@ -16,7 +16,7 @@ Internet → OPNsense/Caddy (dmz) → wordpress.srv.internal:8080
                                    └── Redis :6380 (localhost)
 ```
 
-Caddy reverse proxy wired automatically via `firewall:proxy`.
+Caddy reverse proxy wired automatically via `network:proxy`.
 
 ## VM specs
 

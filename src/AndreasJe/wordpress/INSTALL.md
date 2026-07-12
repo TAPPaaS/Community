@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- `firewall:proxy` and `backup:vm` operational
+- `network:proxy` and `backup:vm` operational
 - VMID 620 free in Proxmox
 - DNS record pointing `wordpress.<yourdomain>` to Caddy
 

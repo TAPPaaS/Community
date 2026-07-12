@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- `cluster:vm`, `templates:nixos`, `backup:vm`, and `firewall:proxy` must already be installed
+- `cluster:vm`, `templates:nixos`, `backup:vm`, and `network:proxy` must already be installed
 - A secrets file must exist at `/home/tappaas/secrets/euro-office.env` containing `TAPPAAS_PASSWORD`
 
 ## Installation Steps

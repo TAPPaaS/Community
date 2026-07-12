@@ -12,8 +12,8 @@
    ssh root@tappaas1.mgmt.internal "pvesm status | grep tanka1"
    ```
 
-3. **DNS** — `forgejo.srv-work.internal` resolves after install (handled by `firewall:rules`).
-   Verify after install: `dig forgejo.srv-work.internal @<unbound-ip>`
+3. **DNS** — `forgejo.srvWork.internal` resolves after install (handled by `network:rules`).
+   Verify after install: `dig forgejo.srvWork.internal @<unbound-ip>`
 
 ## Install
 
@@ -25,8 +25,8 @@ install-module.sh forgejo
 `install-module.sh` handles:
 - VM creation (clone from NixOS template 8080, VMID 350)
 - NixOS configuration deployment via `update.sh`
-- Firewall rule registration (`firewall:rules`)
-- Caddy reverse proxy entry (`firewall:proxy`) — HTTPS for `work` and `mgmt` zones
+- Firewall rule registration (`network:rules`)
+- Caddy reverse proxy entry (`network:proxy`) — HTTPS for `work` and `mgmt` zones
 
 ## Post-install
 
@@ -47,7 +47,7 @@ install-module.sh forgejo
 
 3. **SSH git access** — The VM listens on port 22. Users on the `work` VLAN can clone with:
    ```bash
-   git clone git@forgejo.srv-work.internal:org/repo.git
+   git clone git@forgejo.srvWork.internal:org/repo.git
    ```
    External SSH access requires an NAT port-forward rule — see §Customisation.
 
@@ -75,7 +75,7 @@ Manual check:
 
 | Check | Expected |
 |---|---|
-| `nc -zv -w 5 forgejo.srv-work.internal 3000` | `Connection to … 3000 … succeeded` |
+| `nc -zv -w 5 forgejo.srvWork.internal 3000` | `Connection to … 3000 … succeeded` |
 | Browser: `https://forgejo.<domain>` | Forgejo login page loads |
 | `curl -s https://forgejo.<domain>/api/healthz` | `{"status":"pass"}` |
 
@@ -84,12 +84,12 @@ Manual check:
 Override any JSON field at install time:
 
 ```bash
-install-module.sh forgejo --node tappaas2 --zone0 srv_work --vmid 351
+install-module.sh forgejo --node tappaas2 --zone0 srvWork --vmid 351
 ```
 
 | Flag | Default | Controls |
 |---|---|---|
-| `--zone0` | `srv_work` | Network zone (VLAN 220) |
+| `--zone0` | `srvWork` | Network zone (VLAN 220) |
 | `--vmid` | `350` | Proxmox VM ID |
 | `--node` | `tappaas1` | Proxmox node |
 | `--memory` | `2048` | RAM in MB |
@@ -97,10 +97,10 @@ install-module.sh forgejo --node tappaas2 --zone0 srv_work --vmid 351
 ## Troubleshooting
 
 **"Forgejo service is inactive after install"**
-The first NixOS rebuild downloads the Forgejo package from the internet (via `srv_work`
+The first NixOS rebuild downloads the Forgejo package from the internet (via `srvWork`
 internet egress). This can take 3–5 minutes on first boot. Check progress:
 ```bash
-ssh tappaas@forgejo.srv-work.internal "journalctl -u forgejo -f"
+ssh tappaas@forgejo.srvWork.internal "journalctl -u forgejo -f"
 ```
 
 **"Web UI returns 502 from Caddy"**
@@ -110,7 +110,7 @@ to start: `systemctl status forgejo`. If it fails, check: `journalctl -u forgejo
 **"SSH git: connection refused"**
 The system OpenSSH listens on port 22. Verify it is running:
 ```bash
-ssh tappaas@forgejo.srv-work.internal "systemctl status sshd"
+ssh tappaas@forgejo.srvWork.internal "systemctl status sshd"
 ```
 If users are outside the `work` VLAN, add an NAT port-forward rule (see §Customisation).
 

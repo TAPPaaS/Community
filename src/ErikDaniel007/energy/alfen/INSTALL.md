@@ -5,8 +5,8 @@ Primary audience: TAPPaaS admin. Manual steps that cannot be automated.
 ## Prerequisites
 
 1. **Static DHCP reservation** — assign a fixed IP to the charger's MAC address
-   in OPNsense (`iot-cloud` network, e.g. `10.4.20.25`).
-2. **DNS host override** — `alfen.iot-cloud.internal → <ip>` via `dns-manager`.
+   in OPNsense (`iotCloud` network, e.g. `10.4.20.25`).
+2. **DNS host override** — `alfen.iotCloud.internal → <ip>` via `dns-manager`.
 
 ## Install
 
@@ -18,7 +18,7 @@ install-module.sh alfen
 This configures:
 - Firewall pass rules (ports 80, 443, 502, 36549)
 - UDP broadcast relay for MyEve app discovery
-- Outbound NAT masquerade for `home` and `srv-home` → `iot-cloud`
+- Outbound NAT masquerade for `home` and `srvHome` → `iotCloud`
 
 ## Post-install
 
@@ -27,7 +27,7 @@ This configures:
 
 **In Home Assistant** (optional):
 - Install `alfen_wallbox` via HACS
-- Add integration, host: `alfen.iot-cloud.internal`, port: `502`
+- Add integration, host: `alfen.iotCloud.internal`, port: `502`
 
 ## Verification
 
@@ -39,14 +39,14 @@ Manual checks:
 
 | Check | Expected |
 |-------|----------|
-| `https://alfen.iot-cloud.internal` from home browser | Vendor web UI loads |
+| `https://alfen.iotCloud.internal` from home browser | Vendor web UI loads |
 | MyEve app on home WiFi | Charger found and accessible |
 | Home Assistant `sensor.alfen_*` entities | Power, status, energy visible |
 
 ## Troubleshooting
 
 **MyEve app doesn't find charger from home WiFi**
-Verify UDP relay: `firewall:discovery test-service.sh alfen` should show relay present.
+Verify UDP relay: `network:discovery test-service.sh alfen` should show relay present.
 
 **Web UI loads but connection drops / app keeps spinning**
 Verify NAT rules: `alfen:nat test-service.sh alfen` should show both rules present.

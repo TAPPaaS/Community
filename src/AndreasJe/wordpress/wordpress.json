@@ -24,7 +24,7 @@
     "templates:nixos",
     "backup:vm",
     "identity:identity",
-    "firewall:proxy"
+    "network:proxy"
   ],
   "provides": []
 }

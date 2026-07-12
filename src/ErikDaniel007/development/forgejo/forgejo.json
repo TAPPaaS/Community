@@ -50,8 +50,8 @@
   "dependsOn": [
     "cluster:vm",
     "backup:vm",
-    "firewall:proxy",
-    "firewall:rules"
+    "network:proxy",
+    "network:rules"
   ],
   "provides": [],
   "type": "vm"

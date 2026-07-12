@@ -4,9 +4,9 @@ Only manual steps are listed here. Scripts handle everything else automatically.
 
 ## Prerequisites
 
-1. **Static DHCP reservation** — assign fixed IPs to each camera MAC address in OPNsense (`iot-cams` network, VLAN 430).
+1. **Static DHCP reservation** — assign fixed IPs to each camera MAC address in OPNsense (`iotCams` network, VLAN 430).
 2. **Enable RTSP** — in each camera: Settings → Network → Advanced → enable RTSP. Note the stream path and port.
-3. **Verify camera reachable** from `iot-cams` subnet: `nc -zv -w 5 <camera-ip> 554`
+3. **Verify camera reachable** from `iotCams` subnet: `nc -zv -w 5 <camera-ip> 554`
 
 ## Install
 
@@ -58,4 +58,4 @@ Verify RTSP is enabled on the camera and the stream path is correct. Test with `
 Confirm `reolink:api` is in your module's `dependsOn` and `install-module.sh` was re-run after adding it.
 
 **Camera not reachable at all**
-Check static DHCP reservation and confirm the camera is in the `iot-cams` subnet (10.4.30.0/24).
+Check static DHCP reservation and confirm the camera is in the `iotCams` subnet (10.4.30.0/24).

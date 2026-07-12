@@ -7,7 +7,7 @@
   "location": "/home/tappaas/Community/src/ErikDaniel007/home-automation/sysap",
   "vmname": "sysap",
   "vmtag": "TAPPaaS,Community,HomeAutomation,Hardware",
-  "zone0": "iot-cloud",
+  "zone0": "iotCloud",
   "aliasType": "host",
   "firewallType": "opnsense",
   "ports": [
@@ -27,8 +27,8 @@
     "bus"
   ],
   "dependsOn": [
-    "firewall:rules",
-    "firewall:discovery"
+    "network:rules",
+    "network:discovery"
   ],
-  "_comment_direct_access": "No-HA scenario: add egress to iot-local ports 80/443 + hue:bridge in dependsOn. See INSTALL.md advanced section. Not recommended: breaks zone isolation."
+  "_comment_direct_access": "No-HA scenario: add egress to iotLocal ports 80/443 + hue:bridge in dependsOn. See INSTALL.md advanced section. Not recommended: breaks zone isolation."
 }

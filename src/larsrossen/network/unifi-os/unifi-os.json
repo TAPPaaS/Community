@@ -18,7 +18,7 @@
     { "port": 3478,  "protocol": "UDP", "description": "STUN (device discovery)" },
     { "port": 10001, "protocol": "UDP", "description": "Device discovery" }
   ],
-  "dependsOn": ["cluster:vm", "templates:debian", "backup:vm", "firewall:proxy"],
+  "dependsOn": ["cluster:vm", "templates:debian", "backup:vm", "network:proxy"],
   "provides": [],
   "config": {
     "cluster:vm": {
@@ -34,7 +34,7 @@
       "cloudInit": "true",
       "bridge0": "lan"
     },
-    "firewall:proxy": {
+    "network:proxy": {
       "proxyPort": 11443,
       "proxyUpstreamTls": true,
       "proxyUpstreamHttp1": true,
