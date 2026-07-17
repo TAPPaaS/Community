@@ -1,0 +1,31 @@
+{
+  "description": "Ollama NVIDIA CUDA inference — any NVIDIA GPU, compute capability >= 5.0",
+  "version": "0.1.0",
+  "releaseDate": "2026-07-14",
+  "maintainer": "@AndreasJe",
+  "status": "Development",
+  "tier": "app",
+  "vmname": "ollama-nvidia",
+  "vmid": 313,
+  "vmtag": "TAPPaaS,AI,GPU,Ollama",
+  "node": "tappaas1",
+  "zone0": "srvWork",
+  "dependsOn": [
+    "cluster:lxc",
+    "backup:vm"
+  ],
+  "provides": [
+    "inference"
+  ],
+  "config": {
+    "cluster:lxc": {
+      "cores": 24,
+      "memory": "288768",
+      "diskSize": "32G",
+      "storage": "tanka1",
+      "imageType": "clone",
+      "image": "debian-12-standard_12.12-1_amd64.tar.zst",
+      "bridge0": "lan"
+    }
+  }
+}

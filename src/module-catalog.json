@@ -90,6 +90,15 @@
             "stack": "storage",
             "category": "nas",
             "status": "beta"
+        },
+        {
+            "moduleName": "ollama-nvidia",
+            "repo": "community",
+            "moduleJson": "src/AndreasJe/ollama-nvidia/ollama-nvidia.json",
+            "vmid": 313,
+            "stack": "ai",
+            "category": "inference",
+            "status": "beta"
         }
     ],
     "foundationModules": [

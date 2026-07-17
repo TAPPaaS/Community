@@ -1,0 +1,60 @@
+# TAPPaaS Module: ollama-nvidia — reference compose file
+#
+# Deploy to: /opt/ollama/docker-compose.yml inside the LXC container
+# (update.sh writes this same content there if the file doesn't exist yet —
+# keep the two in sync when editing).
+#
+# Requires nvidia-container-toolkit configured for Docker inside the LXC
+# (`nvidia-ctk runtime configure --runtime=docker`, done by update.sh's
+# bootstrap step) — the `deploy.resources.reservations.devices` stanza below
+# is NVIDIA's documented Compose GPU-reservation syntax and works with plain
+# `docker compose up`, no Swarm required.
+#
+# Unlike vllm-amd (one model baked into --model at container start), Ollama
+# serves models dynamically — no model path to edit here before first start.
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    volumes:
+      - /opt/ollama/models:/models
+      - ollama-data:/root/.ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_MODELS=/models
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      # Generous defaults, sized for a RAM-rich host (LXC memory = 75% of host
+      # RAM per the discover.sh formula) — no memory-pressure reason to evict
+      # warm models. Lower both on RAM-constrained hosts.
+      - OLLAMA_MAX_LOADED_MODELS=${OLLAMA_MAX_LOADED_MODELS:-4}
+      - OLLAMA_KEEP_ALIVE=${OLLAMA_KEEP_ALIVE:-24h}
+      # First load of a large hybrid-offload model reads tens of GB from disk —
+      # on spinning-disk pools Ollama's default 5m load timeout can abort it
+      # mid-load.
+      - OLLAMA_LOAD_TIMEOUT=${OLLAMA_LOAD_TIMEOUT:-15m}
+      # Tunables worth experimenting with (leave unset until verified on the
+      # actual card — support and benefit vary by GPU generation):
+      #   OLLAMA_FLASH_ATTENTION=1     — lower VRAM use for context; on older
+      #                                  GPU generations the FA kernels may run
+      #                                  without being the fast path — measure
+      #                                  before keeping.
+      #   OLLAMA_KV_CACHE_TYPE=q8_0    — quantized KV cache, frees VRAM for
+      #                                  more GPU-resident layers; requires
+      #                                  flash attention to be enabled.
+      #   OLLAMA_NUM_PARALLEL=4        — concurrent request slots per model;
+      #                                  raises throughput for multi-user
+      #                                  LiteLLM traffic at the cost of
+      #                                  context-size headroom.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  ollama-data:
