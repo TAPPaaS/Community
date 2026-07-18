@@ -20,7 +20,20 @@
    not just a DNS entry) on every run — if the VM is already up on a different
    address, it reboots the VM once to pick up the pin. Expect a brief reboot
    the first time this runs.
-3. **ACME DNS-01 credentials** (optional at install time): run `acme-setup.sh`
+3. **A deliverable public IP** (the upstream setup guide's make-or-break
+   prerequisites — neither can be automated from here):
+   - **Outbound port 25 not blocked** by your ISP: without it this server can
+     receive but not send. Test before installing (see `README.md`'s
+     "Future work" section); if blocked, plan on the ADR-010 satellite relay.
+   - **Reverse DNS (PTR)**: set your public IP's PTR record to
+     `mail.<domain>` with your ISP/hosting provider — receivers junk mail
+     from IPs whose reverse DNS doesn't match. Residential connections
+     usually cannot set PTR; again, the ADR-010 satellite relay is the
+     answer for outbound. `test-module.sh mailserver` checks this.
+
+   Inbound records themselves (A/MX/SPF/DKIM/DMARC) are published
+   automatically — see Install below.
+4. **ACME DNS-01 credentials** (optional at install time): run `acme-setup.sh`
    first (if you haven't already for the site's wildcard certificate) so
    `~/.acme-dns-credentials.txt` exists — this module reuses it; no new
    credential is requested. Without it, mailserver installs and works fine
@@ -39,8 +52,11 @@ This creates the VM, then:
 1. Builds and activates the NixOS mail-server configuration for your domain.
 2. Provisions an Authentik LDAP Provider and Outpost, so Dovecot/Postfix can
    authenticate mailbox users against Authentik.
-3. Publishes MX/SPF/DKIM/DMARC DNS records for the mail domain (skipped, with
-   a warning, if `acme-setup.sh` hasn't been run yet).
+3. Publishes MX/SPF/DKIM/DMARC DNS records for the mail domain, and creates
+   the `mail.<domain>` A record from the site's detected WAN IP if it doesn't
+   exist yet (an existing A record pointing elsewhere is warned about, never
+   overwritten). Skipped, with a warning, if `acme-setup.sh` hasn't been run
+   yet.
 4. Issues a TLS certificate for the mail domain if DNS-01 credentials are
    available, otherwise activates with a self-signed certificate — see
    "TLS certificate" below.

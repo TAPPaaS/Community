@@ -39,7 +39,10 @@
 #   4. Push MX/SPF/DKIM/DMARC DNS records for the mail domain (best-effort;
 #      requires the `lexicon` DNS-API tool and the SAME DNS-01 credentials
 #      acme-setup.sh already collected at ~/.acme-dns-credentials.txt — no new
-#      credential is asked of the operator).
+#      credential is asked of the operator). Also ensures the mail FQDN's own
+#      public A record exists (the MX target must resolve publicly, upstream
+#      setup guide step 1): created from the site's detected WAN IP if missing,
+#      warned about (never overwritten) if it exists but points elsewhere.
 #   5. Push the ACME DNS-01 credential file (derived from the same
 #      ~/.acme-dns-credentials.txt, translated into lego's env-var naming) to
 #      /etc/secrets/acme-dns-credentials.env on the mailserver VM, per
@@ -439,6 +442,46 @@ push_spf_record() {
     push_dns_record TXT "${DOMAIN}" "${content}"
 }
 
+# The upstream setup guide's step 1: mail.<domain> must resolve PUBLICLY, or
+# the MX record below points at nothing and inbound mail bounces. The local
+# resolver is useless for checking this — acme-setup.sh registers a
+# split-horizon *.<domain> -> DMZ-gateway wildcard in Unbound — so ask a
+# public resolver directly. Only CREATES a missing record: an existing A
+# record that differs from the detected WAN egress IP is warned about, never
+# overwritten (it may deliberately point at a proxy/ingress this script
+# can't know about).
+detect_wan_ip() {
+    local ip
+    ip="$(dig +short myip.opendns.com @resolver1.opendns.com 2>/dev/null | grep -E '^[0-9]+(\.[0-9]+){3}$' | head -1)"
+    if [[ -z "${ip}" ]]; then
+        ip="$(dig +short CH TXT whoami.cloudflare @1.1.1.1 2>/dev/null | tr -d '"' | grep -E '^[0-9]+(\.[0-9]+){3}$' | head -1)"
+    fi
+    printf '%s' "${ip}"
+}
+
+ensure_mail_a_record() {
+    if ! command -v dig >/dev/null 2>&1; then
+        warn "    dig not available on this host — cannot verify the public A record for ${MAIL_FQDN}; make sure it exists (it is the MX target)"
+        return 0
+    fi
+    local public_a wan_ip
+    public_a="$(dig +short A "${MAIL_FQDN}" @1.1.1.1 2>/dev/null | grep -E '^[0-9]+(\.[0-9]+){3}$' | head -1)"
+    wan_ip="$(detect_wan_ip)"
+    if [[ -n "${public_a}" ]]; then
+        if [[ -n "${wan_ip}" && "${public_a}" != "${wan_ip}" ]]; then
+            warn "    A ${MAIL_FQDN} -> ${public_a}, but this site's WAN egress IP is ${wan_ip} — verify inbound mail (the network:nat pinholes) actually arrives at ${public_a}; not overwriting"
+        else
+            info "    ${GN}✓${CL} A ${MAIL_FQDN} -> ${public_a} (already published)"
+        fi
+        return 0
+    fi
+    if [[ -z "${wan_ip}" ]]; then
+        warn "    no public A record for ${MAIL_FQDN} and the site's WAN IP could not be detected — create the A record manually or inbound mail cannot be delivered"
+        return 0
+    fi
+    push_dns_record A "${MAIL_FQDN}" "${wan_ip}"
+}
+
 # Outbound relay (ADR-010 satellite, services/smtp-relay/enable-satellite-relay.sh)
 # changes the actual sending IP for outbound mail away from this host's own MX
 # — SPF must authorize it too, or every message relayed via the satellite
@@ -462,6 +505,7 @@ push_mail_dns_records() {
 
     if ! command -v lexicon >/dev/null 2>&1; then
         warn "  lexicon not installed on this host — skipping automatic DNS record push (install e.g. 'pip install dns-lexicon', then re-run update.sh, or add the records below by hand)"
+        info "    A     ${MAIL_FQDN}               -> <this site's public WAN IP>"
         info "    MX    ${DOMAIN}                    -> ${MAIL_FQDN}. (priority 10)"
         info "    TXT   ${DOMAIN}                    -> \"${spf_record}\""
         info "    TXT   _dmarc.${DOMAIN}              -> \"v=DMARC1; p=quarantine; rua=mailto:postmaster@${DOMAIN}\""
@@ -490,6 +534,7 @@ push_mail_dns_records() {
     esac
 
     info "  Pushing mail DNS records for ${DOMAIN} via lexicon (provider=${CREDS_PROVIDER})"
+    ensure_mail_a_record
     push_dns_record MX "${DOMAIN}" "${MAIL_FQDN}." "10"
     push_spf_record "${spf_record}"
     push_dns_record TXT "_dmarc.${DOMAIN}" "v=DMARC1; p=quarantine; rua=mailto:postmaster@${DOMAIN}"

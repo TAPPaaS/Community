@@ -18,6 +18,10 @@
 #   4. Authentik LDAP outpost container healthy, bound to 127.0.0.1:3389 only.
 #   5. ACME (DNS-01) certificate for mail.<domain> present and not expired.
 #   6. DKIM signing key present on disk.
+#   7. Public DNS posture (queried via 1.1.1.1, not the split-horizon local
+#      resolver): A record for mail.<domain>, MX, SPF, DMARC and DKIM records
+#      published, and the reverse-DNS (PTR) requirement the upstream setup
+#      guide calls make-or-break for deliverability.
 #
 # Usage: ./test.sh [<vmname>]
 #
@@ -188,6 +192,74 @@ else
         pass "DKIM private key present at /var/dkim/${DOMAIN}.mail.key"
     else
         fail "DKIM private key not found at /var/dkim/${DOMAIN}.mail.key"
+    fi
+fi
+
+# ── 7. public DNS records + reverse DNS (upstream setup-guide posture) ────────
+# All queries go to a public resolver (1.1.1.1) on purpose: acme-setup.sh
+# registers a split-horizon *.<domain> -> DMZ-gateway wildcard in Unbound, so
+# the local resolver can never tell us what the outside world sees. Skipped
+# (not failed) before acme-setup.sh has run, since update.sh only publishes
+# these records once ~/.acme-dns-credentials.txt exists.
+section "7: public DNS records + reverse DNS for ${MAIL_FQDN}"
+if ! command -v dig >/dev/null 2>&1; then
+    warn "  dig not available on this host — skipping public DNS/rDNS checks"
+elif [[ -z "${DOMAIN}" || "${DOMAIN}" == CHANGE* ]]; then
+    fail "no domain resolved — cannot check public DNS records"
+elif [[ ! -f "${HOME}/.acme-dns-credentials.txt" ]]; then
+    warn "  ~/.acme-dns-credentials.txt not present — mail DNS records are not auto-published yet (run acme-setup.sh, then update-module.sh mailserver); skipping public DNS checks"
+else
+    PUB_RESOLVER="@1.1.1.1"
+
+    A_IP="$(dig +short A "${MAIL_FQDN}" ${PUB_RESOLVER} 2>/dev/null | grep -E '^[0-9]+(\.[0-9]+){3}$' | head -1)"
+    if [[ -n "${A_IP}" ]]; then
+        pass "A ${MAIL_FQDN} -> ${A_IP} (publicly resolvable MX target)"
+    else
+        fail "no public A record for ${MAIL_FQDN} — the MX target does not resolve, inbound mail cannot be delivered (update.sh publishes it when the site's WAN IP is detectable)"
+    fi
+
+    MX_TARGET="$(dig +short MX "${DOMAIN}" ${PUB_RESOLVER} 2>/dev/null | sort -n | awk '{print $2}' | head -1)"
+    if [[ "${MX_TARGET}" == "${MAIL_FQDN}." ]]; then
+        pass "MX ${DOMAIN} -> ${MX_TARGET}"
+    elif [[ -n "${MX_TARGET}" ]]; then
+        fail "MX ${DOMAIN} -> ${MX_TARGET} (expected ${MAIL_FQDN}.)"
+    else
+        fail "no public MX record for ${DOMAIN}"
+    fi
+
+    if dig +short TXT "${DOMAIN}" ${PUB_RESOLVER} 2>/dev/null | grep -q 'v=spf1'; then
+        pass "SPF TXT record published for ${DOMAIN}"
+    else
+        fail "no SPF (v=spf1) TXT record for ${DOMAIN}"
+    fi
+
+    if dig +short TXT "_dmarc.${DOMAIN}" ${PUB_RESOLVER} 2>/dev/null | grep -q 'v=DMARC1'; then
+        pass "DMARC TXT record published for _dmarc.${DOMAIN}"
+    else
+        fail "no DMARC TXT record for _dmarc.${DOMAIN}"
+    fi
+
+    if dig +short TXT "mail._domainkey.${DOMAIN}" ${PUB_RESOLVER} 2>/dev/null | grep -q 'v=DKIM1'; then
+        pass "DKIM TXT record published for mail._domainkey.${DOMAIN}"
+    else
+        fail "no DKIM TXT record for mail._domainkey.${DOMAIN} (update.sh pushes it once the key exists on the VM)"
+    fi
+
+    # Reverse DNS: the upstream setup guide's hard prerequisite — receivers
+    # mark mail from an IP whose PTR doesn't match the HELO name as spam.
+    # When the ADR-010 outbound satellite relay is enabled, outbound mail
+    # leaves via the relay's IP instead, so this site's own PTR no longer
+    # decides deliverability.
+    if [[ -n "${A_IP}" ]]; then
+        PTR_NAME="$(dig +short -x "${A_IP}" ${PUB_RESOLVER} 2>/dev/null | head -1)"
+        RELAY_ON="$(grep -c '^\s*outboundRelayEnabled = true;' "${SCRIPT_DIR}/mailserver.nix" 2>/dev/null || true)"
+        if [[ "${PTR_NAME}" == "${MAIL_FQDN}." ]]; then
+            pass "PTR ${A_IP} -> ${PTR_NAME} (reverse DNS matches the mail FQDN)"
+        elif [[ "${RELAY_ON}" -gt 0 ]]; then
+            pass "PTR ${A_IP} -> ${PTR_NAME:-<none>} does not match ${MAIL_FQDN}., but outbound mail goes via the ADR-010 satellite relay — local PTR does not gate deliverability"
+        else
+            fail "PTR ${A_IP} -> ${PTR_NAME:-<none>} (expected ${MAIL_FQDN}.) — set reverse DNS with your ISP/hosting provider, or enable the ADR-010 satellite relay; without it most receivers will junk outbound mail"
+        fi
     fi
 fi
 

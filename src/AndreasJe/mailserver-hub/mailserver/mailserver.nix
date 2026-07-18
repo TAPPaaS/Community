@@ -73,6 +73,12 @@ let
   # on-disk-format marker that doesn't move in lockstep with the channel.
   # Mismatched versions break the build (nixos-mailserver's own option surface
   # changes between nixpkgs releases) — test.sh checks these stay in sync.
+  # NOTE when re-pinning past 25.11: the readthedocs "latest" docs track
+  # nixos-mailserver MASTER, where several options this module uses are
+  # renamed/reworked — certificateScheme becomes mailserver.x509.*, dkimSigning
+  # becomes mailserver.dkim.enable, and mailserver.ldap.* replaces
+  # dovecot.passAttrs/userAttrs with an attribute-mapping scheme. Re-check the
+  # TLS, DKIM and LDAP blocks below against the release-matched docs.
   # NIXPKGS_RELEASE_PIN: nixos-25.11
   nixos-mailserver = builtins.fetchTarball {
     url    = "https://gitlab.com/simple-nixos-mailserver/nixos-mailserver/-/archive/25e6dbb8fca3b6e779c5a46fd03bd760b2165bb5/nixos-mailserver-25e6dbb8fca3b6e779c5a46fd03bd760b2165bb5.tar.gz";
