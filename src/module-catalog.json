@@ -2,42 +2,6 @@
     "description": "TAPPaaS Community Module Registry",
     "applicationModules": [
         {
-            "moduleName": "nextcloud",
-            "repo": "community",
-            "moduleJson": "src/AndreasJe/nextcloud-hub/nextcloud/nextcloud.json",
-            "vmid": 340,
-            "stack": "productivity",
-            "category": "files",
-            "status": "beta"
-        },
-        {
-            "moduleName": "coturn",
-            "repo": "community",
-            "moduleJson": "src/AndreasJe/nextcloud-hub/coturn/coturn.json",
-            "vmid": 341,
-            "stack": "productivity",
-            "category": "voip",
-            "status": "beta"
-        },
-        {
-            "moduleName": "nextcloud-hpb",
-            "repo": "community",
-            "moduleJson": "src/AndreasJe/nextcloud-hub/nextcloud-hpb/nextcloud-hpb.json",
-            "vmid": 342,
-            "stack": "productivity",
-            "category": "voip",
-            "status": "beta"
-        },
-        {
-            "moduleName": "euro-office",
-            "repo": "community",
-            "moduleJson": "src/AndreasJe/nextcloud-hub/euro-office/euro-office.json",
-            "vmid": 343,
-            "stack": "productivity",
-            "category": "office",
-            "status": "beta"
-        },
-        {
             "moduleName": "unifi",
             "repo": "community",
             "moduleJson": "src/ErikDaniel007/network/unifi/unifi.json",
@@ -98,6 +62,15 @@
             "vmid": 313,
             "stack": "ai",
             "category": "inference",
+            "status": "beta"
+        },
+        {
+            "moduleName": "jellyfin",
+            "repo": "community",
+            "moduleJson": "src/AndreasJe/jellyfin/jellyfin.json",
+            "vmid": 350,
+            "stack": "entertainment",
+            "category": "media",
             "status": "beta"
         }
     ],
