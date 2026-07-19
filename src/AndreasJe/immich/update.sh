@@ -116,6 +116,51 @@ ssh ${SSH_OPTS} "tappaas@${IMMICH_HOST}" \
   && info "  ${GN}✓${CL} nixos-rebuild switch completed" \
   || { warn "  nixos-rebuild reported errors -- check journalctl on ${IMMICH_HOST}"; exit 1; }
 
+# ── Tell immich-configure-oidc.service this VM's own public URL ──────────────
+# The mobile app's OAuth callback (app.immich:///oauth-callback, a custom URI
+# scheme) is never registered anywhere directly -- Immich ships a built-in
+# route, /api/oauth/mobile-redirect, that forwards to it, and that route is
+# just a normal https path (see immich.json's identity.oidcRedirectPaths,
+# handled entirely by the stock, unmodified identity:identity mechanism --
+# no special-casing needed for it at all). Immich's own oauth.mobileRedirectUri
+# setting needs to be told that same URL, though, and immich-configure-oidc's
+# script only sees /etc/secrets/immich.env (OIDC_CLIENT_ID/SECRET/DISCOVERY_URI,
+# written by identity:identity) -- it has no way to know this module's own
+# public domain otherwise. Co-manage a fourth key into the same file: identity's
+# own merge-write already preserves any non-OIDC_ line (documented at
+# install-service.sh Step 5b, "co-managed keys" -- the same mechanism
+# euro-office/nextcloud connectors already rely on), so this is safe to run on
+# every update alongside it.
+PROXY_DOMAIN="$(get_config_value 'proxyDomain' '')"
+if [[ -z "${PROXY_DOMAIN}" ]]; then
+    _DOMAIN=$(jq -r '.tappaas.domain // empty' /home/tappaas/config/configuration.json 2>/dev/null || true)
+    [[ -n "${_DOMAIN}" ]] && PROXY_DOMAIN="${VMNAME}.${_DOMAIN}"
+fi
+if [[ -n "${PROXY_DOMAIN}" ]]; then
+    if ssh ${SSH_OPTS} "tappaas@${IMMICH_HOST}" \
+        "sudo sh -c 'umask 077; t=\$(mktemp /etc/secrets/.immich.XXXXXX) || exit 1; \
+           { [ -f /etc/secrets/immich.env ] && grep -v \"^IMMICH_PUBLIC_URL=\" /etc/secrets/immich.env; \
+             echo \"IMMICH_PUBLIC_URL=https://${PROXY_DOMAIN}\"; } > \"\$t\" && \
+           chmod 600 \"\$t\" && mv -f \"\$t\" /etc/secrets/immich.env'"; then
+        info "  ${GN}✓${CL} IMMICH_PUBLIC_URL set for immich-configure-oidc.service"
+        # nixos-rebuild switch above already started the service once -- before
+        # this key existed, since it's wantedBy=multi-user.target and this write
+        # necessarily happens after activation. Nothing else re-triggers it (a
+        # oneshot already "active (exited)" isn't restarted by a later rebuild
+        # unless the unit itself changed), so without this it would silently
+        # stay web-only until the next reboot. Re-run it now.
+        ssh ${SSH_OPTS} "tappaas@${IMMICH_HOST}" \
+            "sudo systemctl restart immich-configure-oidc.service" \
+          && info "  ${GN}✓${CL} immich-configure-oidc.service re-applied with the mobile override" \
+          || warn "  could not restart immich-configure-oidc.service -- it will retry on next boot"
+    else
+        warn "  Could not write IMMICH_PUBLIC_URL to ${IMMICH_HOST} -- the mobile app's"
+        warn "  OAuth redirect override will not be set (web login is unaffected)."
+    fi
+else
+    warn "  No domain configured -- skipping IMMICH_PUBLIC_URL (mobile OAuth override)"
+fi
+
 echo ""
 info "${BOLD}Update complete${CL}"
 info "  VM   : ${VMNAME} (VMID: ${VMID})"

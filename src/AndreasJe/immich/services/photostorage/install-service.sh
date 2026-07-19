@@ -23,7 +23,7 @@
 
 set -euo pipefail
 
-. /home/tappaas/bin/common-install-routines.sh
+. /home/tappaas/bin/common-install-routines.sh immich
 
 VMNAME="$(get_config_value 'vmname' 'immich')"
 VMID="$(get_config_value 'vmid' '351')"
@@ -36,6 +36,7 @@ IMMICH_HOST="${VMNAME}.${ZONE0NAME}.internal"
 SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=15 -o BatchMode=yes"
 SETUP_SCRIPT="./services/photostorage/setup-media-disk.sh"
 MOUNT_POINT="/var/lib/immich"
+PVE_HOST="${NODE}.mgmt.internal"
 
 # Slot-stable device path inside the VM (QEMU stamps the drive id into the
 # SCSI serial). Never address the data disk as /dev/sdX — the letters shuffle
@@ -43,6 +44,9 @@ MOUNT_POINT="/var/lib/immich"
 MEDIA_DEV="/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi2"
 
 remote() { ssh ${SSH_OPTS} "tappaas@${IMMICH_HOST}" "$1"; }
+# qm/pvesm are Proxmox CLI tools — they only exist on the hypervisor node, not
+# on this orchestrator host, so every call must be run over SSH against it.
+pve() { ssh -o BatchMode=yes -o ConnectTimeout=10 "root@${PVE_HOST}" "$1"; }
 
 wait_for_vm() {
     for _i in $(seq 1 12); do
@@ -64,7 +68,7 @@ case "${MEDIA_MODE}" in
 esac
 
 # ── Step 1: Ensure the data disk exists (allocate/attached modes) ────────────
-if [[ "${MEDIA_MODE}" != "share" ]] && ! qm config "${VMID}" | grep -q '^scsi2:'; then
+if [[ "${MEDIA_MODE}" != "share" ]] && ! pve "qm config ${VMID}" | grep -q '^scsi2:'; then
     # Wrong-slot guard: an immich-data label visible in the VM means the disk
     # exists at another slot — never create a second one. (Best-effort: skipped
     # if the VM is not reachable yet.)
@@ -78,16 +82,22 @@ if [[ "${MEDIA_MODE}" != "share" ]] && ! qm config "${VMID}" | grep -q '^scsi2:'
 
     # allocate mode: create and format a fresh volume, as declared in the config.
     info "  Allocating ${MEDIA_SIZE} on ${MEDIA_STORAGE} (mediaStorage=allocate)..."
-    pvesm alloc "${MEDIA_STORAGE}" "${VMID}" "vm-${VMID}-media" "${MEDIA_SIZE}" >/dev/null \
+    pve "pvesm alloc ${MEDIA_STORAGE} ${VMID} vm-${VMID}-media ${MEDIA_SIZE}" >/dev/null \
       && info "  ${GN}✓${CL} Disk allocated: vm-${VMID}-media" \
       || die "pvesm alloc failed — check storage ${MEDIA_STORAGE} exists and has capacity"
-    qm set "${VMID}" --scsi2 "${MEDIA_STORAGE}:vm-${VMID}-media" >/dev/null \
+    pve "qm set ${VMID} --scsi2 ${MEDIA_STORAGE}:vm-${VMID}-media" >/dev/null \
       && info "  ${GN}✓${CL} Disk attached as scsi2" \
       || die "qm set failed — could not attach disk"
 
+    # A brand-new scsi2 slot means a brand-new virtio-scsi-single controller
+    # (a new virtual PCI device) — QEMU/Proxmox cannot hot-add that into a
+    # running guest, so the kernel only enumerates it after a reboot.
+    info "  Rebooting VM so the kernel sees the new controller..."
+    pve "qm reboot ${VMID}" >/dev/null \
+      || die "qm reboot failed — reboot ${VMID} manually and re-run"
     wait_for_vm
     remote "test -e ${MEDIA_DEV}" 2>/dev/null \
-      || die "Disk attached but not visible in the VM yet — reboot it (qm reboot ${VMID}) and re-run."
+      || die "Disk attached but still not visible after a reboot — check 'qm config ${VMID}' and the VM console."
     # The volume was just created and must be blank; a filesystem signature
     # here means the device is not the one just allocated — stop, don't format.
     EXISTING_FS=$(remote "sudo blkid -o value -s TYPE ${MEDIA_DEV} 2>/dev/null" || true)

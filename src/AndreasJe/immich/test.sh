@@ -24,9 +24,9 @@ PASSED=0 FAILED=0 SKIPPED=0
 mkdir -p "$LOG_DIR"
 
 log()    { echo -e "$1" | tee -a "$LOG_FILE"; }
-pass()   { log "${GN}[PASS]${CL} $1"; ((PASSED++)); }
-fail()   { log "${RD}[FAIL]${CL} $1"; ((FAILED++)); }
-skip()   { log "${YW}[SKIP]${CL} $1"; ((SKIPPED++)); }
+pass()   { log "${GN}[PASS]${CL} $1"; PASSED=$((PASSED+1)); }
+fail()   { log "${RD}[FAIL]${CL} $1"; FAILED=$((FAILED+1)); }
+skip()   { log "${YW}[SKIP]${CL} $1"; SKIPPED=$((SKIPPED+1)); }
 inf()    { log "${BL}[INFO]${CL} $1"; }
 header() { log ""; log "${BOLD}═══════════════════════════════════════════════════════════════${CL}"; log "${BOLD}  $1${CL}"; log "${BOLD}═══════════════════════════════════════════════════════════════${CL}"; }
 remote() { $SSH_CMD "$1" 2>/dev/null; }
@@ -152,8 +152,35 @@ else
     fail "postgresqlBackup timer not found"
 fi
 
-# ── Test 9: Resource usage ────────────────────────────────────────────────────
-header "Test 9: Resource Usage"
+# ── Test 9: OIDC/OAuth status (conditional — mirrors nextcloud's Test 11) ────
+header "Test 9: OIDC/OAuth Status (identity:identity automation)"
+OIDC_SECRET_PRESENT=$(remote "sudo test -f /etc/secrets/immich.env && echo yes || echo no" 2>/dev/null || echo "no")
+
+if [[ "${OIDC_SECRET_PRESENT}" == "no" ]]; then
+    skip "OIDC: /etc/secrets/immich.env not present — identity:identity not wired yet, skipping"
+else
+    API_KEY_PRESENT=$(remote "sudo test -f /etc/secrets/immich-admin-api-key && echo yes || echo no" 2>/dev/null || echo "no")
+    if [[ "${API_KEY_PRESENT}" == "yes" ]]; then
+        pass "Admin API key present at /etc/secrets/immich-admin-api-key"
+        inf "Checking oauth.enabled via the authenticated system-config API..."
+        # /api/server/config (public/unauthenticated) has no oauth-enabled
+        # boolean to check — it only echoes button text. /api/system-config
+        # (authenticated) is the same endpoint immich-configure-oidc.service
+        # itself writes to, so it's the authoritative source here.
+        OAUTH_ENABLED=$(remote 'curl -s --max-time 10 -H "x-api-key: $(sudo cat /etc/secrets/immich-admin-api-key)" http://localhost:2283/api/system-config' \
+            | jq -r '.oauth.enabled // empty' 2>/dev/null || echo "")
+        if [[ "${OAUTH_ENABLED}" == "true" ]]; then
+            pass "Immich reports oauth.enabled=true — OIDC automation applied"
+        else
+            fail "oauth.enabled is not true (got: '${OAUTH_ENABLED}') — check: ${SSH_CMD} journalctl -u immich-configure-oidc"
+        fi
+    else
+        fail "Admin API key missing — immich-configure-oidc.service cannot apply OAuth settings (see INSTALL.md → Authentik OIDC → manual fallback)"
+    fi
+fi
+
+# ── Test 10: Resource usage ───────────────────────────────────────────────────
+header "Test 10: Resource Usage"
 MEM=$(remote "free -h | grep Mem" || true)
 DISK=$(remote "df -h / | tail -1" || true)
 inf "Memory : ${MEM}"

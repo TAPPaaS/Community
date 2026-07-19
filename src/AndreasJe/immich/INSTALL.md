@@ -85,45 +85,31 @@ install between "API ready" and the summary.
 
 ## Authentik OIDC (SSO for all users)
 
-SSO is not admin-only: once OAuth is enabled, a **Login with OAuth** button
-appears on the web login page *and* in the mobile app. The mobile flow works
-away from home because both Immich and Authentik (`identity` module) are
-proxied to the `internet` zone.
+SSO is fully automatic — no manual configuration is required in either the
+Authentik or the Immich admin UI. See [README.md → Authentication & SSO](README.md#authentication--sso)
+for how the mechanism works; this section covers the parts an operator may
+need to act on.
 
-**In Authentik (admin UI):**
+**Restricting access beyond "everyone with a TAPPaaS login"**:
 
-1. *Applications → Providers → Create* — **OAuth2/OpenID Provider**:
-   - Redirect URIs (all three):
-     - `https://immich.<your-domain>/auth/login`
-     - `https://immich.<your-domain>/user-settings`
-     - `app.immich:///oauth-callback` (mobile app)
-   - Scopes: `openid`, `email`, `profile`
-   - Signing key: select or create one
-2. *Applications → Applications → Create* — attach the provider, note the
-   slug.
-3. **Control who gets in**: bind the application to a group (e.g. `photos`
-   or `family`). Only members see/complete the login; everyone else is
-   denied by Authentik.
-4. Optional per-user storage quota: create a *Scope Mapping* named e.g.
-   `immich` that returns `{"immich_quota": <GiB>}`, add the scope to the
-   provider, and set *Storage quota claim* = `immich_quota` in Immich.
-   Otherwise set a default quota in Immich's admin settings.
+```bash
+authentik-manager app-bind-groups immich --group <narrower-group>
+```
 
-**In Immich (Administration → Settings → Authentication → OAuth):**
+replaces the default `users` binding — see `identity-controller/README.md`.
 
-- Enable OAuth
-- Issuer URL: `https://identity.<your-domain>/application/o/<slug>/` (Immich
-  appends `.well-known/openid-configuration` itself)
-- Client ID / Client Secret: from the Authentik provider
-- Scope: `openid email profile` (add your quota scope if used)
-- Enable **Auto register** — Authentik users get an Immich account on first
-  login, no per-user setup needed
-- Optionally set *Storage quota claim* (step 4 above)
+**Per-user storage quota** (optional): create a Scope Mapping named e.g.
+`immich` that returns `{"immich_quota": <GiB>}`, add it to `identity.scopes`
+in `immich.json`, and set a *Storage quota claim* in Immich's admin settings
+— the automation does not set this on its own, since there is no established
+convention yet for passing it through the module JSON.
 
 **Hardening for internet exposure**: after verifying OAuth works, disable
-*password login* in the same settings page — authentication then goes
+*password login* on Immich's OAuth settings page — authentication then goes
 through Authentik's rate-limited, MFA-capable flows. Keep one browser
-session logged in while testing.
+session logged in while testing; this step is **not** automated, since
+enabling it before OAuth is confirmed working risks locking out the
+operator entirely.
 
 **Lockout recovery** (password login disabled and OAuth broken): the
 `immich-admin` CLI ships on the VM:
@@ -135,16 +121,21 @@ sudo -u immich immich-admin enable-password-login   # or: reset-admin-password
 sudo systemctl start immich-server
 ```
 
-Why not declarative OIDC in `immich.nix`? A declared
-`services.immich.settings` freezes the **entire** system config (admin UI
-becomes read-only) and would need the `_secret` indirection to keep the
-client secret out of the world-readable nix store. Manual UI config is the
-deliberate v1 choice.
+**If the admin API key is missing** (`immich-configure-oidc.service` logs
+that `/etc/secrets/immich-admin-api-key` is absent): create one manually in
+the admin UI (Account Settings → API Keys, permissions `systemConfig.read` +
+`systemConfig.update`), place it at `/etc/secrets/immich-admin-api-key` on
+the VM (mode 600), then `sudo systemctl restart immich-configure-oidc.service`.
+
+**Verifying the automation**: `journalctl -u immich-configure-oidc` on the
+VM shows the last run. `identity/test.sh` and `test.sh`'s OIDC/OAuth Status
+check assert the Authentik side and the Immich-side `oauth.enabled` flag
+respectively.
 
 ## Verification
 
 ```bash
-./test.sh          # on tappaas-cicd — 9 checks incl. DB extensions, mounts, API
+./test.sh          # on tappaas-cicd — 10 checks incl. DB extensions, mounts, API, OIDC
 ```
 
 ## Updating Immich
@@ -167,8 +158,15 @@ apps auto-update, see <https://immich.app/docs/install/upgrading>.
   mount).
 - **Smart search returns nothing** — first ML job still downloading models;
   check `journalctl -u immich-machine-learning`.
-- **Mobile login bounces** — verify all three redirect URIs in Authentik,
-  including `app.immich:///oauth-callback`.
+- **Mobile login bounces** — verify all three redirect URIs are on the
+  Authentik provider (admin UI → Applications → Providers → immich):
+  `/auth/login`, `/user-settings`, and `/api/oauth/mobile-redirect` — all
+  three come from `immich.json`'s `identity.oidcRedirectPaths`, so a typo
+  there means re-run `update-module.sh immich` after fixing it. Also check
+  `journalctl -u immich-configure-oidc` on the VM for
+  `oauth.mobileRedirectUri`/`IMMICH_PUBLIC_URL` — if `IMMICH_PUBLIC_URL`
+  never got set, the mobile override stays off even though web login
+  works fine.
 - **Build fails with a pgvecto.rs/PostgreSQL 17 assertion** — do not remove
   `database.enableVectors = false` from `immich.nix`; with stateVersion
   25.05 the option defaults to the legacy extension, which is incompatible

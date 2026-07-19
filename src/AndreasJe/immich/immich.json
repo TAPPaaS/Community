@@ -21,19 +21,23 @@
   "provides": [
     "photostorage"
   ],
+  "identity": {
+    "oidcRedirectPaths": ["/auth/login", "/user-settings", "/api/oauth/mobile-redirect"],
+    "configureService": "immich-configure-oidc.service"
+  },
   "appVersion": "2.7.5",
   "config": {
     "cluster:vm": {
       "cores": 4,
-      "memory": "8192",
+      "memory": "4096",
       "diskSize": "32G",
       "storage": "tanka1",
       "imageType": "clone",
       "image": "8080",
       "bridge0": "lan",
       "mediaStorage": "allocate",
-      "mediaDiskStorage": "tankb1",
-      "mediaDiskSize": "2T",
+      "mediaDiskStorage": "tankc1",
+      "mediaDiskSize": "500G",
       "machineLearning": true
     },
     "network:proxy": {

@@ -186,6 +186,119 @@
     accelerationDevices = [ ];
   };
 
+  # -- Authentik OIDC (ADR-006, identity:identity) -----------------------------
+  # /etc/secrets/immich.env (OIDC_CLIENT_ID/SECRET/DISCOVERY_URI) is written by
+  # identity/services/identity/install-service.sh once immich.json declares an
+  # `identity` block. Unlike Nextcloud's user_oidc, Immich has no CLI to
+  # register a provider -- its OAuth settings live in the system_metadata table,
+  # editable only through the admin UI or /api/system-config. Rather than
+  # declare services.immich.settings (which would freeze the ENTIRE admin UI
+  # read-only just to set OIDC -- see "settings = null" above), this service
+  # PUTs only the .oauth section back through that same API, using a
+  # narrowly-scoped API key (systemConfig.read/update) minted once by
+  # install.sh -- the admin password itself is never written to disk.
+  systemd.services.immich-configure-oidc = {
+    description = "Configure Authentik OIDC provider in Immich";
+    wantedBy    = [ "multi-user.target" ];
+    after       = [ "immich-server.service" ];
+
+    # Activated only once identity:identity has written the secrets file.
+    unitConfig.ConditionPathExists = "/etc/secrets/immich.env";
+
+    serviceConfig = {
+      Type            = "oneshot";
+      RemainAfterExit = true;
+      EnvironmentFile = "/etc/secrets/immich.env";
+      ExecStart = pkgs.writeShellScript "immich-configure-oidc" ''
+        set -euo pipefail
+        export PATH="/run/current-system/sw/bin:$PATH"
+
+        API_KEY_FILE=/etc/secrets/immich-admin-api-key
+        if [ ! -f "$API_KEY_FILE" ]; then
+          echo "immich-configure-oidc: $API_KEY_FILE missing -- mint one via" \
+               "install.sh's admin bootstrap, or manually in the admin UI" \
+               "(Account Settings -> API Keys, permissions systemConfig.read" \
+               "+ systemConfig.update) and place it there (mode 600)." >&2
+          exit 1
+        fi
+        API_KEY="$(cat "$API_KEY_FILE")"
+
+        BASE_URL=http://127.0.0.1:2283
+
+        # immich-server itself is not a oneshot -- "after" only orders unit
+        # start, not readiness (first boot runs DB migrations). Wait for it.
+        ready=0
+        for _ in $(seq 1 60); do
+          if curl -sf --max-time 5 "$BASE_URL/api/server/ping" | grep -q pong; then
+            ready=1; break
+          fi
+          sleep 2
+        done
+        [ "$ready" -eq 1 ] || { echo "immich-configure-oidc: server never became ready" >&2; exit 1; }
+
+        # Authentik's own issuer includes the trailing slash (its discovery
+        # document reports e.g. ".../application/o/immich/") -- Immich's OAuth
+        # client validates the issuer string exactly against that, per the
+        # OIDC discovery spec, so it must be preserved here. Strip only the
+        # ".well-known/..." suffix (no leading slash in the pattern), not
+        # "/.well-known/..." -- that extra slash was eating the one that
+        # belongs to the issuer itself.
+        ISSUER_URL="''${OIDC_DISCOVERY_URI%.well-known/openid-configuration}"
+
+        CURRENT="$(curl -sf -H "x-api-key: $API_KEY" "$BASE_URL/api/system-config")"
+
+        # The mobile app's callback (app.immich:///oauth-callback) is a custom
+        # URI scheme -- Immich's own oauth.mobileRedirectUri validator rejects
+        # anything that isn't a normal http(s) URL, and it is never registered
+        # anywhere directly. Immich ships a built-in route,
+        # /api/oauth/mobile-redirect, that forwards to the custom scheme
+        # internally; that route is what gets registered with Authentik (via
+        # identity.oidcRedirectPaths, a plain https path) and is what
+        # oauth.mobileRedirectUri must point at here. IMMICH_PUBLIC_URL (this
+        # module's own public URL) is co-managed into /etc/secrets/immich.env
+        # by update.sh, since identity:identity's env file only carries the
+        # OIDC_* keys otherwise -- it may not have run yet on a very first
+        # boot, so degrade to web-only OAuth rather than fail the whole call.
+        MOBILE_OVERRIDE="false"
+        MOBILE_URI=""
+        if [ -n "''${IMMICH_PUBLIC_URL:-}" ]; then
+          MOBILE_OVERRIDE="true"
+          MOBILE_URI="''${IMMICH_PUBLIC_URL}/api/oauth/mobile-redirect"
+        else
+          echo "immich-configure-oidc: IMMICH_PUBLIC_URL not set yet -- configuring web OAuth only (mobile override applies once update.sh has written it, next run)" >&2
+        fi
+
+        # PUT replaces the whole document -- merge into the current config so
+        # storage template/backup/job settings the admin already tuned survive.
+        MERGED="$(printf '%s' "$CURRENT" | jq \
+          --arg issuer "$ISSUER_URL" \
+          --arg cid "$OIDC_CLIENT_ID" \
+          --arg csec "$OIDC_CLIENT_SECRET" \
+          --argjson mobileOverride "$MOBILE_OVERRIDE" \
+          --arg mobileUri "$MOBILE_URI" \
+          '.oauth.enabled              = true
+           | .oauth.issuerUrl          = $issuer
+           | .oauth.clientId           = $cid
+           | .oauth.clientSecret       = $csec
+           | .oauth.scope              = "openid email profile"
+           | .oauth.buttonText         = "Login with Authentik"
+           | .oauth.autoRegister       = true
+           | if $mobileOverride then
+               (.oauth.mobileOverrideEnabled = true | .oauth.mobileRedirectUri = $mobileUri)
+             else . end')"
+
+        # $MERGED carries the OAuth client secret -- pipe it via stdin (-d @-)
+        # rather than as a curl argv, so it doesn't sit in the process list
+        # for the call's duration (matches install.sh's existing convention
+        # for the admin/login payloads).
+        printf '%s' "$MERGED" | curl -sf -X PUT -H "x-api-key: $API_KEY" \
+          -H "Content-Type: application/json" -d @- "$BASE_URL/api/system-config" >/dev/null
+
+        echo "Authentik OIDC configured in Immich system-config."
+      '';
+    };
+  };
+
   # -- PostgreSQL tuning -------------------------------------------------------
   # The immich module provisions the database but leaves memory settings at
   # stock (128MB shared_buffers). Immich is DB-heavy (metadata + vector
