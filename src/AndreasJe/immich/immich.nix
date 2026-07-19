@@ -186,6 +186,36 @@
     accelerationDevices = [ ];
   };
 
+  # -- PostgreSQL tuning -------------------------------------------------------
+  # The immich module provisions the database but leaves memory settings at
+  # stock (128MB shared_buffers). Immich is DB-heavy (metadata + vector
+  # search) and VectorChord index builds want maintenance_work_mem. Sized for
+  # an 8GB VM shared with the ML service; merges with the module's own
+  # settings (shared_preload_libraries, search_path).
+  services.postgresql.settings = {
+    shared_buffers           = "1GB";
+    effective_cache_size     = "3GB";
+    maintenance_work_mem     = "512MB";
+    work_mem                 = "32MB";
+    wal_buffers              = "16MB";
+    random_page_cost         = 1.1;
+    effective_io_concurrency = 200;
+  };
+
+  # NOTE: Redis is deliberately left at module defaults. Immich uses it as a
+  # BullMQ job queue — capping maxmemory with an eviction policy (nextcloud
+  # style) would silently drop jobs. The default noeviction is correct.
+
+  # Throttle ML memory during bulk imports (first phone sync = thousands of
+  # jobs) so it cannot starve postgres and immich-server. MemoryHigh throttles
+  # before oomd would have to kill.
+  systemd.services.immich-machine-learning = lib.mkIf config.services.immich.machine-learning.enable {
+    serviceConfig = {
+      MemoryHigh = "4G";
+      MemoryMax  = "5G";
+    };
+  };
+
   # -- Data disk mount ---------------------------------------------------------
   # Identified by label so the mount survives disk reordering between reboots.
   # nofail: VM boots normally even before the disk is attached (install order).
@@ -209,10 +239,12 @@
   # PBS (backup:vm) snapshots both disks. Immich also writes its own nightly
   # pg_dumpall into /var/lib/immich/backups. This dump is belt and braces:
   # a plain-SQL copy on the OS disk, restorable without Immich itself.
+  # 02:30, not 02:00: Immich's own built-in nightly dump defaults to ~02:00 —
+  # staggering avoids two simultaneous dumps of the same database.
   services.postgresqlBackup = {
     enable      = true;
     databases   = [ "immich" ];
-    startAt     = "*-*-* 02:00:00";
+    startAt     = "*-*-* 02:30:00";
     location    = "/var/backup/immich/postgresql";
     compression = "gzip";
   };

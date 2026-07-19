@@ -31,14 +31,24 @@ IMMICH_HOST="${VMNAME}.${ZONE0NAME}.internal"
 IMMICH_URL="http://${IMMICH_HOST}:2283"
 
 # ── Wait for Immich API ───────────────────────────────────────────────────────
+# Generous timeout (5 min): first boot runs DB migrations before the API is up.
+# Failing here MUST be loud and non-zero — until the admin account is claimed,
+# /api/auth/admin-sign-up accepts anyone, and the Caddy route (incl. the
+# internet zone) already exists at this point.
 echo ""
 info "${BOLD}Waiting for Immich API...${CL}"
-for i in $(seq 1 30); do
+for i in $(seq 1 150); do
     if curl -sf "${IMMICH_URL}/api/server/ping" 2>/dev/null | grep -q pong; then
         info "  ${GN}✓${CL} Immich API ready"
         break
     fi
-    [[ $i -eq 30 ]] && { warn "  Immich API did not respond after 60s — skipping admin setup"; exit 0; }
+    if [[ $i -eq 150 ]]; then
+        warn "  Immich API did not respond after 5 minutes."
+        warn "  ${RD}${BOLD}SECURITY: the admin account has NOT been claimed — the public${CL}"
+        warn "  ${RD}${BOLD}sign-up endpoint stays open until it is. Diagnose the VM${CL}"
+        warn "  ${RD}${BOLD}(journalctl -u immich-server) and RE-RUN ./install.sh NOW.${CL}"
+        exit 1
+    fi
     sleep 2
 done
 
@@ -51,10 +61,11 @@ ADMIN_EMAIL="admin@${_DOMAIN:-tappaas.internal}"
 info "${BOLD}Bootstrapping Immich admin account...${CL}"
 ADMIN_PASS=$(openssl rand -base64 16 | tr -d '=+/' | head -c 20)
 
-HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST "${IMMICH_URL}/api/auth/admin-sign-up" \
-    -H "Content-Type: application/json" \
-    -d "{\"name\":\"Admin\",\"email\":\"${ADMIN_EMAIL}\",\"password\":\"${ADMIN_PASS}\"}" \
-    2>/dev/null || echo 000)
+# Password is piped via stdin (-d @-) so it never appears in the process list.
+HTTP_CODE=$(printf '{"name":"Admin","email":"%s","password":"%s"}' "${ADMIN_EMAIL}" "${ADMIN_PASS}" \
+    | curl -s -o /dev/null -w '%{http_code}' -X POST "${IMMICH_URL}/api/auth/admin-sign-up" \
+        -H "Content-Type: application/json" \
+        -d @- 2>/dev/null || echo 000)
 
 if [[ "${HTTP_CODE}" == "201" ]]; then
     info "  ${GN}✓${CL} Admin account created (${ADMIN_EMAIL})"

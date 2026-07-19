@@ -44,8 +44,9 @@ photos to the OS disk.
   (`localhost:3003`; models ~1–2 GB download to `/var/cache/immich` on first
   job). Disable with `"machineLearning": false` and drop VM memory to 4096.
 - `postgresql` / `redis-immich` — module-managed, no TCP listeners
-- `postgresqlBackup-immich` — daily SQL dump at 02:00 to
-  `/var/backup/immich/postgresql`, 30-day retention (monthly cleanup timer)
+- `postgresqlBackup-immich` — daily SQL dump at 02:30 (staggered after
+  Immich's built-in ~02:00 dump) to `/var/backup/immich/postgresql`,
+  30-day retention (monthly cleanup timer)
 
 ## Backups
 
@@ -54,8 +55,8 @@ Three layers:
 1. **PBS** (`backup:vm`) snapshots both disks (OS + photo disk).
 2. **Immich built-in**: nightly `pg_dumpall` into `/var/lib/immich/backups`
    (on the photo disk, so it rides along with PBS).
-3. **postgresqlBackup**: daily plain-SQL dump on the OS disk — restorable
-   without Immich itself.
+3. **postgresqlBackup**: daily plain-SQL dump (02:30) on the OS disk —
+   restorable without Immich itself.
 
 ## Users & SSO
 
