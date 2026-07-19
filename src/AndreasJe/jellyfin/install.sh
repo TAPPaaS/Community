@@ -26,6 +26,26 @@ JELLYFIN_HOST="${VMNAME}.${ZONE0NAME}.internal"
 JELLYFIN_URL="http://${JELLYFIN_HOST}:8096"
 SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=30 -o BatchMode=yes"
 
+# jf_call METHOD PATH DATA [curl-args...] — POST/GET the Jellyfin API. Prints
+# the response body to stdout regardless of outcome (for jq to consume), warns
+# on stderr with the real HTTP status/body on failure, and returns non-zero.
+# curl -sf swallows the HTTP status and body on failure, which turns every
+# bootstrap error into a silent `set -e` exit with no clue why.
+jf_call() {
+    local method="$1" path="$2" data="$3" resp status body
+    shift 3
+    resp=$(curl -sS -X "$method" "${JELLYFIN_URL}${path}" \
+        -H "Content-Type: application/json" -d "$data" "$@" \
+        -w $'\n%{http_code}')
+    status="${resp##*$'\n'}"
+    body="${resp%$'\n'*}"
+    printf '%s' "$body"
+    if [[ ! "$status" =~ ^2 ]]; then
+        warn "  ${method} ${path} failed (HTTP ${status}): ${body}" >&2
+        return 1
+    fi
+}
+
 # ── Wait for Jellyfin API ─────────────────────────────────────────────────────
 echo ""
 info "${BOLD}Waiting for Jellyfin API...${CL}"
@@ -47,40 +67,45 @@ STARTUP_STATUS=$(curl -sf "${JELLYFIN_URL}/Startup/Configuration" \
 if [[ "${STARTUP_STATUS}" == "false" ]]; then
     info "${BOLD}Bootstrapping Jellyfin users...${CL}"
 
-    ADMIN_PASS=$(openssl rand -base64 16 | tr -d '=+/' | head -c 20)
+    # /health responds as soon as Kestrel starts listening, but Jellyfin creates
+    # its default startup user a few seconds later during internal startup
+    # tasks. /Startup/User calls UserManager.Users.First() and throws
+    # "Sequence contains no elements" if hit before that user exists.
+    for i in $(seq 1 15); do
+        curl -sf "${JELLYFIN_URL}/Startup/User" \
+            -H 'X-Emby-Authorization: MediaBrowser Client="install",Device="cicd",DeviceId="tappaas-cicd",Version="1"' \
+            >/dev/null 2>&1 && break
+        [[ $i -eq 15 ]] && warn "  Default startup user never became available — proceeding anyway"
+        sleep 1
+    done
+
+    ADMIN_PASS=$(python3 -c "import secrets, string; print(''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(20)))")
+
+    INSTALL_AUTH_HEADER='X-Emby-Authorization: MediaBrowser Client="install",Device="cicd",DeviceId="tappaas-cicd",Version="1"'
 
     # Complete startup wizard
-    curl -sf -X POST "${JELLYFIN_URL}/Startup/User" \
-        -H "Content-Type: application/json" \
-        -H 'X-Emby-Authorization: MediaBrowser Client="install",Device="cicd",DeviceId="tappaas-cicd",Version="1"' \
-        -d "{\"Name\":\"admin\",\"Password\":\"${ADMIN_PASS}\"}" >/dev/null
+    jf_call POST /Startup/User "{\"Name\":\"admin\",\"Password\":\"${ADMIN_PASS}\"}" \
+        -H "$INSTALL_AUTH_HEADER" >/dev/null
 
-    curl -sf -X POST "${JELLYFIN_URL}/Startup/Complete" \
-        -H 'X-Emby-Authorization: MediaBrowser Client="install",Device="cicd",DeviceId="tappaas-cicd",Version="1"' \
-        >/dev/null 2>&1 || true
+    jf_call POST /Startup/Complete "" -H "$INSTALL_AUTH_HEADER" >/dev/null 2>&1 || true
 
     info "  ${GN}✓${CL} Admin account created"
 
     # Authenticate to get token
-    TOKEN=$(curl -sf -X POST "${JELLYFIN_URL}/Users/AuthenticateByName" \
-        -H "Content-Type: application/json" \
-        -H 'X-Emby-Authorization: MediaBrowser Client="install",Device="cicd",DeviceId="tappaas-cicd",Version="1"' \
-        -d "{\"Username\":\"admin\",\"Pw\":\"${ADMIN_PASS}\"}" \
-        | jq -r '.AccessToken')
+    TOKEN=$(jf_call POST /Users/AuthenticateByName "{\"Username\":\"admin\",\"Pw\":\"${ADMIN_PASS}\"}" \
+        -H "$INSTALL_AUTH_HEADER" | jq -r '.AccessToken')
 
-    AUTH_HEADER="X-Emby-Authorization: MediaBrowser Token=${TOKEN}"
+    AUTH_HEADER="X-Emby-Authorization: MediaBrowser Token=\"${TOKEN}\""
 
     # ── stream user: transcoding on, client-adaptive bitrate, remote access allowed
-    STREAM_PASS=$(openssl rand -base64 16 | tr -d '=+/' | head -c 20)
-    STREAM_ID=$(curl -sf -X POST "${JELLYFIN_URL}/Users/New" \
-        -H "$AUTH_HEADER" -H "Content-Type: application/json" \
-        -d "{\"Name\":\"stream\",\"Password\":\"${STREAM_PASS}\"}" \
-        | jq -r '.Id')
+    STREAM_PASS=$(python3 -c "import secrets, string; print(''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(20)))")
+    STREAM_ID=$(jf_call POST /Users/New "{\"Name\":\"stream\",\"Password\":\"${STREAM_PASS}\"}" \
+        -H "$AUTH_HEADER" | jq -r '.Id')
 
-    curl -sf -X POST "${JELLYFIN_URL}/Users/${STREAM_ID}/Policy" \
-        -H "$AUTH_HEADER" -H "Content-Type: application/json" \
-        -d '{
+    jf_call POST "/Users/${STREAM_ID}/Policy" '{
           "IsAdministrator": false,
+          "AuthenticationProviderId": "Jellyfin.Server.Implementations.Users.DefaultAuthenticationProvider",
+          "PasswordResetProviderId": "Jellyfin.Server.Implementations.Users.DefaultPasswordResetProvider",
           "EnableVideoPlaybackTranscoding": true,
           "EnableAudioPlaybackTranscoding": true,
           "EnablePlaybackRemuxing": true,
@@ -89,21 +114,19 @@ if [[ "${STARTUP_STATUS}" == "false" ]]; then
           "EnableRemoteAccess": true,
           "EnableAllFolders": true,
           "EnableMediaPlayback": true
-        }' >/dev/null
+        }' -H "$AUTH_HEADER" >/dev/null
 
     info "  ${GN}✓${CL} 'stream' user created (transcoding on, remote access allowed)"
 
     # ── local user: direct play only, no transcoding, no remote access
-    LOCAL_PASS=$(openssl rand -base64 16 | tr -d '=+/' | head -c 20)
-    LOCAL_ID=$(curl -sf -X POST "${JELLYFIN_URL}/Users/New" \
-        -H "$AUTH_HEADER" -H "Content-Type: application/json" \
-        -d "{\"Name\":\"local\",\"Password\":\"${LOCAL_PASS}\"}" \
-        | jq -r '.Id')
+    LOCAL_PASS=$(python3 -c "import secrets, string; print(''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(20)))")
+    LOCAL_ID=$(jf_call POST /Users/New "{\"Name\":\"local\",\"Password\":\"${LOCAL_PASS}\"}" \
+        -H "$AUTH_HEADER" | jq -r '.Id')
 
-    curl -sf -X POST "${JELLYFIN_URL}/Users/${LOCAL_ID}/Policy" \
-        -H "$AUTH_HEADER" -H "Content-Type: application/json" \
-        -d '{
+    jf_call POST "/Users/${LOCAL_ID}/Policy" '{
           "IsAdministrator": false,
+          "AuthenticationProviderId": "Jellyfin.Server.Implementations.Users.DefaultAuthenticationProvider",
+          "PasswordResetProviderId": "Jellyfin.Server.Implementations.Users.DefaultPasswordResetProvider",
           "EnableVideoPlaybackTranscoding": false,
           "EnableAudioPlaybackTranscoding": false,
           "EnablePlaybackRemuxing": true,
@@ -112,7 +135,7 @@ if [[ "${STARTUP_STATUS}" == "false" ]]; then
           "EnableRemoteAccess": false,
           "EnableAllFolders": true,
           "EnableMediaPlayback": true
-        }' >/dev/null
+        }' -H "$AUTH_HEADER" >/dev/null
 
     info "  ${GN}✓${CL} 'local' user created (direct play only, internal network only)"
 

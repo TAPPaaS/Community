@@ -25,15 +25,15 @@
   "config": {
     "cluster:vm": {
       "cores": 4,
-      "memory": "8192",
+      "memory": "2048",
       "diskSize": "32G",
       "storage": "tanka1",
       "imageType": "clone",
       "image": "8080",
       "bridge0": "lan",
       "mediaStorage": "allocate",
-      "mediaDiskStorage": "tankb1",
-      "mediaDiskSize": "2T"
+      "mediaDiskStorage": "tankc1",
+      "mediaDiskSize": "500G"
     },
     "network:proxy": {
       "proxyPort": 8096,
