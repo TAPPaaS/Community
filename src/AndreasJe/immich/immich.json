@@ -1,0 +1,48 @@
+{
+  "description": "Immich self-hosted photo and video backup with ML-powered search, face recognition and mobile auto-upload.",
+  "version": "0.1.0",
+  "releaseDate": "2026-07-19",
+  "maintainer": "@AndreasJe",
+  "status": "Development",
+  "tier": "app",
+  "vmname": "immich",
+  "vmid": 351,
+  "vmtag": "TAPPaaS,App,Photos",
+  "node": "tappaas1",
+  "zone0": "srvHome",
+  "dependsOn": [
+    "cluster:vm",
+    "templates:nixos",
+    "backup:vm",
+    "network:proxy",
+    "network:rules",
+    "identity:identity"
+  ],
+  "provides": [
+    "photostorage"
+  ],
+  "appVersion": "2.7.5",
+  "config": {
+    "cluster:vm": {
+      "cores": 4,
+      "memory": "8192",
+      "diskSize": "32G",
+      "storage": "tanka1",
+      "imageType": "clone",
+      "image": "8080",
+      "bridge0": "lan",
+      "mediaStorage": "allocate",
+      "mediaDiskStorage": "tankb1",
+      "mediaDiskSize": "2T",
+      "machineLearning": true
+    },
+    "network:proxy": {
+      "proxyPort": 2283,
+      "proxyAllowedZones": [
+        "home",
+        "netbird",
+        "internet"
+      ]
+    }
+  }
+}

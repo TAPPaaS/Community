@@ -72,6 +72,15 @@
             "stack": "entertainment",
             "category": "media",
             "status": "beta"
+        },
+        {
+            "moduleName": "immich",
+            "repo": "community",
+            "moduleJson": "src/AndreasJe/immich/immich.json",
+            "vmid": 351,
+            "stack": "productivity",
+            "category": "photos",
+            "status": "Development"
         }
     ],
     "foundationModules": [
