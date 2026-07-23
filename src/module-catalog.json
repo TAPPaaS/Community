@@ -81,6 +81,15 @@
             "stack": "productivity",
             "category": "photos",
             "status": "Development"
+        },
+        {
+            "moduleName": "hosting",
+            "repo": "community",
+            "moduleJson": "src/AndreasJe/hosting/hosting.json",
+            "vmid": 630,
+            "stack": "infrastructure",
+            "category": "web-hosting",
+            "status": "incomplete"
         }
     ],
     "foundationModules": [

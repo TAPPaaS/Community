@@ -1,0 +1,11 @@
+{
+  "template": "static",
+  "summary": "Static site: a git-pulled folder served by Caddy. No database.",
+  "description": "Static site: git-pulled folder served by Caddy file_server. No database.",
+  "requiredFields": ["static.repo"],
+  "fieldHelp": {
+    "static.repo": "Git repository URL to pull this site's content from (public, must end in .git, e.g. https://codeberg.org/user/repo.git)"
+  },
+  "defaults": { "static.ref": "main", "static.subdir": "." },
+  "recommendedSizing": { "cores": 1, "memory": 512, "diskSize": "4G" }
+}

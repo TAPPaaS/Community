@@ -1,0 +1,12 @@
+# Per-site local media (see README's "Local media") — real files land here
+# on this host but must never be committed; only the module's own code is
+# tracked in git.
+/media/
+
+# Deployed site instances (<sitename>.json, e.g. from ./new-site.sh) live
+# right alongside the module's own code by design (see README's "Files in
+# this directory"), but are real, operator-specific deployments — not
+# something the module's own repo should carry. hosting.json (the
+# template-less core scaffold, not a real deployment) is the one exception.
+/*.json
+!/hosting.json

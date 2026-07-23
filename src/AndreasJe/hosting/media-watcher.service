@@ -1,0 +1,24 @@
+[Unit]
+Description=hosting module — local media watcher (debounced update-module.sh trigger)
+After=network.target
+
+[Service]
+Type=simple
+# __HOSTING_ROOT__ is substituted with this module's real, absolute path by
+# ensure_media_watcher() (new-site.sh) at install time — this file as
+# checked into git is a template, not something meant to be copied verbatim
+# (the module can be cloned to any path, by any user).
+ExecStart=__HOSTING_ROOT__/media-watcher.sh
+Restart=always
+RestartSec=5
+Environment=MEDIA_WATCHER_QUIET_SECONDS=30
+# systemd --user's own PATH is minimal (just its own bin dir) and does NOT
+# include ~/.nix-profile/bin, unlike an interactive login shell — without
+# this, `inotifywait` (installed via `nix profile install`) can't be found
+# and the service crash-loops with "command not found" (exit 127). %h
+# resolves to the invoking user's own home directory, so this stays
+# portable across accounts without substitution.
+Environment=PATH=%h/.nix-profile/bin:/run/current-system/sw/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=default.target

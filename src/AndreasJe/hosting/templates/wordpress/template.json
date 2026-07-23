@@ -1,0 +1,16 @@
+{
+  "template": "wordpress",
+  "summary": "WordPress via Podman + native MariaDB + Caddy — lighter LXC alternative to the VM-based module.",
+  "description": "Generic WordPress: Podman container (PHP-FPM) + native MariaDB + Caddy. Independent of Community/src/AndreasJe/wordpress (NixOS/VM, heavier, cluster:ha, Redis, Authentik OIDC hook) — this is the lighter LXC/Podman alternative for sites that don't need those.",
+  "requiredFields": ["proxyDomain"],
+  "fieldHelp": {
+    "proxyDomain": "Public domain this site will be reachable at (e.g. blog.example.com) — baked into WordPress's own config at install time"
+  },
+  "defaults": {
+    "wordpress.imageTag": "6.7",
+    "wordpress.uploadMaxFilesize": "128M",
+    "wordpress.memoryLimit": "256M",
+    "wordpress.phpMaxChildren": "5"
+  },
+  "recommendedSizing": { "cores": 2, "memory": 2048, "diskSize": "10G" }
+}

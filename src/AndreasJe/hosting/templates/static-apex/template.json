@@ -1,0 +1,13 @@
+{
+  "template": "static-apex",
+  "aliasOf": "static",
+  "summary": "Static site on its own apex domain (e.g. example.com), not a subdomain.",
+  "description": "Static site on its own apex/root domain — the domain itself (e.g. example.com), not a subdomain of it. Same provisioning as the 'static' template (git-pulled folder + Caddy); this variant only changes network:proxy defaults so the domain gets its own TLS certificate.",
+  "requiredFields": ["static.repo", "proxyDomain"],
+  "fieldHelp": {
+    "static.repo": "Git repository URL to pull this site's content from (public, must end in .git, e.g. https://codeberg.org/user/repo.git)",
+    "proxyDomain": "The apex domain this site will own (e.g. example.com) — not a subdomain"
+  },
+  "defaults": { "static.ref": "main", "static.subdir": ".", "proxyTls": "http01" },
+  "recommendedSizing": { "cores": 1, "memory": 512, "diskSize": "4G" }
+}

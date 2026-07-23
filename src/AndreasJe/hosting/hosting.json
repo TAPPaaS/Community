@@ -1,0 +1,30 @@
+{
+  "description": "hosting module core scaffold. No template set — use ./new-site.sh to create a new site instead of copying this file directly.",
+  "version": "0.1.0",
+  "releaseDate": "2026-07-21",
+  "maintainer": "@AndreasJe",
+  "status": "Development",
+  "tier": "app",
+  "source": "community",
+  "vmname": "hosting-example",
+  "vmid": 630,
+  "vmtag": "TAPPaaS,App,Hosting",
+  "zone0": "dmz",
+  "dependsOn": ["cluster:lxc", "network:proxy", "backup:vm"],
+  "provides": [],
+  "config": {
+    "cluster:lxc": {
+      "cores": 1,
+      "memory": 512,
+      "diskSize": "4G",
+      "storage": "tanka1",
+      "imageType": "clone",
+      "image": "debian-12-standard_12.12-1_amd64.tar.zst",
+      "bridge0": "lan"
+    },
+    "network:proxy": {
+      "proxyPort": 80,
+      "proxyDomain": "hosting-example.example.com"
+    }
+  }
+}
