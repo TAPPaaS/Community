@@ -27,6 +27,3 @@ result-*
 tmp/
 dev/
 .cache/
-
-# claude / agent state
-.claude/scheduled_tasks.lock
