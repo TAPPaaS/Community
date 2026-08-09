@@ -71,6 +71,12 @@
       "ports": [1400],
       "protocol": "TCP",
       "description": "Sonos push event callback to Home Assistant subscription listener"
+    },
+    {
+      "to": "hassanova",
+      "ports": [8097],
+      "protocol": "TCP",
+      "description": "Sonos fetches audio stream from Music Assistant streamserver"
     }
   ],
   "provides": [
