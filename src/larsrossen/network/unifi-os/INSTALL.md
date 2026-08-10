@@ -40,24 +40,23 @@ UniFi OS Server has **no default credentials**; the admin account is created int
    username/password in your password manager — there is no default to fall back on.
 2. **Adopt devices** — adopt your UniFi switches and access points (they should appear for
    adoption once on the LAN).
-3. **API key for automation (ADR-008 Stage 5)** — in the UI:
-   *Settings → Control Plane → Integrations → Create API Key* (it inherits the creating
-   admin's permissions and is shown once — copy it). Then, on `tappaas-cicd`, run the helper
-   to validate and store it:
+3. **Store local-admin credentials for automation (ADR-008 Stage 5)** — self-hosted UniFi
+   OS Server has **no API-key / Integration feature**, so the Stage-5 plugin authenticates
+   as a **local admin** via `POST /api/auth/login`. On `tappaas-cicd`, run the helper to
+   validate and store the credentials of the local-admin account you created in step 1:
 
    ```bash
-   /home/tappaas/Community/src/larsrossen/network/unifi-os/setup-api-key.sh
-   # prompts for the key (hidden), validates it against the Network Integration API,
-   # and writes it to /home/tappaas/.unifi-os-credentials.txt (chmod 600).
-   # Re-run anytime to rotate/verify.
+   /home/tappaas/Community/src/larsrossen/network/unifi-os/setup-credentials.sh
+   # prompts for the local-admin username + password (password hidden), validates them
+   # via /api/auth/login, and writes url/username/password to
+   # /home/tappaas/.unifi-os-credentials.txt (chmod 600). Re-run anytime to rotate/verify.
    ```
 
-   > Why two steps: an API key can only be **created** by an authenticated admin, and the
-   > admin only exists after the interactive owner setup above — and UniFi OS has no
-   > programmatic key-create endpoint (UI-only). So install pre-creates the empty 0600
-   > credentials file (mirroring `~/.opnsense-credentials.txt`), and `setup-api-key.sh`
-   > captures + validates + stores the key you generate. The Stage-5 `unifi.sh` plugin reads
-   > `url`/`apikey` from that file and authenticates with `X-API-KEY`.
+   > Why a separate step: the admin only exists after the interactive owner setup above, so
+   > the credentials can't be captured during install. Install pre-creates the empty 0600
+   > credentials file (mirroring `~/.opnsense-credentials.txt`), and `setup-credentials.sh`
+   > validates + stores the login. The Stage-5 `unifi.sh` plugin reads `url`/`username`/
+   > `password` from that file and authenticates via `/api/auth/login`.
 
 ## Verification
 
@@ -72,7 +71,7 @@ Manual checks:
 | `https://unifi-os.<domain>` from a mgmt/home/work browser | UniFi OS console loads |
 | `https://unifi-os.<domain>/proxy/network/` | Network UI (200/302) |
 | Same URL from an out-of-policy zone or the internet | 403 (blocked) |
-| `curl -sk -H "X-API-KEY: $key" https://unifi-os.<domain>/proxy/network/integration/v1/sites` | JSON (once the key is set) |
+| `setup-credentials.sh` (validates the local admin via `POST /api/auth/login`) | `✓ stored validated credentials` (once creds are set) |
 
 ## Troubleshooting
 

@@ -79,18 +79,20 @@ PROXY_DOMAIN="$(get_config_value 'proxyDomain' "${VMNAME}${DOMAIN:+.${DOMAIN}}")
 UOS_API_URL="${PROXY_DOMAIN:+https://${PROXY_DOMAIN}}"
 UOS_API_URL="${UOS_API_URL:-https://${IP}:11443}"
 ensure_cred_file() {
-    [[ -f "${UOS_CRED}" ]] && { info "  API credentials file present: ${UOS_CRED} (left untouched)"; return 0; }
+    [[ -f "${UOS_CRED}" ]] && { info "  credentials file present: ${UOS_CRED} (left untouched)"; return 0; }
     cat > "${UOS_CRED}" <<EOF
-# UniFi OS Server API credentials for TAPPaaS (ADR-008 Stage 5 unifi.sh).
-# Created by the unifi-os module install. Fill 'apikey' in AFTER you have:
-#   1. completed first-run owner setup at ${UOS_API_URL}
-#   2. UniFi OS -> Settings -> Control Plane -> Integrations -> Generate API Key
-# The key is used as the 'X-API-KEY' header. This file is chmod 600.
+# UniFi OS Server credentials for TAPPaaS (ADR-008 Stage 5 unifi.sh).
+# Created by the unifi-os module install. Self-hosted UniFi OS Server has NO
+# API-key / Integration feature, so the plugin authenticates as a LOCAL ADMIN
+# via POST /api/auth/login. Fill username/password in AFTER you have completed
+# first-run owner setup at ${UOS_API_URL} — or just run setup-credentials.sh,
+# which validates the login and writes this file. This file is chmod 600.
 url=${UOS_API_URL}
-apikey=
+username=
+password=
 EOF
     chmod 600 "${UOS_CRED}"
-    info "  ${GN}✓${CL} created API credentials skeleton: ${UOS_CRED} (fill in 'apikey' after owner setup)"
+    info "  ${GN}✓${CL} created credentials skeleton: ${UOS_CRED} (fill username/password, or run setup-credentials.sh)"
 }
 ensure_cred_file
 
@@ -99,7 +101,7 @@ CURRENT="$(vm "cat ${MARKER} 2>/dev/null" || true)"
 if [[ "${CURRENT}" == "${UOS_VERSION}" ]] && vm "test -x /usr/local/bin/uosserver"; then
     info "  ${GN}✓${CL} UniFi OS Server already at ${UOS_VERSION} — nothing to do"
     info "  Console: ${BOLD}${UOS_API_URL}${CL}  (direct: https://${IP}:11443)"
-    info "  API key → ${UOS_CRED} (apikey=...). See INSTALL.md."
+    info "  Credentials → ${UOS_CRED} (url/username/password). See INSTALL.md."
     exit 0
 fi
 [[ -n "${CURRENT}" ]] && info "  Upgrading UniFi OS Server ${CURRENT} → ${UOS_VERSION}"
@@ -152,14 +154,14 @@ if [[ "${UP}" -eq 1 ]]; then
 else
     warn "UniFi OS Server installed but the console did not answer yet — it may still be starting."
 fi
-SETUP_SCRIPT="$(get_module_dir "${MODULE}" 2>/dev/null || true)/setup-api-key.sh"
-[[ -f "${SETUP_SCRIPT}" ]] || SETUP_SCRIPT="/home/tappaas/Community/src/larsrossen/network/unifi-os/setup-api-key.sh"
+SETUP_SCRIPT="$(get_module_dir "${MODULE}" 2>/dev/null || true)/setup-credentials.sh"
+[[ -f "${SETUP_SCRIPT}" ]] || SETUP_SCRIPT="/home/tappaas/Community/src/larsrossen/network/unifi-os/setup-credentials.sh"
 echo ""
 info "${BOLD}═══ Next steps (manual — UniFi OS has no default login) ═══${CL}"
 info "  ${BOLD}1)${CL} Open ${BOLD}${UOS_API_URL}${CL} (direct: https://${IP}:11443) and complete first-run"
-info "     setup: create the owner/admin account, adopt your UniFi switches/APs, then"
-info "     generate an API key: Settings → Control Plane → Integrations → Create API Key."
-info "  ${BOLD}2)${CL} Store the key for ADR-008 Stage 5 by running:"
+info "     setup: create the owner/admin account (a LOCAL account is recommended for"
+info "     headless automation), then adopt your UniFi switches/APs."
+info "  ${BOLD}2)${CL} Store those local-admin credentials for ADR-008 Stage 5 by running:"
 info "        ${BOLD}${SETUP_SCRIPT}${CL}"
-info "     (validates the key against the Network Integration API and writes it to"
-info "      ${UOS_CRED}, chmod 600)."
+info "     (prompts for the username/password, validates them via /api/auth/login, and"
+info "      writes url/username/password to ${UOS_CRED}, chmod 600)."
