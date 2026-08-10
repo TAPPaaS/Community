@@ -90,6 +90,42 @@
             "stack": "infrastructure",
             "category": "web-hosting",
             "status": "incomplete"
+        },
+        {
+            "moduleName": "forgejo",
+            "repo": "community",
+            "moduleJson": "src/ErikDaniel007/development/forgejo/forgejo.json",
+            "vmid": 350,
+            "stack": "development",
+            "category": "git",
+            "status": "beta"
+        },
+        {
+            "moduleName": "hue",
+            "repo": "community",
+            "moduleJson": "src/ErikDaniel007/home-automation/hue/hue.json",
+            "vmid": null,
+            "stack": "home-automation",
+            "category": "lighting",
+            "status": "Development"
+        },
+        {
+            "moduleName": "reolink",
+            "repo": "community",
+            "moduleJson": "src/ErikDaniel007/surveillance/reolink/reolink.json",
+            "vmid": null,
+            "stack": "surveillance",
+            "category": "cameras",
+            "status": "Development"
+        },
+        {
+            "moduleName": "sysap",
+            "repo": "community",
+            "moduleJson": "src/ErikDaniel007/home-automation/sysap/sysap.json",
+            "vmid": null,
+            "stack": "home-automation",
+            "category": "bus",
+            "status": "Development"
         }
     ],
     "foundationModules": [
