@@ -66,17 +66,30 @@ JAR="$(mktemp)"; HDR="$(mktemp)"; BODY="$(mktemp)"
 trap 'rm -f "${JAR}" "${HDR}" "${BODY}"' EXIT
 LOGIN_JSON="$(jq -nc --arg u "${USER}" --arg p "${PASS}" '{username:$u,password:$p}')"
 
+# curl already writes %{http_code} ("000" when the request never completed) AND
+# exits non-zero on a transport failure — so a `|| echo 000` fallback would
+# CONCATENATE and yield "000000", missing the 000 case below. Normalize instead.
+http_code() {
+    local out
+    out="$(curl "$@" 2>/dev/null)" || true
+    [[ "${out}" =~ ^[0-9]{3}$ ]] && printf '%s' "${out}" || printf '000'
+}
+
 info "Logging in to ${URL}/api/auth/login as '${USER}' ..."
-CODE="$(curl -sk -m 20 -c "${JAR}" -D "${HDR}" -o "${BODY}" -w '%{http_code}' \
+CODE="$(http_code -sk -m 20 -c "${JAR}" -D "${HDR}" -o "${BODY}" -w '%{http_code}' \
     -X POST -H "Content-Type: application/json" -d "${LOGIN_JSON}" \
-    "${URL}/api/auth/login" 2>/dev/null || echo 000)"
+    "${URL}/api/auth/login")"
 
 case "${CODE}" in
     200) : ;;
     400|401|403)
         die "Login rejected (HTTP ${CODE}). Check the username/password and use a LOCAL admin account (Ubiquiti SSO / MFA logins are not accepted by the local API)." ;;
     000)
-        die "Could not reach ${URL}. Check DNS for the friendly name and that tappaas-cicd is in an allowed zone (mgmt/home/work)." ;;
+        die "Could not reach ${URL} (no HTTP response). The UniFi OS console listens on ${BOLD}port 11443${CL}, not 443 — pass the port explicitly, e.g.
+       --url https://unifi-os.mgmt.internal:11443
+     A friendly https://unifi-os.<domain> URL only works once the network:proxy
+     (Caddy) route and its DNS name exist. Also check that tappaas-cicd is in an
+     allowed zone (mgmt/home/work)." ;;
     *)
         die "Unexpected response (HTTP ${CODE}) from /api/auth/login." ;;
 esac
@@ -86,8 +99,8 @@ CSRF="$(awk 'tolower($0) ~ /^x-csrf-token:/ {print $2}' "${HDR}" | tr -d '\r' | 
 if ! grep -qi 'TOKEN' "${JAR}"; then
     warn "  login returned 200 but no TOKEN cookie was set — proceeding, but the session may not work"
 fi
-SELF_CODE="$(curl -sk -m 15 -b "${JAR}" ${CSRF:+-H "X-CSRF-Token: ${CSRF}"} \
-    -o "${BODY}" -w '%{http_code}' "${URL}/proxy/network/api/self" 2>/dev/null || echo 000)"
+SELF_CODE="$(http_code -sk -m 15 -b "${JAR}" ${CSRF:+-H "X-CSRF-Token: ${CSRF}"} \
+    -o "${BODY}" -w '%{http_code}' "${URL}/proxy/network/api/self")"
 if [[ "${SELF_CODE}" == "200" ]]; then
     SITE="$(jq -r '(.data[0].site_name // .data[0].name // "default")' "${BODY}" 2>/dev/null || echo default)"
     info "  ${GN}✓${CL} credentials valid — Network API session OK (site: ${SITE})"

@@ -26,6 +26,7 @@ set -euo pipefail
 
 MODULE="${1:-unifi-os}"
 readonly MGMT="mgmt"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── Pinned UniFi OS Server release (amd64) ───────────────────────────
 readonly UOS_VERSION="${UOS_VERSION:-5.0.6}"
@@ -74,19 +75,29 @@ vm "exit 0" 2>/dev/null || die "SSH to tappaas@${IP} not available"
 # that the Stage-5 unifi.sh reads. Ensured on EVERY run (incl. the idempotent
 # path); never overwrites an operator-populated file.
 readonly UOS_CRED="/home/tappaas/.unifi-os-credentials.txt"
-DOMAIN="$(jq -r '.tappaas.domain // .domain // empty' "${CONFIG_DIR}/configuration.json" 2>/dev/null || true)"
+DOMAIN="$(get_variant_config "" 2>/dev/null | jq -r '.domain // empty' || true)"
 PROXY_DOMAIN="$(get_config_value 'proxyDomain' "${VMNAME}${DOMAIN:+.${DOMAIN}}")"
-UOS_API_URL="${PROXY_DOMAIN:+https://${PROXY_DOMAIN}}"
-UOS_API_URL="${UOS_API_URL:-https://${IP}:11443}"
+# The console listens on 11443, NOT 443 — a bare https://<name> is unreachable.
+# Only use the friendly name if it actually resolves (the network:proxy route and
+# its DNS record may not exist yet); otherwise address the VM directly on 11443.
+UOS_DIRECT_URL="https://${IP}:11443"
+if [[ -n "${PROXY_DOMAIN}" ]] && getent hosts "${PROXY_DOMAIN}" >/dev/null 2>&1; then
+    UOS_API_URL="https://${PROXY_DOMAIN}"
+else
+    [[ -n "${PROXY_DOMAIN}" ]] && info "  ${PROXY_DOMAIN} does not resolve yet — using the direct URL"
+    UOS_API_URL="${UOS_DIRECT_URL}"
+fi
 ensure_cred_file() {
     [[ -f "${UOS_CRED}" ]] && { info "  credentials file present: ${UOS_CRED} (left untouched)"; return 0; }
     cat > "${UOS_CRED}" <<EOF
 # UniFi OS Server credentials for TAPPaaS (ADR-008 Stage 5 unifi.sh).
-# Created by the unifi-os module install. Self-hosted UniFi OS Server has NO
-# API-key / Integration feature, so the plugin authenticates as a LOCAL ADMIN
-# via POST /api/auth/login. Fill username/password in AFTER you have completed
-# first-run owner setup at ${UOS_API_URL} — or just run setup-credentials.sh,
-# which validates the login and writes this file. This file is chmod 600.
+# Self-hosted UniFi OS has no API keys — unifi.sh logs in with a LOCAL admin
+# (POST /api/auth/login -> TOKEN cookie + X-CSRF-Token) and calls the Network API
+# at \${url}/proxy/network/api/. This file is chmod 600.
+#
+# Fill username/password in AFTER the first-run owner setup at ${UOS_API_URL},
+# by running:  ${SCRIPT_DIR:-<module-dir>}/setup-credentials.sh
+# (it validates the login before storing). Do NOT use a Ubiquiti SSO/MFA account.
 url=${UOS_API_URL}
 username=
 password=
