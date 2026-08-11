@@ -59,13 +59,16 @@ JSON="$(normalize_module_config < "${MODULE_JSON}")"
 
 VMNAME="$(get_config_value 'vmname' '')"
 ZONE0="$(get_config_value 'zone0' '')"
-VARIANT="$(get_config_value 'variant' '')"
+ENVIRONMENT="$(get_config_value 'environment' '')"
 [[ -n "${VMNAME}" && -n "${ZONE0}" ]] || die "module ${MODULE} must set vmname and zone0"
 
-# Base module name (strip -<variant>) — used for the configure-service default,
-# matching identity/install-service.sh's exact MODULE_BASE derivation.
+# Base module name (strip -<environment>) — used for the configure-service
+# default, matching identity/install-service.sh's exact MODULE_BASE derivation.
+# Reads .environment, not the retired .variant (TAPPaaS #438): with .variant gone
+# this stopped stripping, so an environment-suffixed consumer got the suffixed
+# unit name (mailserver-tenant1-configure-mailbox.service) which does not exist.
 MODULE_BASE="${MODULE}"
-[[ -n "${VARIANT}" && "${MODULE}" == *"-${VARIANT}" ]] && MODULE_BASE="${MODULE%-"${VARIANT}"}"
+[[ -n "${ENVIRONMENT}" && "${MODULE}" == *"-${ENVIRONMENT}" ]] && MODULE_BASE="${MODULE%-"${ENVIRONMENT}"}"
 CONFIGURE_SERVICE="${MODULE_BASE}-configure-mailbox.service"
 
 UPSTREAM="${VMNAME}.${ZONE0}.internal"
