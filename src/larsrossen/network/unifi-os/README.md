@@ -26,8 +26,8 @@ through the UniFi OS API.
   not published to the internet (no inbound NAT/port-forward).
 - **No UniFi Protect / cameras** validated here (Network-only). Protect works on UniFi OS
   Server but needs more disk/RAM — size up if you add it.
-- **No automatic admin account or API key.** UniFi OS Server requires a one-time interactive
-  owner setup; see [INSTALL.md](./INSTALL.md).
+- **No automatic admin account.** UniFi OS Server requires a one-time interactive owner
+  setup; see [INSTALL.md](./INSTALL.md).
 
 ## Requirements
 
@@ -42,8 +42,9 @@ through the UniFi OS API.
   not fit NixOS. (Debian 12 was tried and kernel-panicked under this Proxmox/QEMU.)
 - UI/API listen on **:11443** (UniFi OS console), with the Network app on 8443/8444 — there
   is nothing on :443.
-- First-run **owner setup is manual** (interactive), and an **API key must be created once**
-  in the UI for unattended automation — neither can be auto-provisioned at install.
+- First-run **owner setup is manual** (interactive). Self-hosted UniFi OS has **no API-key /
+  Integration feature**, so automation authenticates as a **local admin** (stored once by
+  `setup-credentials.sh`) — neither can be auto-provisioned at install.
 
 ## Access (internal only)
 

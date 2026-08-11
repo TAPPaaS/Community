@@ -67,13 +67,13 @@ vm() { ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 "tappaas@${I
 for _ in $(seq 1 40); do vm "exit 0" 2>/dev/null && break; sleep 3; done
 vm "exit 0" 2>/dev/null || die "SSH to tappaas@${IP} not available"
 
-# ── Friendly URL + API credentials skeleton on tappaas-cicd ──────────
-# UniFi OS Server has no default admin and an API key can only be created by an
-# authenticated admin — which only exists AFTER the interactive owner setup. So
-# the key cannot be provisioned at install; we pre-create an empty 0600 skeleton
-# (mirroring ~/.opnsense-credentials.txt) for the operator to fill in once, and
-# that the Stage-5 unifi.sh reads. Ensured on EVERY run (incl. the idempotent
-# path); never overwrites an operator-populated file.
+# ── Friendly URL + credentials skeleton on tappaas-cicd ──────────────
+# Self-hosted UniFi OS Server has no API-key feature and no default admin — the
+# local admin only exists AFTER the interactive owner setup. So credentials
+# cannot be provisioned at install; we pre-create an empty 0600 skeleton
+# (mirroring ~/.opnsense-credentials.txt) for the operator to fill in once via
+# setup-credentials.sh, and that the Stage-5 unifi.sh reads. Ensured on EVERY
+# run (incl. the idempotent path); never overwrites an operator-populated file.
 readonly UOS_CRED="/home/tappaas/.unifi-os-credentials.txt"
 DOMAIN="$(get_variant_config "" 2>/dev/null | jq -r '.domain // empty' || true)"
 PROXY_DOMAIN="$(get_config_value 'proxyDomain' "${VMNAME}${DOMAIN:+.${DOMAIN}}")"
