@@ -69,12 +69,17 @@ else
     no "uosserver service not active"
 fi
 
+# No `curl -f` on either probe below: --fail exits 22 on any 4xx while still
+# printing the code via -w, so `|| echo 000` appended to it and the accepted
+# pre-auth answer arrived as the nonsense "401000". Plain -s keeps curl's exit
+# status about reachability, so 000 means only "no response at all".
+
 # Console UI answers (port 11443)
-code="$(vm "curl -fsk -o /dev/null -w '%{http_code}' https://localhost:11443/ 2>/dev/null" || echo 000)"
+code="$(vm "curl -sk -o /dev/null -w '%{http_code}' https://localhost:11443/ 2>/dev/null" || echo 000)"
 if [[ "${code}" =~ ^(200|302|401|403)$ ]]; then ok "UniFi OS console answers on :11443 (HTTP ${code})"; else no "UniFi OS console did not answer on :11443 (HTTP ${code})"; fi
 
 # /proxy/network/ API path responds (pre-auth 401/redirect is fine) — Stage 5 target
-acode="$(vm "curl -fsk -o /dev/null -w '%{http_code}' https://localhost:11443/proxy/network/ 2>/dev/null" || echo 000)"
+acode="$(vm "curl -sk -o /dev/null -w '%{http_code}' https://localhost:11443/proxy/network/ 2>/dev/null" || echo 000)"
 if [[ "${acode}" =~ ^(200|301|302|401|403)$ ]]; then ok "/proxy/network/ API responds on :11443 (HTTP ${acode})"; else no "/proxy/network/ did not respond on :11443 (HTTP ${acode})"; fi
 
 echo ""
