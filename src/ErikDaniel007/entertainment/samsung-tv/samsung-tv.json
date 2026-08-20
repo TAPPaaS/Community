@@ -1,0 +1,37 @@
+{
+  "description": "Samsung Smart TV (QE55S95B) — policy-only module for firewall rules (no VM)",
+  "version": "1.0.0",
+  "releaseDate": "2026-05-23",
+  "maintainer": "@ErikDaniel007",
+  "status": "Development",
+  "location": "/home/tappaas/Community/src/ErikDaniel007/entertainment/samsung-tv",
+  "vmname": "samsung-tv",
+  "vmtag": "TAPPaaS,Community,Entertainment,Hardware",
+  "zone0": "iotCloud",
+  "firewallType": "opnsense",
+  "ports": [
+    {
+      "port": 8001,
+      "protocol": "TCP",
+      "description": "Samsung SmartView API (HTTP)"
+    },
+    {
+      "port": 8002,
+      "protocol": "TCP",
+      "description": "Samsung SmartView API (HTTPS)"
+    },
+    {
+      "port": 9,
+      "protocol": "UDP",
+      "description": "Wake-on-LAN magic packet"
+    }
+  ],
+  "discoveryMdns": true,
+  "provides": [
+    "cast"
+  ],
+  "dependsOn": [
+    "network:rules",
+    "network:discovery"
+  ]
+}

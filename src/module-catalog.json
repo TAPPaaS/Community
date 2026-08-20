@@ -135,6 +135,51 @@
             "stack": "home-automation",
             "category": "bus",
             "status": "Development"
+        },
+        {
+            "moduleName": "irrigation",
+            "repo": "community",
+            "moduleJson": "src/ErikDaniel007/home-automation/irrigation/irrigation.json",
+            "vmid": null,
+            "stack": "home-automation",
+            "category": "irrigation",
+            "status": "Development"
+        },
+        {
+            "moduleName": "shelly-fleet",
+            "repo": "community",
+            "moduleJson": "src/ErikDaniel007/home-automation/shelly-fleet/shelly-fleet.json",
+            "vmid": null,
+            "stack": "home-automation",
+            "category": "switches",
+            "status": "Development"
+        },
+        {
+            "moduleName": "solaredge",
+            "repo": "community",
+            "moduleJson": "src/ErikDaniel007/energy/solaredge/solaredge.json",
+            "vmid": null,
+            "stack": "home-automation",
+            "category": "solar",
+            "status": "Development"
+        },
+        {
+            "moduleName": "samsung-tv",
+            "repo": "community",
+            "moduleJson": "src/ErikDaniel007/entertainment/samsung-tv/samsung-tv.json",
+            "vmid": null,
+            "stack": "entertainment",
+            "category": "tv",
+            "status": "Development"
+        },
+        {
+            "moduleName": "wiim-fleet",
+            "repo": "community",
+            "moduleJson": "src/ErikDaniel007/entertainment/wiim-fleet/wiim-fleet.json",
+            "vmid": null,
+            "stack": "entertainment",
+            "category": "audio",
+            "status": "archived"
         }
     ],
     "foundationModules": [
