@@ -1,0 +1,6 @@
+{
+  "_comment": "Auto-pinhole declaration (#173) for the 'control' service of the Shelly relay/PM fleet. HTTP API consumed by HA for state + control.",
+  "ports": [
+    { "port": 80, "protocol": "TCP", "description": "Shelly HTTP API" }
+  ]
+}

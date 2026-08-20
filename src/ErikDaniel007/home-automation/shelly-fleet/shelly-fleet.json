@@ -1,0 +1,27 @@
+{
+  "description": "Shelly relay/PM fleet — policy-only module for firewall rules (no VM)",
+  "version": "1.0.0",
+  "releaseDate": "2026-05-23",
+  "maintainer": "@ErikDaniel007",
+  "status": "Development",
+  "location": "/home/tappaas/Community/src/ErikDaniel007/home-automation/shelly-fleet",
+  "vmname": "shelly-fleet",
+  "vmtag": "TAPPaaS,Community,HomeAutomation,Hardware",
+  "zone0": "iotLocal",
+  "firewallType": "opnsense",
+  "ports": [
+    {
+      "port": 80,
+      "protocol": "TCP",
+      "description": "Shelly HTTP API"
+    }
+  ],
+  "discoveryMdns": true,
+  "provides": [
+    "control"
+  ],
+  "dependsOn": [
+    "network:rules",
+    "network:discovery"
+  ]
+}
