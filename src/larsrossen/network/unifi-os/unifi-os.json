@@ -18,7 +18,7 @@
     { "port": 3478,  "protocol": "UDP", "description": "STUN (device discovery)" },
     { "port": 10001, "protocol": "UDP", "description": "Device discovery" }
   ],
-  "dependsOn": ["cluster:vm", "templates:debian", "backup:vm", "network:proxy"],
+  "dependsOn": ["cluster:vm", "templates:debian", "backup:vm", "network:proxy", "network:rules"],
   "provides": [],
   "config": {
     "cluster:vm": {
