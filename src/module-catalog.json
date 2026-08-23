@@ -20,15 +20,6 @@
             "status": "Development"
         },
         {
-            "moduleName": "podman",
-            "repo": "community",
-            "moduleJson": "src/larsrossen/containers/podman/podman.json",
-            "vmid": 812,
-            "stack": "infrastructure",
-            "category": "containers",
-            "status": "Development"
-        },
-        {
             "moduleName": "wordpress",
             "repo": "community",
             "moduleJson": "src/AndreasJe/wordpress/wordpress.json",
