@@ -1,0 +1,5 @@
+{
+  "ports": [
+    { "port": 8080, "protocol": "TCP", "description": "OpenThread Border Router REST API — HA OTBR/Thread integration manages the border router at http://smlight:8080" }
+  ]
+}

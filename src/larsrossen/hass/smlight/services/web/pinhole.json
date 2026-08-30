@@ -1,0 +1,5 @@
+{
+  "ports": [
+    { "port": 80, "protocol": "TCP", "description": "SLZB web UI + device API (/api2) — the HA 'smlight' integration polls http://smlight/api2" }
+  ]
+}

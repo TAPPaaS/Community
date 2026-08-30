@@ -1,0 +1,48 @@
+{
+  "description": "SMLIGHT SLZB-MR series (Zigbee + Thread/OTBR coordinator) — policy-only firewall module (no VM) integrating a networked SMLIGHT coordinator into Home Assistant",
+  "version": "0.1.0",
+  "releaseDate": "2026-08-30",
+  "maintainer": "@larsrossen",
+  "status": "Development",
+  "location": "/home/tappaas/Community/src/larsrossen/hass/smlight",
+  "vmname": "smlight",
+  "vmtag": "TAPPaaS,Community,IoT,HomeAutomation,Hardware",
+  "zone0": "iotCloud",
+  "aliasType": "host",
+  "firewallType": "opnsense",
+  "ports": [
+    {
+      "port": 80,
+      "protocol": "TCP",
+      "description": "SLZB web UI + device API (/api2) used by the HA 'smlight' integration"
+    },
+    {
+      "port": 6638,
+      "protocol": "TCP",
+      "description": "Zigbee coordinator (EZSP serial-over-TCP) for ZHA / Zigbee2MQTT"
+    },
+    {
+      "port": 8080,
+      "protocol": "TCP",
+      "description": "OpenThread Border Router REST API for the HA OTBR/Thread integration"
+    }
+  ],
+  "discoveryMdns": true,
+  "ingress": [
+    {
+      "from": "home",
+      "ports": [80],
+      "protocol": "TCP",
+      "description": "SLZB web UI for admin (home zone)"
+    }
+  ],
+  "provides": [
+    "zigbee",
+    "thread",
+    "web"
+  ],
+  "dependsOn": [
+    "network:rules",
+    "network:discovery"
+  ]
+}

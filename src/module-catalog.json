@@ -47,6 +47,15 @@
             "status": "beta"
         },
         {
+            "moduleName": "smlight",
+            "repo": "community",
+            "moduleJson": "src/larsrossen/hass/smlight/smlight.json",
+            "vmid": null,
+            "stack": "home-automation",
+            "category": "zigbee-thread",
+            "status": "Development"
+        },
+        {
             "moduleName": "synology",
             "repo": "community",
             "moduleJson": "src/ErikDaniel007/storage/synology/synology.json",

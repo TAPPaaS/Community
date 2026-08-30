@@ -1,0 +1,5 @@
+{
+  "ports": [
+    { "port": 6638, "protocol": "TCP", "description": "Zigbee coordinator (EZSP serial-over-TCP) — ZHA / Zigbee2MQTT connect to socket://smlight:6638" }
+  ]
+}
