@@ -36,8 +36,13 @@ installed on the device.
 |---|---|
 | `network:rules` | Firewall pinholes for all DSM services |
 | `network:proxy` | Caddy reverse proxy — `synology.<your-domain>` (home/work/mgmt only) |
-| `identity:identity` | Authentik SSO for DSM login (optional) |
-| `backup` | PBS backup target — Synology pushes Hyper Backup via rsync/SSH to PBS (optional) |
+| `backup` | PBS backup target — Synology pushes Hyper Backup via rsync/SSH to PBS (optional, not declared) |
+
+**Authentik SSO** is supported but deliberately NOT a declared dependency. DSM's OIDC client is
+configured by hand inside DSM (see INSTALL.md), so nothing about it can be provisioned or verified
+from a manifest. Declaring it made `reconcile` attempt to create an Authentik Application and
+deliver OIDC secrets over ssh on every converge — against an appliance with no `vmid`, which is
+powered down outside working hours. Enable SSO by following INSTALL.md, not by adding a dependency.
 
 **Hardware integrations** (optional — only when the module is deployed):
 

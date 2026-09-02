@@ -92,7 +92,11 @@ dns-manager --no-ssl-verify add activebusiness  srvHome.internal <ip>
 2. Add cameras: Main Menu → IP Camera → Add → enter camera RTSP URL.
 3. Cameras must be on `iotCloud` zone — the firewall rule for TCP 554 is applied during module install.
 
-### Authentik SSO (optional — requires `identity:identity`)
+### Authentik SSO (optional — manual, not a declared dependency)
+
+Requires the `identity` module to be deployed on the site. It is intentionally absent from this
+module's `dependsOn`: DSM's OIDC client is configured by hand below, so an automated converge has
+nothing it can correctly provision (see README.md).
 
 1. In Authentik: create OAuth2/OIDC provider. Redirect URI:
    `https://synology.srvHome.internal:5001/webman/sso/SSOOauth.cgi`

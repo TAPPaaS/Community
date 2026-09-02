@@ -62,7 +62,6 @@
   ],
   "dependsOn": [
     "network:rules",
-    "network:proxy",
-    "identity:identity"
+    "network:proxy"
   ]
 }
