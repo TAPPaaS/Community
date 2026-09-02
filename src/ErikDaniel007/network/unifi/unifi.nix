@@ -184,7 +184,8 @@ in
       "mongodb-7.0.25"           # CVE-2025-14847 - TODO: remove when patched upstream
       "unifi-controller-10.3.58" # CVE-2026-22557/22558, fixed upstream in 10.1.89 -- already running
                                   # 10.3.58 (newer); nixpkgs' knownVulnerabilities is just not
-                                  # version-aware post-overrideAttrs. See KE-UNIFI-002 (gdty-vsm).
+                                  # version-aware post-overrideAttrs. Verified by nix eval against
+                                  # the pinned nixpkgs commit.
     ];
   };
 
