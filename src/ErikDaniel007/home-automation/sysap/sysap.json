@@ -10,6 +10,12 @@
   "zone0": "iotCloud",
   "aliasType": "host",
   "firewallType": "opnsense",
+  "proxyPort": 443,
+  "proxyUpstreamTls": "true",
+  "proxyAllowedZones": [
+    "mgmt",
+    "home"
+  ],
   "ports": [
     {
       "port": 80,
@@ -22,13 +28,16 @@
       "description": "free@home SysAP HTTPS + WSS (official FW ≥ 2.6.0)"
     }
   ],
-  "discoveryMdns": ["home"],
+  "discoveryMdns": [
+    "home"
+  ],
   "provides": [
     "bus"
   ],
   "dependsOn": [
     "network:rules",
-    "network:discovery"
+    "network:discovery",
+    "network:proxy"
   ],
   "_comment_direct_access": "No-HA scenario: add egress to iotLocal ports 80/443 + hue:bridge in dependsOn. See INSTALL.md advanced section. Not recommended: breaks zone isolation."
 }
