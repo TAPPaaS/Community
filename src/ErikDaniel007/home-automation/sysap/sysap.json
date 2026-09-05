@@ -10,8 +10,7 @@
   "zone0": "iotCloud",
   "aliasType": "host",
   "firewallType": "opnsense",
-  "proxyPort": 443,
-  "proxyUpstreamTls": "true",
+  "proxyPort": 80,
   "proxyAllowedZones": [
     "mgmt",
     "home"
