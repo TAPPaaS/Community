@@ -1,5 +1,36 @@
 # UniFi Network Controller
 
+## Deprecated
+
+This module deploys the classic self-hosted UniFi Network controller. Ubiquiti's supported
+self-hosting path is now UniFi OS Server, packaged here as `unifi-os`
+(`src/larsrossen/network/unifi-os/`) — the controller that ADR-008's `switch-manager` and
+`ap-manager` drive. This module is no longer developed.
+
+`unifi-os` is itself still `status: Development` and has not yet been validated through a
+full controller migration. Evaluate it for your case rather than assuming a drop-in
+replacement. This module stays available for existing installations and for rollback.
+
+### If you deploy or still run this module, know these three things
+
+- **The declared memory is too small.** `memory: 2048` does not hold the application. On
+  10.3.58 the Java controller resides at ~1.2 GB and MongoDB at ~0.5 GB, leaving roughly
+  300 MB for the OS and page cache. Set 4096.
+- **There is no swap.** A `nixos-rebuild switch` competes with ~1.7 GB of resident
+  controller and can be killed. More RAM moves that boundary rather than removing it — add
+  swap if you need to rebuild in place.
+- **Check backup file sizes, not unit status.** `tar -czf` execs `gzip` from PATH, which a
+  systemd unit does not carry. This wrote zero-byte archives for roughly 180 consecutive
+  nights while the timer reported clean runs (#8, fixed in #10).
+
+### Before migrating away
+
+Devices do not follow the controller automatically. Check Settings → System → Advanced →
+Override Inform Host first: if it holds an IP address, a restore on a new server leaves every
+device informing to the old one. Point it at a name you can repoint afterwards, and do that
+while this controller is still running.
+
+
 
 Centrally manage all Ubiquiti network devices — access points, switches and
 gateways — from a single local dashboard. No UniFi cloud account required.
