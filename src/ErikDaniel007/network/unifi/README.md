@@ -4,8 +4,8 @@
 
 This module deploys the classic self-hosted UniFi Network controller. Ubiquiti's supported
 self-hosting path is now UniFi OS Server, packaged here as `unifi-os`
-(`src/larsrossen/network/unifi-os/`), which is also what ADR-008 Stage 5 targets. This module
-is no longer developed.
+(`src/larsrossen/network/unifi-os/`) — the controller that ADR-008's `switch-manager` and
+`ap-manager` drive. This module is no longer developed.
 
 `unifi-os` is itself still `status: Development` and has not yet been validated through a
 full controller migration. Evaluate it for your case rather than assuming a drop-in
