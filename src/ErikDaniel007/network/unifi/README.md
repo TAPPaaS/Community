@@ -39,4 +39,17 @@ future TAPPaaS release.
 | `templates:nixos` | NixOS base image |
 | `backup:vm` | Scheduled VM snapshots |
 
+## Managing via API
+
+For automation against the controller, prefer the **official UniFi Network API** (UniFi Network
+Application v9+): REST, authenticated with an **API key** via the `X-API-KEY` header — create it
+in the controller UI under **Settings → Control Plane → Integrations → Create API Key**. Base path:
+`https://<host>/proxy/network/integration/v1/...`.
+
+The older cookie/CSRF session API (`/api/login` + `/api/s/{site}/...`) is the **legacy,
+community-reverse-engineered** interface — still functional, and still required for the few
+endpoints the official API does not yet cover (e.g. some switch `port_overrides` writes), but not
+officially supported. Authenticate with the API key and fall back to the legacy endpoints only
+where needed. Design detail: TAPPaaS `docs/design/unifi-controller-integration.md`.
+
 For installation steps see [INSTALL.md](./INSTALL.md).
