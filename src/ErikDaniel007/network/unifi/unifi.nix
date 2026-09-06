@@ -134,7 +134,13 @@ in
     serviceConfig = {
       Type = "oneshot";
       ExecStart = pkgs.writeShellScript "unifi-backup" ''
-        ${pkgs.gnutar}/bin/tar -czf /var/backup/unifi/unifi-$(date +%F).tar.gz \
+        # -z makes tar exec `gzip` from PATH, and a systemd unit PATH carries only
+        # coreutils/findutils/gnugrep/gnused/systemd -- so this failed with
+        # "gzip: command not found" every night from 2026-03-14, leaving 35
+        # zero-byte files in /var/backup/unifi while the timer reported clean runs.
+        # Name the compressor the way gnutar itself is named: absolutely.
+        ${pkgs.gnutar}/bin/tar --use-compress-program=${pkgs.gzip}/bin/gzip \
+          -cf /var/backup/unifi/unifi-$(date +%F).tar.gz \
           -C /var/lib/unifi data
       '';
       User = "unifi";
