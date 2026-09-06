@@ -1,10 +1,10 @@
 {
   "description": "UniFi Network Controller — manage Ubiquiti access points, switches and gateways",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "appVersion": "10.3.58",
   "releaseDate": "2026-05-20",
   "maintainer": "@ErikDaniel007",
-  "status": "Development",
+  "status": "Deprecated",
   "location": "/home/tappaas/Community/src/ErikDaniel007/network/unifi",
   "vmname": "unifi",
   "vmid": 810,
