@@ -18,7 +18,7 @@ install-module.sh alfen
 This configures:
 - Firewall pass rules (ports 80, 443, 502, 36549)
 - UDP broadcast relay for MyEve app discovery
-- Outbound NAT masquerade for `home` and `srvHome` → `iotCloud`
+- Source NAT (masquerade) for `home` and `srvHome` → `iotCloud`, via `network:snat`
 
 ## Post-install
 
@@ -49,8 +49,8 @@ Manual checks:
 Verify UDP relay: `network:discovery test-service.sh alfen` should show relay present.
 
 **Web UI loads but connection drops / app keeps spinning**
-Verify NAT rules: `alfen:nat test-service.sh alfen` should show both rules present.
-If missing, run `install-module.sh alfen --force`.
+Verify the masquerade: `network-manager snat verify alfen` — it checks declared == live AND enforced,
+and exits 1 on drift. `network-manager snat list` shows the rules and the firewall's outbound-NAT mode.
 
 **Home Assistant shows unavailable**
 Confirm Modbus TCP is enabled on the charger. Port 502 must be explicitly enabled

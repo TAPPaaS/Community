@@ -63,12 +63,20 @@
   "provides": [
     "ui",
     "discovery",
-    "modbus",
-    "nat"
+    "modbus"
   ],
   "dependsOn": [
     "network:rules",
     "network:discovery",
-    "alfen:nat"
-  ]
+    "network:snat"
+  ],
+  "config": {
+    "network:snat": {
+      "snatFrom": [
+        "home",
+        "srvHome"
+      ],
+      "snatReason": "Alfen NG5 firmware accepts TCP only from inside iotCloud (10.4.20.0/24); the Eve app on home and Home Assistant's Modbus client on srvHome are both outside it (#239)."
+    }
+  }
 }
