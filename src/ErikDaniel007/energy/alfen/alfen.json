@@ -4,6 +4,7 @@
   "releaseDate": "2026-05-23",
   "maintainer": "@ErikDaniel007",
   "status": "Testing",
+  "tier": "app",
   "location": "/home/tappaas/Community/src/ErikDaniel007/energy/alfen",
   "vmname": "alfen",
   "vmtag": "TAPPaaS,Community,Energy,Hardware",
