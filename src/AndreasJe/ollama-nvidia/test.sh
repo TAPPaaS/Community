@@ -144,6 +144,92 @@ else
     fi
 fi
 
+# --- GPU residency / CPU-fallback probe ---
+#
+# The failure this catches: when a model no longer fits in VRAM — because the
+# uvm major drifted and CUDA is gone, or because too many models are pinned —
+# Ollama does NOT error. It quietly splits the model across GPU and CPU and
+# keeps answering, just far slower. Every check above still passes: the
+# container is up, the API returns 200, inference "works". So the only way to
+# see it is to measure.
+#
+# Two independent signals, because each misses a case the other catches:
+#   - `ollama ps` PROCESSOR — names the split directly, but only while a model
+#     is loaded, and reports nothing about actual speed.
+#   - tokens/sec from the generate API — catches a slow GPU path that still
+#     reports 100% GPU (e.g. thermal throttling, a wrong CUDA build).
+if [[ "$HTTP_CODE" == "200" && -n "${MODEL:-}" && "${MODEL}" != "null" ]]; then
+    echo ""
+    echo "--- GPU Residency / CPU-Fallback Probe ---"
+
+    # Does this model even fit? A model larger than VRAM is ALWAYS hybrid — that
+    # is physics, not a fault, and must not be reported as a failure or the
+    # suite goes permanently red and blocks update-module.sh's pre-update gate.
+    # Only a model that SHOULD fit and is still split indicates a real problem
+    # (a drifted uvm major, a lost CUDA runtime, another model hogging VRAM).
+    VRAM_MB=$(pct exec "${VMID}" -- nvidia-smi --query-gpu=memory.total \
+        --format=csv,noheader,nounits 2>/dev/null | head -1 | tr -d ' ')
+    PS_OUT=$(pct exec "${VMID}" -- docker exec ollama ollama ps 2>/dev/null || true)
+    MODEL_MB=$(echo "$PS_OUT" | awk 'NR==2 {
+        for (i=1;i<=NF;i++) if ($i=="GB") { printf "%d", $(i-1)*1024; exit }
+        for (i=1;i<=NF;i++) if ($i=="MB") { printf "%d", $(i-1);      exit }
+    }')
+    FITS=1
+    if [[ -n "$VRAM_MB" && -n "$MODEL_MB" ]]; then
+        # 0.90 leaves room for the CUDA context and KV cache alongside weights.
+        awk -v m="$MODEL_MB" -v v="$VRAM_MB" 'BEGIN{exit !(m > v*0.90)}' && FITS=0
+    fi
+
+    if echo "$PS_OUT" | grep -q "CPU"; then
+        if [[ "$FITS" -eq 0 ]]; then
+            warn "CPU offload EXPECTED: model ~${MODEL_MB}MB exceeds ${VRAM_MB}MB VRAM"
+            echo "    Not a fault — this model cannot fit on this GPU. Prefer a"
+            echo "    model under ~$((VRAM_MB * 90 / 100))MB for full-GPU speed."
+        else
+            check "No CPU offload (model fits VRAM but is split)" "1"
+        fi
+        echo "$PS_OUT" | sed 's/^/    /'
+    elif echo "$PS_OUT" | grep -q "100% GPU"; then
+        check "Model resident 100% on GPU" "0"
+    else
+        warn "No model currently loaded — PROCESSOR check inconclusive"
+    fi
+
+    # eval_count / eval_duration is Ollama's own generation accounting;
+    # eval_duration is nanoseconds and excludes prompt load, so this is
+    # generation throughput rather than end-to-end latency.
+    GEN=$(pct exec "${VMID}" -- curl -s --connect-timeout 30 --max-time 120 \
+        -X POST "http://127.0.0.1:11434/api/generate" \
+        -H "Content-Type:application/json" \
+        -d "'{\"model\":\"${MODEL}\",\"prompt\":\"Count from 1 to 30.\",\"stream\":false}'" \
+        2>/dev/null || true)
+
+    EVAL_N=$(echo "$GEN" | jq -r '.eval_count // empty' 2>/dev/null || echo "")
+    EVAL_NS=$(echo "$GEN" | jq -r '.eval_duration // empty' 2>/dev/null || echo "")
+    if [[ -n "$EVAL_N" && -n "$EVAL_NS" && "$EVAL_NS" != "0" ]]; then
+        TPS=$(awk -v n="$EVAL_N" -v d="$EVAL_NS" 'BEGIN{printf "%.1f", n/(d/1000000000)}')
+        # Floor, not a benchmark. A P100 running a small model fully on GPU
+        # clears this by a wide margin; hybrid CPU offload lands well under it.
+        # Deliberately loose so a bigger model or a busy host does not cry wolf
+        # — raise it per-deployment once you know the real numbers.
+        FLOOR="${OLLAMA_MIN_TOKENS_PER_SEC:-10}"
+        if awk -v t="$TPS" -v f="$FLOOR" 'BEGIN{exit !(t >= f)}'; then
+            check "Generation throughput ${TPS} tok/s (floor ${FLOOR})" "0"
+        elif [[ "$FITS" -eq 0 ]]; then
+            # Same reasoning as the PROCESSOR check above: an oversized model is
+            # slow by arithmetic, not by regression. Report it, don't fail on it.
+            warn "Throughput ${TPS} tok/s — expected, model exceeds VRAM"
+        else
+            check "Generation throughput ${TPS} tok/s BELOW floor ${FLOOR}" "1"
+            echo "    Model fits VRAM yet is slow — suspect CPU fallback. Check"
+            echo "    nvidia-smi inside the LXC, and that /dev/nvidia-uvm's major"
+            echo "    matches the LXC conf (see boot-gpu-reconcile.sh)."
+        fi
+    else
+        warn "Could not read eval_count/eval_duration — throughput check skipped"
+    fi
+fi
+
 # Summary
 echo ""
 echo "=== Test Summary ==="

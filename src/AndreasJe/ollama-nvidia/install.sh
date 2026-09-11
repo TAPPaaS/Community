@@ -45,6 +45,7 @@ ssh "$TARGET" "mkdir -p $TAPPAAS_DIR"
 scp "${MODULE}.json"                  "${TARGET}:${TAPPAAS_DIR}/${MODULE}.json"
 scp "${MODULE}.meta.json"             "${TARGET}:${TAPPAAS_DIR}/${MODULE}.meta.json"
 scp "${SCRIPT_DIR}/patch-host-gpu.sh" "${TARGET}:${TAPPAAS_DIR}/patch-host-gpu.sh"
+scp "${SCRIPT_DIR}/boot-gpu-reconcile.sh" "${TARGET}:${TAPPAAS_DIR}/boot-gpu-reconcile.sh"
 scp "${SCRIPT_DIR}/update.sh"         "${TARGET}:${TAPPAAS_DIR}/update.sh"
 
 # Step 1: Prepare host GPU (auto-installs the NVIDIA driver if the GPU is

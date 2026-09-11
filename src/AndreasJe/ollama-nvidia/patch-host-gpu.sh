@@ -205,6 +205,47 @@ else
   err "cgroup reconcile" "VMID/conf not resolved (${MODULE_JSON}) — skipped"
 fi
 
+# --- Step 7: Install the boot-time reconcile unit ---
+# Step 6 above fixes the conf, but only while an operator is running this
+# script. The major it corrects for is reallocated on every driver rebuild and
+# can move on a plain reboot, and the resulting breakage is close to invisible:
+# nvidia-smi keeps working (major 195 is static) while CUDA fails, so inference
+# silently falls back to CPU. Ordering the same reconcile Before=pve-guests
+# means the container can never be started against a stale major in the first
+# place.
+RECON_SRC="/root/tappaas/boot-gpu-reconcile.sh"
+if [ -f "$RECON_SRC" ]; then
+    chmod +x "$RECON_SRC"
+    cat > /etc/systemd/system/ollama-gpu-reconcile.service <<UNIT
+[Unit]
+Description=Reconcile ollama-nvidia LXC GPU passthrough to live device majors
+# Ordering is the whole point: the conf must be correct BEFORE the container
+# starts, otherwise the fix does not take effect until the next reboot.
+After=systemd-modules-load.service
+Before=pve-guests.service
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/env bash ${RECON_SRC} ${MODULE}
+# Never block the host's guests from starting because a GPU reconcile failed.
+SuccessExitStatus=0 1
+TimeoutStartSec=60
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+    systemctl daemon-reload
+    if systemctl enable ollama-gpu-reconcile.service >/dev/null 2>&1; then
+        ok "boot-time GPU reconcile unit enabled"
+    else
+        err "boot reconcile unit" "enable failed"
+    fi
+else
+    err "boot reconcile unit" "$RECON_SRC not found — skipped"
+fi
+
 echo ""
 echo "  === host GPU patch complete ==="
 echo ""

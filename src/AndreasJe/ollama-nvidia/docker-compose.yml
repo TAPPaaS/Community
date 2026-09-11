@@ -14,7 +14,11 @@
 # serves models dynamically — no model path to edit here before first start.
 services:
   ollama:
-    image: ollama/ollama:latest
+    # Pinned, not :latest. An unpinned tag means a `docker compose pull` can
+    # swap the inference engine under a working GPU stack without anyone
+    # choosing to — and a CUDA/driver mismatch here degrades silently to CPU
+    # rather than failing loudly. Bump deliberately, then re-run test.sh.
+    image: ollama/ollama:0.32.2
     container_name: ollama
     restart: unless-stopped
     volumes:
@@ -26,11 +30,21 @@ services:
       - OLLAMA_MODELS=/models
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-      # Generous defaults, sized for a RAM-rich host (LXC memory = 75% of host
-      # RAM per the discover.sh formula) — no memory-pressure reason to evict
-      # warm models. Lower both on RAM-constrained hosts.
-      - OLLAMA_MAX_LOADED_MODELS=${OLLAMA_MAX_LOADED_MODELS:-4}
-      - OLLAMA_KEEP_ALIVE=${OLLAMA_KEEP_ALIVE:-24h}
+      # Sized by VRAM, not by host RAM. The earlier "RAM-rich host" reasoning
+      # was measuring the wrong resource: a model is only fast while its weights
+      # sit in the GPU's 12.3 GB, and Ollama does NOT refuse a model that no
+      # longer fits — it silently splits it across GPU and CPU, which looks like
+      # the service simply got slow. Four models pinned for 24h cannot coexist
+      # in that VRAM (mistral-nemo:12b alone is 7.5 GB), so the generous
+      # defaults guaranteed the silent-fallback state rather than preventing it.
+      #
+      # One model at a time, released after 30m idle: a shared dev box then
+      # self-heals — whoever asks next reloads their model into a clear GPU and
+      # pays a few seconds of load instead of inheriting someone else's
+      # half-offloaded session. test.sh asserts a tok/s floor to catch a
+      # regression here.
+      - OLLAMA_MAX_LOADED_MODELS=${OLLAMA_MAX_LOADED_MODELS:-1}
+      - OLLAMA_KEEP_ALIVE=${OLLAMA_KEEP_ALIVE:-30m}
       # First load of a large hybrid-offload model reads tens of GB from disk —
       # on spinning-disk pools Ollama's default 5m load timeout can abort it
       # mid-load.
