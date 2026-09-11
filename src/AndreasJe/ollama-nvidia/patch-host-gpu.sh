@@ -175,11 +175,15 @@ fi
 # format, and a manual run now behaves identically to a boot-time one.
 RECON_SRC="/root/tappaas/boot-gpu-reconcile.sh"
 if [ -f "$RECON_SRC" ]; then
-  if bash "$RECON_SRC" "${MODULE}"; then
-    ok "LXC GPU passthrough conf reconciled to live majors"
-  else
-    err "cgroup reconcile" "boot-gpu-reconcile.sh returned non-zero"
-  fi
+  # Exit 3 is the script's SKIPPED code (see its header): a precondition was
+  # missing and nothing was written. That must surface as ❌ here, not ✅ —
+  # the old inline implementation reported it as an error too.
+  rc=0; bash "$RECON_SRC" "${MODULE}" || rc=$?
+  case "$rc" in
+    0) ok "LXC GPU passthrough conf reconciled to live majors" ;;
+    3) err "cgroup reconcile" "skipped — vmid/conf unresolved or required device absent (see log above)" ;;
+    *) err "cgroup reconcile" "boot-gpu-reconcile.sh failed (exit ${rc})" ;;
+  esac
 else
   err "cgroup reconcile" "$RECON_SRC not found — skipped"
 fi
@@ -218,8 +222,11 @@ Before=pve-guests.service
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/bin/env bash ${RECON_SRC} ${MODULE}
-# Never block the host's guests from starting because a GPU reconcile failed.
-SuccessExitStatus=0 1
+# 3 is the script's SKIPPED code (precondition missing, nothing written) —
+# a legitimate boot outcome, not a failure, so it must not show a red unit.
+# Real errors stay visible. Neither can block the host's guests either way:
+# pve-guests is only ordered After= this unit, it does not Require= it.
+SuccessExitStatus=0 3
 TimeoutStartSec=60
 
 [Install]

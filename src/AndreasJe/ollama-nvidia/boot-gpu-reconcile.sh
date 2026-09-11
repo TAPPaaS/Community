@@ -42,15 +42,26 @@ MODULE_JSON="${TAPPAAS_DIR}/${MODULE}.json"
 
 log() { echo "[ollama-gpu-reconcile] $*"; }
 
+# Exit codes. 0 = reconciled or already correct. 3 = SKIPPED: nothing was
+# written because a precondition was missing (no vmid, no conf, required
+# device absent). Anything else = a real error.
+#
+# Skips exit non-zero on purpose so that patch-host-gpu.sh's Step 6 can show
+# an operator a ❌ instead of a false ✅ — a skipped reconcile that looks
+# successful is the same "everything looks healthy" failure this script exists
+# to prevent. The systemd unit lists 3 in SuccessExitStatus, so at boot a skip
+# is still not a red unit and can never block the host's guests.
+EXIT_SKIP=3
+
 VMID="$(jq -r '.vmid // empty' "${MODULE_JSON}" 2>/dev/null)"
 if [ -z "${VMID}" ]; then
     log "no vmid in ${MODULE_JSON} — nothing to reconcile"
-    exit 0
+    exit "${EXIT_SKIP}"
 fi
 CONF="/etc/pve/lxc/${VMID}.conf"
 if [ ! -f "${CONF}" ]; then
     log "conf ${CONF} absent — nothing to reconcile"
-    exit 0
+    exit "${EXIT_SKIP}"
 fi
 
 # The uvm devices are created by nvidia-modprobe on first CUDA use, so they may
@@ -100,7 +111,7 @@ for dev in /dev/nvidia0 /dev/nvidiactl /dev/nvidia-uvm; do
 done
 if [ -n "${missing}" ]; then
     log "required device(s) absent:${missing} — leaving conf untouched"
-    exit 0
+    exit "${EXIT_SKIP}"
 fi
 
 # Purging ALL lxc.cgroup2.devices.allow lines is safe for THIS container
