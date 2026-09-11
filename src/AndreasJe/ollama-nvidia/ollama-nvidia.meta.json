@@ -32,7 +32,8 @@
   "min_vram_mb": 8192,
   "_comment_host_driver_pin": "Driver version patch-host-gpu.sh auto-installs when the host has an NVIDIA GPU but no working driver. The default favors the branch with the widest legacy-GPU support; bump for newer cards.",
   "host_driver_pin": "580.173.02",
-  "ollama_image": "ollama/ollama:latest",
+  "_comment_ollama_image": "Pinned deliberately — :latest lets a pull swap the inference engine under a working GPU stack, and a CUDA/driver mismatch degrades silently to CPU instead of failing. Keep in sync with docker-compose.yml; bump both, then re-run test.sh.",
+  "ollama_image": "ollama/ollama:0.32.2",
   "author": "@AndreasJe",
   "releaseDate": "2026-07-14",
   "status": "Development"

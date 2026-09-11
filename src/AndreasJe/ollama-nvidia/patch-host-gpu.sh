@@ -163,46 +163,83 @@ fi
 # this module's meta deliberately names its device block `nvidia_gpu`, not
 # `gpu`, because the provisioner's AMD-shaped `.gpu` handler would emit
 # malformed conf lines (empty kfd/render majors) that break pct start. This
-# script is therefore the sole owner of the passthrough conf.
+# module is therefore the sole owner of the passthrough conf.
 #
-# The section is managed as a sentinel-delimited block, rebuilt from live
-# device state on every run and rewritten only when its content changed.
-# (Match-by-minor replacement doesn't work here: /dev/nvidia0 and
-# /dev/nvidia-uvm both have minor 0 on different majors.)
-MODULE_JSON="/root/tappaas/${MODULE}.json"
-VMID="$(jq -r '.vmid // empty' "$MODULE_JSON" 2>/dev/null)"
-CONF="/etc/pve/lxc/${VMID}.conf"
-BEGIN_MARK="# BEGIN ollama-nvidia GPU passthrough (managed by patch-host-gpu.sh)"
-END_MARK="# END ollama-nvidia GPU passthrough"
-if [ -n "$VMID" ] && [ -f "$CONF" ]; then
-  NEW_BLOCK="$BEGIN_MARK"
-  for dev in /dev/nvidia0 /dev/nvidiactl /dev/nvidia-uvm /dev/nvidia-uvm-tools; do
-    [ -c "$dev" ] || continue
-    LIVE_MAJ="$(printf '%d' "0x$(stat -c '%t' "$dev")")"
-    LIVE_MIN="$(printf '%d' "0x$(stat -c '%T' "$dev")")"
-    NEW_BLOCK="${NEW_BLOCK}
-lxc.cgroup2.devices.allow: c ${LIVE_MAJ}:${LIVE_MIN} rwm
-lxc.mount.entry: ${dev} ${dev#/} none bind,optional,create=file"
-  done
-  NEW_BLOCK="${NEW_BLOCK}
-${END_MARK}"
-
-  OLD_BLOCK="$(sed -n "\|^${BEGIN_MARK}\$|,\|^${END_MARK}\$|p" "$CONF")"
-  if [ "$OLD_BLOCK" = "$NEW_BLOCK" ]; then
-    ok "LXC ${VMID} GPU passthrough conf already matches live majors"
-  else
-    tmp=$(mktemp)
-    sed "\|^${BEGIN_MARK}\$|,\|^${END_MARK}\$|d" "$CONF" > "$tmp"
-    printf '%s\n' "$NEW_BLOCK" >> "$tmp"
-    cat "$tmp" > "$CONF"
-    rm -f "$tmp"
-    ok "LXC ${VMID} GPU passthrough conf re-synced to live majors"
-    if pct status "${VMID}" 2>/dev/null | grep -q running; then
-      pct reboot "${VMID}" && ok "LXC ${VMID} restarted to apply cgroup change"
-    fi
-  fi
+# The reconcile itself lives in boot-gpu-reconcile.sh and is INVOKED here
+# rather than reimplemented. This step used to carry its own copy that managed
+# the same lines as a BEGIN/END sentinel block, and the two strategies
+# corrupted each other: the boot script strips those sentinels, so the next
+# operator run found no block, deleted nothing, and appended a fresh block on
+# top of the bare lines already present — duplicate lxc.mount.entry lines for
+# the same path, which can fail container start. One implementation, one conf
+# format, and a manual run now behaves identically to a boot-time one.
+RECON_SRC="/root/tappaas/boot-gpu-reconcile.sh"
+if [ -f "$RECON_SRC" ]; then
+  # Exit 3 is the script's SKIPPED code (see its header): a precondition was
+  # missing and nothing was written. That must surface as ❌ here, not ✅ —
+  # the old inline implementation reported it as an error too.
+  rc=0; bash "$RECON_SRC" "${MODULE}" || rc=$?
+  case "$rc" in
+    0) ok "LXC GPU passthrough conf reconciled to live majors" ;;
+    3) err "cgroup reconcile" "skipped — vmid/conf unresolved or required device absent (see log above)" ;;
+    *) err "cgroup reconcile" "boot-gpu-reconcile.sh failed (exit ${rc})" ;;
+  esac
 else
-  err "cgroup reconcile" "VMID/conf not resolved (${MODULE_JSON}) — skipped"
+  err "cgroup reconcile" "$RECON_SRC not found — skipped"
+fi
+
+# --- Step 7: Install the boot-time reconcile unit ---
+# Step 6 above fixes the conf, but only while an operator is running this
+# script. The major it corrects for is reallocated on every driver rebuild and
+# can move on a plain reboot, and the resulting breakage is close to invisible:
+# nvidia-smi keeps working (major 195 is static) while CUDA fails, so inference
+# silently falls back to CPU. Ordering the same reconcile Before=pve-guests
+# means the container can never be started against a stale major in the first
+# place.
+# RECON_SRC is set in Step 6 above.
+if [ -f "$RECON_SRC" ]; then
+    chmod +x "$RECON_SRC"
+    cat > /etc/systemd/system/ollama-gpu-reconcile.service <<UNIT
+[Unit]
+Description=Reconcile ollama-nvidia LXC GPU passthrough to live device majors
+# Ordering is the whole point: the conf must be correct BEFORE the container
+# starts, otherwise the fix does not take effect until the next reboot.
+#
+# After=pve-cluster.service is load-bearing, not cosmetic: the conf this
+# reconciles lives on pmxcfs (/etc/pve), which pve-cluster mounts. Without it
+# the unit could run first, find no conf, log "nothing to reconcile" and exit
+# 0 — and because Type=oneshot + RemainAfterExit=yes never retries, the
+# container would then start against exactly the stale major this exists to
+# prevent, with the unit reporting success. For the same reason there is no
+# DefaultDependencies=no here: pve-guests starts at multi-user, so running in
+# early boot buys nothing and only risks outrunning pmxcfs.
+After=systemd-modules-load.service
+After=pve-cluster.service
+Wants=pve-cluster.service
+Before=pve-guests.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/env bash ${RECON_SRC} ${MODULE}
+# 3 is the script's SKIPPED code (precondition missing, nothing written) —
+# a legitimate boot outcome, not a failure, so it must not show a red unit.
+# Real errors stay visible. Neither can block the host's guests either way:
+# pve-guests is only ordered After= this unit, it does not Require= it.
+SuccessExitStatus=0 3
+TimeoutStartSec=60
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+    systemctl daemon-reload
+    if systemctl enable ollama-gpu-reconcile.service >/dev/null 2>&1; then
+        ok "boot-time GPU reconcile unit enabled"
+    else
+        err "boot reconcile unit" "enable failed"
+    fi
+else
+    err "boot reconcile unit" "$RECON_SRC not found — skipped"
 fi
 
 echo ""
