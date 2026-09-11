@@ -17,6 +17,14 @@
       "description": "Shelly HTTP API"
     }
   ],
+  "egress": [
+    {
+      "to": "hassanova",
+      "ports": [5683],
+      "protocol": "UDP",
+      "description": "Gen1 Shelly CoIoT push updates to Home Assistant (consumer egress, iotCloud lacks access-to srvHome by default)"
+    }
+  ],
   "discoveryMdns": true,
   "provides": [
     "control"
