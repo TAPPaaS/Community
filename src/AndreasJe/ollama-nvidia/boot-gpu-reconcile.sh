@@ -18,11 +18,16 @@
 # That asymmetry is what makes this bug expensive: every obvious check looks
 # healthy while inference has silently fallen back to CPU.
 #
-# patch-host-gpu.sh already reconciles this (its Step 6) — but only when an
-# operator runs it. Nothing ran it at boot, so the window between "driver
-# rebuilt" and "someone notices inference got slow" was unbounded. This unit
-# closes that window by reconciling BEFORE pve-guests.service starts the
-# container.
+# This is the single implementation of that reconcile. It runs two ways, and
+# both must produce the same conf: patch-host-gpu.sh calls it directly (its
+# Step 6) for an operator-driven run, and installs it as
+# ollama-gpu-reconcile.service (its Step 7) ordered before pve-guests, which
+# closes the previously unbounded window between "driver rebuilt" and
+# "someone notices inference got slow".
+#
+# Step 6 used to carry a second, sentinel-block implementation of the same
+# thing. Do not reintroduce one: the two formats strip and duplicate each
+# other's lines. See the NOTE ON THE APPROACH below.
 #
 # This script deliberately does ONLY the conf reconcile. It does not install or
 # upgrade drivers: boot is the wrong moment to attempt a DKMS build, and a
@@ -69,10 +74,8 @@ fi
 # of device lines on every single boot. Reconcile by LINE instead: the result
 # is identical whatever order Proxmox chooses to write things in.
 DESIRED=""
-found=0
 for dev in /dev/nvidia0 /dev/nvidiactl /dev/nvidia-uvm /dev/nvidia-uvm-tools; do
     [ -c "$dev" ] || continue
-    found=$((found + 1))
     LIVE_MAJ="$(printf '%d' "0x$(stat -c '%t' "$dev")")"
     LIVE_MIN="$(printf '%d' "0x$(stat -c '%T' "$dev")")"
     DESIRED="${DESIRED}lxc.cgroup2.devices.allow: c ${LIVE_MAJ}:${LIVE_MIN} rwm
@@ -80,11 +83,23 @@ lxc.mount.entry: ${dev} ${dev#/} none bind,optional,create=file
 "
 done
 
-# Refuse to write a partial set. Writing one would revoke access to whichever
-# device was missing — worse than leaving yesterday's majors in place, which at
-# least fails in a way an operator has seen before.
-if [ "${found}" -lt 4 ]; then
-    log "only ${found}/4 nvidia devices present — leaving conf untouched"
+# Refuse to write a partial set: the purge below drops every nvidia line, so
+# writing one would revoke access to a device that IS present — worse than
+# leaving yesterday's majors in place, which at least fails in a way an
+# operator has seen before.
+#
+# /dev/nvidia-uvm-tools is deliberately NOT required. Some driver versions
+# create it lazily and patch-host-gpu.sh's Step 2 already treats its absence
+# as non-fatal; demanding all four here would mean that on those drivers the
+# reconcile never runs at all and the stale major survives — the exact
+# outcome this script exists to prevent. If it is genuinely absent there is
+# no access to revoke by omitting it, and the next run picks it up.
+missing=""
+for dev in /dev/nvidia0 /dev/nvidiactl /dev/nvidia-uvm; do
+    [ -c "$dev" ] || missing="${missing} ${dev}"
+done
+if [ -n "${missing}" ]; then
+    log "required device(s) absent:${missing} — leaving conf untouched"
     exit 0
 fi
 
@@ -104,9 +119,16 @@ printf '%s' "$DESIRED" >> "$tmp"
 # Compare normalised (sorted) device lines so a pure reordering by Proxmox is
 # not mistaken for drift — otherwise this would rewrite and reboot the
 # container on every boot.
+#
+# Leftover BEGIN/END sentinels from the retired block-managed version count as
+# drift even when the device lines already match: they are what an older
+# patch-host-gpu.sh keyed off, so leaving them behind keeps the two conf
+# formats alive in the same file. They only disappear on a rewrite, so force
+# one when any are still present.
 cur_norm="$(grep -E '^lxc\.cgroup2\.devices\.allow:|^lxc\.mount\.entry: /dev/nvidia' "$CONF" | sort)"
 new_norm="$(printf '%s' "$DESIRED" | sort)"
-if [ "$cur_norm" = "$new_norm" ]; then
+stale_marks="$(grep -cE '^# (BEGIN|END) ollama-nvidia GPU passthrough' "$CONF" || true)"
+if [ "$cur_norm" = "$new_norm" ] && [ "${stale_marks:-0}" -eq 0 ]; then
     rm -f "$tmp"
     log "LXC ${VMID} passthrough already matches live majors — no change"
     exit 0
@@ -122,13 +144,28 @@ log "LXC ${VMID} passthrough re-synced to live majors"
 META="${TAPPAAS_DIR}/${MODULE}.meta.json"
 if [ -f "${META}" ] && command -v jq >/dev/null 2>&1; then
     UVM_MAJ="$(printf '%d' "0x$(stat -c '%t' /dev/nvidia-uvm)")"
-    UVMT_MAJ="$(printf '%d' "0x$(stat -c '%t' /dev/nvidia-uvm-tools)")"
+    UVM_MIN="$(printf '%d' "0x$(stat -c '%T' /dev/nvidia-uvm)")"
+    # uvm-tools is optional (see the device guard above), so stat it only if
+    # it exists — otherwise record null rather than stale values, which is
+    # what the meta's own schema uses for "not discovered".
+    if [ -c /dev/nvidia-uvm-tools ]; then
+        UVMT_MAJ="$(printf '%d' "0x$(stat -c '%t' /dev/nvidia-uvm-tools)")"
+        UVMT_MIN="$(printf '%d' "0x$(stat -c '%T' /dev/nvidia-uvm-tools)")"
+    else
+        UVMT_MAJ=null
+        UVMT_MIN=null
+    fi
     tmpm=$(mktemp)
-    if jq --argjson a "${UVM_MAJ}" --argjson b "${UVMT_MAJ}" \
-        '.nvidia_gpu.uvm_major = $a | .nvidia_gpu.uvm_tools_major = $b' \
+    # Write the minors too: leaving them at their install-time value made the
+    # meta self-contradictory after a drift, which is the one thing an
+    # operator reads to confirm the drift was corrected.
+    if jq --argjson a "${UVM_MAJ}"  --argjson b "${UVM_MIN}" \
+          --argjson c "${UVMT_MAJ}" --argjson d "${UVMT_MIN}" \
+        '.nvidia_gpu.uvm_major = $a | .nvidia_gpu.uvm_minor = $b
+         | .nvidia_gpu.uvm_tools_major = $c | .nvidia_gpu.uvm_tools_minor = $d' \
         "${META}" > "${tmpm}" 2>/dev/null; then
         cat "${tmpm}" > "${META}"
-        log "meta updated: uvm_major=${UVM_MAJ} uvm_tools_major=${UVMT_MAJ}"
+        log "meta updated: uvm=${UVM_MAJ}:${UVM_MIN} uvm_tools=${UVMT_MAJ}:${UVMT_MIN}"
     fi
     rm -f "${tmpm}"
 fi
