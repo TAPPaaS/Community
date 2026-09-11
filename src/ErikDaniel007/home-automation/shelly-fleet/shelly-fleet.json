@@ -4,6 +4,7 @@
   "releaseDate": "2026-05-23",
   "maintainer": "@ErikDaniel007",
   "status": "Development",
+  "aliasType": "network",
   "tier": "app",
   "location": "/home/tappaas/Community/src/ErikDaniel007/home-automation/shelly-fleet",
   "vmname": "shelly-fleet",
@@ -26,6 +27,16 @@
     }
   ],
   "discoveryMdns": true,
+  "discoveryUdpRelay": [
+    {
+      "port": 5683,
+      "zones": [
+        "iotCloud",
+        "srvHome"
+      ],
+      "description": "CoIoT (CoAP) push from gen1 Shelly devices to Home Assistant in srvHome; the devices multicast to 224.0.1.187:5683 and that does not cross a zone boundary unaided."
+    }
+  ],
   "provides": [
     "control"
   ],
