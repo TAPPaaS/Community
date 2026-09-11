@@ -8,7 +8,7 @@
   "location": "/home/tappaas/Community/src/ErikDaniel007/home-automation/shelly-fleet",
   "vmname": "shelly-fleet",
   "vmtag": "TAPPaaS,Community,HomeAutomation,Hardware",
-  "zone0": "iotLocal",
+  "zone0": "iotCloud",
   "firewallType": "opnsense",
   "ports": [
     {
