@@ -39,6 +39,6 @@ automatically during install. No manual firewall steps needed.
 |------------|---------|
 | `network:rules` | Firewall pass rules for web UI and discovery ports |
 | `network:discovery` | UDP broadcast relay so MyEve app finds the charger across VLANs |
-| `alfen:nat` | Outbound NAT masquerade for cross-VLAN TCP acceptance |
+| `network:snat` | Source NAT (masquerade) so the charger sees a source inside its own /24 (ADR-016) |
 
 For installation steps see [INSTALL.md](./INSTALL.md).
