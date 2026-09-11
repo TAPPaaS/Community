@@ -34,7 +34,7 @@
         "iotCloud",
         "srvHome"
       ],
-      "description": "CoIoT (CoAP) push from gen1 Shelly devices to Home Assistant in srvHome; the devices multicast to 224.0.1.187:5683 and that does not cross a zone boundary unaided."
+      "description": "CoIoT (CoAP) push from gen1 Shelly devices to Home Assistant in srvHome. Carries the multicast case: a device whose CoIoT peer is 'mcast' sends to 224.0.1.187:5683, which does not cross a zone boundary unaided. A device set to a unicast peer is carried by the egress rule instead."
     }
   ],
   "provides": [

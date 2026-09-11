@@ -27,11 +27,14 @@ their state back.
   over the internet.
 - **Alias**: the `iotCloud` subnet (`aliasType: network`). The fleet has no
   single hostname, so rules match the zone subnet rather than an FQDN.
-- **Push updates**: Gen1 units send CoIoT (CoAP) to `224.0.1.187:5683`.
-  Multicast does not cross a zone boundary, so the module declares a
-  `discoveryUdpRelay` on 5683 between `iotCloud` and `srvHome`, plus the
-  matching `egress` to the Home Assistant host. Gen2/Gen3 units use an
-  outbound WebSocket instead and need neither.
+- **Push updates**: Gen1 units speak CoIoT (CoAP) on 5683 and can be set
+  either to a unicast peer or to `mcast`. A unicast peer is carried by the
+  `egress` rule to the Home Assistant host. `mcast` goes to
+  `224.0.1.187:5683` and needs the `discoveryUdpRelay` this module declares
+  between `iotCloud` and `srvHome`, because multicast does not cross a zone
+  boundary unaided. Gen2/Gen3 units use an outbound WebSocket and need
+  neither. Measured 2026-09-11: exactly one unit in the fleet is Gen1
+  (`SHPLG-S`); the other five are Gen2/Gen3.
 
 ## Addressing
 
