@@ -5,6 +5,7 @@
   "releaseDate": "2026-06-01",
   "maintainer": "@ErikDaniel007",
   "status": "Testing",
+  "tier": "app",
   "location": "/home/tappaas/Community/src/ErikDaniel007/development/forgejo",
   "vmname": "forgejo",
   "vmid": 350,
