@@ -23,16 +23,21 @@ info "hue:bridge test-service for consumer: ${BL}${CONSUMER}${CL}"
 
 [[ -f "${MODULE_JSON}" ]] || die "Module config not found: ${MODULE_JSON}"
 
-HUE_IP=$(dig +short hue.iotLocal.internal 2>/dev/null | head -1)
+# zone0 read from hue's own declared config (SSoT) rather than hardcoded,
+# so this stays correct if hue's zone ever changes on a given site.
+ZONE0="$(read_module_config hue 2>/dev/null | jq -r '.zone0 // "iotCloud"')"
+HUE_FQDN="hue.${ZONE0}.internal"
+
+HUE_IP=$(dig +short "${HUE_FQDN}" 2>/dev/null | head -1)
 if [[ -z "${HUE_IP}" ]]; then
-    warn "  hue.iotLocal.internal does not resolve — using alias lookup"
+    warn "  ${HUE_FQDN} does not resolve — using alias lookup"
 fi
 
 FAILURES=0
 
 # ── TCP reachability ─────────────────────────────────────────────────
 
-TARGET="${HUE_IP:-10.4.10.226}"
+TARGET="${HUE_IP:-${HUE_FQDN}}"
 if nc -zv -w 5 "${TARGET}" 443 2>/dev/null; then
     info "  TCP 443 (${TARGET}): ${GN}reachable${CL}"
 else
