@@ -22,8 +22,10 @@ or voice assistants — all via local API, no cloud required.
 ## Requirements
 
 - Philips Hue Bridge gen 2 (BSB002)
-- Static DHCP reservation on `iotLocal` (current: 10.4.10.226)
-- DNS override: `hue.iotLocal.internal` → 10.4.10.226
+- Static DHCP reservation on `iotCloud` (current: 10.4.20.227) — the bridge
+  does not send a usable DHCP client-hostname, so this must be created
+  explicitly via `dns-manager add ... --mac`, not left to auto-registration
+- DNS: `hue.iotCloud.internal` → 10.4.20.227
 
 ## Services offered (`provides`)
 
@@ -39,10 +41,14 @@ or voice assistants — all via local API, no cloud required.
 
 ## Security note
 
-**iotLocal is isolated by design.** The Hue bridge has no internet access.
-Only HA (srvHome) can reach it via pinhole. Direct SysAP→Hue access is
-intentionally not configured — see `_comment_direct_access` in the JSON and
-INSTALL.md for the advanced (non-recommended) alternative.
+The bridge lives on `iotCloud` (same zone as `sysap`/`deconz`), not the more
+isolated `iotLocal` — it was originally deployed on `iotLocal` (isolated, HA
+as sole controller), but a network migration moved its physical switch port
+to `iotCloud` and the declaration was corrected to match reality on
+2026-09-12, since sysap needs direct access to the bridge and `iotLocal`
+would have required a new cross-zone pinhole for that. HA (`srvHome`) still
+reaches it via pinhole as before; `sysap`/`deconz` reach it directly, same
+zone, no pinhole needed.
 
 ## Dependencies
 
