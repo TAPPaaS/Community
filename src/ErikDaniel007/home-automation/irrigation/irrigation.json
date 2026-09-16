@@ -9,6 +9,7 @@
   "vmname": "irrigation",
   "vmtag": "TAPPaaS,Community,HomeAutomation,Hardware",
   "zone0": "iotCloud",
+  "aliasType": "network",
   "firewallType": "opnsense",
   "ports": [
     {

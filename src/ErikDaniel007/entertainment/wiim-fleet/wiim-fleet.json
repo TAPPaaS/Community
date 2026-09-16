@@ -9,6 +9,7 @@
   "vmname": "wiim-fleet",
   "vmtag": "TAPPaaS,Community,Entertainment,Hardware",
   "zone0": "iotCloud",
+  "aliasType": "network",
   "firewallType": "opnsense",
   "ports": [],
   "discoveryMdns": true,

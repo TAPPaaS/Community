@@ -9,6 +9,7 @@
   "vmname": "solaredge",
   "vmtag": "TAPPaaS,Community,Energy,Hardware",
   "zone0": "iotCloud",
+  "aliasType": "network",
   "firewallType": "opnsense",
   "ports": [
     {
