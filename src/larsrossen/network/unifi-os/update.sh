@@ -53,12 +53,12 @@ get_vm_ip() {
         | grep -v '^127\.' | head -1
 }
 
-info "${BOLD}Installing UniFi OS Server ${UOS_VERSION}${CL} on ${VMNAME} (VM ${VMID}, node ${NODE})"
+info "${BOLD}*** Starting UniFi OS Server update${CL} (${UOS_VERSION} on ${VMNAME}, VM ${VMID}, node ${NODE})"
 
 IP=""
 for _ in $(seq 1 18); do IP="$(get_vm_ip)"; [[ -n "${IP}" ]] && break; sleep 10; done
 [[ -n "${IP}" ]] || die "could not resolve ${VMNAME} IP via guest agent (is qemu-guest-agent up? templates:debian installs it)"
-info "  VM IP: ${IP}"
+debug "  VM IP: ${IP}"
 
 # SSH helper: run a command on the VM as the tappaas user.
 vm() { ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 "tappaas@${IP}" "$@"; }
@@ -84,11 +84,11 @@ UOS_DIRECT_URL="https://${IP}:11443"
 if [[ -n "${PROXY_DOMAIN}" ]] && getent hosts "${PROXY_DOMAIN}" >/dev/null 2>&1; then
     UOS_API_URL="https://${PROXY_DOMAIN}"
 else
-    [[ -n "${PROXY_DOMAIN}" ]] && info "  ${PROXY_DOMAIN} does not resolve yet — using the direct URL"
+    [[ -n "${PROXY_DOMAIN}" ]] && debug "  ${PROXY_DOMAIN} does not resolve yet — using the direct URL"
     UOS_API_URL="${UOS_DIRECT_URL}"
 fi
 ensure_cred_file() {
-    [[ -f "${UOS_CRED}" ]] && { info "  credentials file present: ${UOS_CRED} (left untouched)"; return 0; }
+    [[ -f "${UOS_CRED}" ]] && { debug "  credentials file present: ${UOS_CRED} (left untouched)"; return 0; }
     cat > "${UOS_CRED}" <<EOF
 # UniFi OS Server credentials for TAPPaaS (ADR-008 Stage 5 unifi.sh).
 # Self-hosted UniFi OS has no API keys — unifi.sh logs in with a LOCAL admin
@@ -110,25 +110,25 @@ ensure_cred_file
 # ── Idempotency: skip if already at the pinned version ───────────────
 CURRENT="$(vm "cat ${MARKER} 2>/dev/null" || true)"
 if [[ "${CURRENT}" == "${UOS_VERSION}" ]] && vm "test -x /usr/local/bin/uosserver"; then
-    info "  ${GN}✓${CL} UniFi OS Server already at ${UOS_VERSION} — nothing to do"
-    info "  Console: ${BOLD}${UOS_API_URL}${CL}  (direct: https://${IP}:11443)"
-    info "  Credentials → ${UOS_CRED} (url/username/password). See INSTALL.md."
+    debug "  ${GN}✓${CL} UniFi OS Server already at ${UOS_VERSION} — nothing to do"
+    debug "  Console: ${BOLD}${UOS_API_URL}${CL}  (direct: https://${IP}:11443)"
+    debug "  Credentials → ${UOS_CRED} (url/username/password). See INSTALL.md."
     exit 0
 fi
 [[ -n "${CURRENT}" ]] && info "  Upgrading UniFi OS Server ${CURRENT} → ${UOS_VERSION}"
 
 # ── 1. Dependencies: podman (>=4.3.1 in bookworm main) + slirp4netns ─
-info "  Installing podman + slirp4netns (apt)..."
+debug "  Installing podman + slirp4netns (apt)..."
 vm "sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq" || die "apt-get update failed"
 vm "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y podman slirp4netns curl ca-certificates" \
     || die "failed to install podman/slirp4netns"
 PODMAN_VER="$(vm "podman --version 2>/dev/null | awk '{print \$3}'" || true)"
-info "  podman version: ${PODMAN_VER:-unknown}"
+debug "  podman version: ${PODMAN_VER:-unknown}"
 
 # ── 2. Download the installer (MD5-verified; reuse if already present) ─
 DL="/tmp/unifi-os-server-${UOS_VERSION}"
 if [[ "$(vm "md5sum '${DL}' 2>/dev/null | awk '{print \$1}'" || true)" == "${UOS_MD5}" ]]; then
-    info "  ${GN}✓${CL} installer already present and MD5-verified — skipping download"
+    debug "  ${GN}✓${CL} installer already present and MD5-verified — skipping download"
 else
     info "  Downloading UniFi OS Server installer (~800MB) on the VM..."
     vm "curl -fSL -o '${DL}' '${UOS_URL}'" || die "installer download failed"
@@ -137,7 +137,7 @@ else
         vm "rm -f '${DL}'" || true
         die "installer MD5 mismatch (expected ${UOS_MD5}, got ${GOT_MD5:-none}) — refusing to run"
     fi
-    info "  ${GN}✓${CL} MD5 verified"
+    debug "  ${GN}✓${CL} MD5 verified"
 fi
 
 # ── 3. Run the installer unattended ──────────────────────────────────
