@@ -4,7 +4,6 @@
   "releaseDate": "2026-08-30",
   "maintainer": "@larsrossen",
   "status": "Development",
-  "location": "/home/tappaas/Community/src/larsrossen/hass/smlight",
   "vmname": "smlight",
   "vmtag": "TAPPaaS,Community,IoT,HomeAutomation,Hardware",
   "zone0": "iotCloud",
