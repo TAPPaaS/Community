@@ -18,7 +18,7 @@
 ## Install
 
 ```bash
-cd /home/tappaas/Community/src/ErikDaniel007/home-automation/hue
+cd <your-community-checkout>/src/ErikDaniel007/home-automation/hue
 install-module.sh hue
 ```
 

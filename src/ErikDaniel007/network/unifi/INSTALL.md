@@ -12,7 +12,7 @@ Only manual steps are listed here. Scripts handle everything else automatically.
 ## Install
 
 ```bash
-cd /home/tappaas/Community/src/ErikDaniel007/network/unifi
+cd <your-community-checkout>/src/ErikDaniel007/network/unifi
 install-module.sh unifi
 ```
 

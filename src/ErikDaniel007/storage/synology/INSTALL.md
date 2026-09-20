@@ -17,7 +17,7 @@
 ## Install
 
 ```bash
-cd /home/tappaas/Community/src/ErikDaniel007/storage/synology
+cd <your-community-checkout>/src/ErikDaniel007/storage/synology
 install-module.sh synology
 ```
 
