@@ -11,7 +11,7 @@ Primary audience: TAPPaaS admin. Manual steps that cannot be automated.
 ## Install
 
 ```bash
-cd /home/tappaas/Community/src/ErikDaniel007/energy/alfen
+cd <your-community-checkout>/src/ErikDaniel007/energy/alfen
 install-module.sh alfen
 ```
 

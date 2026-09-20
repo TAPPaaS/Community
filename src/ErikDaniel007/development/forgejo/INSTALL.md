@@ -18,7 +18,7 @@
 ## Install
 
 ```bash
-cd /home/tappaas/Community/src/ErikDaniel007/development/forgejo
+cd <your-community-checkout>/src/ErikDaniel007/development/forgejo
 install-module.sh forgejo
 ```
 
