@@ -5,7 +5,6 @@
   "maintainer": "@ErikDaniel007",
   "status": "Development",
   "tier": "app",
-  "location": "/home/tappaas/Community/src/ErikDaniel007/home-automation/sysap",
   "vmname": "sysap",
   "vmtag": "TAPPaaS,Community,HomeAutomation,Hardware",
   "zone0": "iotCloud",

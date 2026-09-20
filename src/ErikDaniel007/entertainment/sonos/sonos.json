@@ -5,7 +5,6 @@
   "maintainer": "@ErikDaniel007",
   "status": "Testing",
   "tier": "app",
-  "location": "/home/tappaas/Community/src/ErikDaniel007/entertainment/sonos",
   "vmname": "sonos",
   "vmtag": "TAPPaaS,Community,Entertainment,Hardware",
   "zone0": "iotCloud",
