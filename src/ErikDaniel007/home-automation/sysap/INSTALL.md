@@ -13,13 +13,26 @@
 ## Install
 
 ```bash
-cd /home/tappaas/Community/src/ErikDaniel007/home-automation/sysap
+cd <your-community-checkout>/src/ErikDaniel007/home-automation/sysap
 install-module.sh sysap
 ```
 
 This configures:
-- Firewall pinhole: Home Assistant → SysAP (TCP 80, 443)
 - mDNS relay: SysAP discoverable from `home` zone (iPhone free@home app)
+
+It does **not** create the Home Assistant → SysAP pinhole. `bus` is a
+policy-only service: it publishes its ports in `services/bus/pinhole.json`, and
+the rule is synthesised from the **consumer** side (auto-pinhole, #173). Until
+the Home Assistant module declares `sysap:bus` in its `dependsOn`, no rule
+exists and HA cannot reach the SysAP across the zone boundary:
+
+```json
+"dependsOn": ["sysap:bus"]
+```
+
+Both ends must already permit it — the SysAP's zone lists the consumer's zone in
+`pinhole-allowed-from` — but policy permitting a rule is not the same as a rule
+existing.
 
 ## Post-install: Home Assistant integration
 
@@ -38,7 +51,7 @@ Already configured. No reinstall needed unless migrating to new HA instance.
 ## Verification
 
 ```bash
-bash services/bus/test-service.sh homeassistant
+bash services/bus/test-service.sh <your-home-assistant-module>
 ```
 
 Manual checks:
@@ -55,7 +68,8 @@ Manual checks:
 Local API is likely disabled. Enable in free@home app → Settings → Local API.
 
 **free@home app does not find SysAP on home WiFi**
-Verify mDNS relay: `bash /home/tappaas/TAPPaaS/src/foundation/firewall/services/discovery/test-service.sh sysap`
+Verify mDNS relay: `bash <tappaas-checkout>/src/foundation/network/services/discovery/test-service.sh sysap`
+(the `firewall` directory this used to name no longer exists — it was renamed to `network`)
 
 **Login fails after firmware upgrade to 3.5.x**
 Switch to kingsleyadam integration (REST API). jheling (XMPP) has known issues
