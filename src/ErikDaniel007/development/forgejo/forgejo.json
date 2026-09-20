@@ -54,6 +54,5 @@
     "network:proxy",
     "network:rules"
   ],
-  "provides": [],
-  "type": "vm"
+  "provides": []
 }
