@@ -6,7 +6,6 @@
   "maintainer": "@ErikDaniel007",
   "status": "Deprecated",
   "tier": "app",
-  "location": "/home/tappaas/Community/src/ErikDaniel007/network/unifi",
   "vmname": "unifi",
   "vmid": 810,
   "vmtag": "TAPPaaS,Community,Network,Mgmt",
