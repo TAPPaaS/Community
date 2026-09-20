@@ -43,7 +43,7 @@ Home Assistant and the free@home iPhone app.
 
 | Depends on | Purpose |
 |---|---|
-| `network:rules` | Pinhole from Home Assistant → SysAP (TCP 80/443) |
+| `network:rules` | Compiles the firewall rules. The Home Assistant → SysAP pinhole (TCP 80/443) is **not** created by installing this module — it is synthesised from the consumer side, and only once the Home Assistant module declares `sysap:bus` in its `dependsOn` (see INSTALL.md) |
 | `network:discovery` | mDNS relay so free@home app finds SysAP from `home` zone |
 
 For installation steps see [INSTALL.md](./INSTALL.md).
