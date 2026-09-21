@@ -23,12 +23,12 @@ info "sysap:bus test-service for consumer: ${BL}${CONSUMER}${CL}"
 
 [[ -f "${MODULE_JSON}" ]] || die "Module config not found: ${MODULE_JSON}"
 
+# The "alias lookup" fallback that used to sit here grepped a firewall rule
+# DESCRIPTION and handed it to nc as an address, so when DNS was down it probed
+# a host named "tappaas-svcdep:<consumer>:bus:sysap" and reported the SysAP
+# unreachable. A name that does not resolve means the probe cannot run, which
+# the branch below already says.
 SYSAP_IP=$(dig +short sysap.iotCloud.internal 2>/dev/null | head -1)
-if [[ -z "${SYSAP_IP}" ]]; then
-    warn "  sysap.iotCloud.internal does not resolve — falling back to alias lookup"
-    SYSAP_IP=$(rules-manager list-rules --no-ssl-verify 2>/dev/null \
-        | grep -oE "tappaas-svcdep:${CONSUMER}:bus:sysap" | head -1 || true)
-fi
 
 FAILURES=0
 
@@ -46,16 +46,12 @@ else
 fi
 
 # ── Pinhole rules ────────────────────────────────────────────────────
+# Whether a rule is due depends on the consumer's zone, this zone's access-to
+# and pinhole-allowed-from, and services/bus/pinhole.json — not on this test.
+# Asking rules-manager means a consumer that legitimately needs no rule passes
+# instead of failing on one that was never written (#689).
 
-for PORT in 80 443; do
-    RULE="tappaas-svcdep:${CONSUMER}:bus:sysap:${PORT}"
-    if rules-manager list-rules --no-ssl-verify 2>/dev/null | grep -qF "${RULE}"; then
-        info "  Pinhole ${PORT} (${CONSUMER}→sysap): ${GN}present${CL}"
-    else
-        error "  Pinhole ${PORT} (${CONSUMER}→sysap): ${RD}MISSING${CL}"
-        (( FAILURES++ )) || true
-    fi
-done
+check_service_pinholes "${CONSUMER}" "sysap:bus" || (( FAILURES++ )) || true
 
 # ── Result ───────────────────────────────────────────────────────────
 
