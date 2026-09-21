@@ -47,15 +47,12 @@ fi
 
 # ── Pinhole rules ────────────────────────────────────────────────────
 
-for PORT in 80 443; do
-    RULE="tappaas-svcdep:${CONSUMER}:bridge:hue:${PORT}"
-    if rules-manager list-rules --no-ssl-verify 2>/dev/null | grep -qF "${RULE}"; then
-        info "  Pinhole ${PORT} (${CONSUMER}→hue): ${GN}present${CL}"
-    else
-        error "  Pinhole ${PORT} (${CONSUMER}→hue): ${RD}MISSING${CL}"
-        (( FAILURES++ )) || true
-    fi
-done
+# Whether a rule is due depends on the consumer's zone, this zone's access-to
+# and pinhole-allowed-from, and services/bridge/pinhole.json — not on this test.
+# Asking rules-manager means a consumer that legitimately needs no rule passes
+# instead of failing on one that was never written (#689).
+
+check_service_pinholes "${CONSUMER}" "hue:bridge" || (( FAILURES++ )) || true
 
 # ── Result ───────────────────────────────────────────────────────────
 
