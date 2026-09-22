@@ -7,7 +7,7 @@
   "tier": "app",
   "vmname": "hue",
   "vmtag": "TAPPaaS,Community,HomeAutomation,Hardware",
-  "zone0": "iotLocal",
+  "zone0": "iotCloud",
   "aliasType": "host",
   "firewallType": "opnsense",
   "ports": [
@@ -29,6 +29,5 @@
   "dependsOn": [
     "network:rules",
     "network:discovery"
-  ],
-  "_comment_direct_access": "No-HA scenario: add egress iotLocal ports 80/443 to sysap.json + hue:bridge in sysap.dependsOn. See INSTALL.md advanced section. Not recommended: breaks zone isolation."
+  ]
 }

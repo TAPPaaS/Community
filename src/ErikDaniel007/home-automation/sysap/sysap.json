@@ -29,6 +29,5 @@
   "dependsOn": [
     "network:rules",
     "network:discovery"
-  ],
-  "-comment_direct_access": "No-HA scenario: add egress to iotLocal ports 80/443 + hue:bridge in dependsOn. See INSTALL.md advanced section. Not recommended: breaks zone isolation."
+  ]
 }
