@@ -94,6 +94,16 @@ install-module.sh forgejo --node tappaas2 --zone0 srvWork --vmid 351
 | `--node` | `tappaas1` | Proxmox node |
 | `--memory` | `2048` | RAM in MB |
 
+### External SSH access (git over SSH from outside `work`)
+
+Not shipped by default. The VM listens on port 22, but reaching it from outside the
+`work` VLAN requires one of two decisions, and the module makes neither:
+
+- declare an ingress pinhole from `dmz` to port 22, or
+- add a host-level SSH-forwarding rule on an alternative external port (e.g. 2222).
+
+Decide the external port first — both the rule and the clone URL depend on it.
+
 ## Troubleshooting
 
 **"Forgejo service is inactive after install"**

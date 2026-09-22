@@ -23,7 +23,6 @@
     "work",
     "mgmt"
   ],
-  "-comment_ssh_nat": "SSH git access (port 22) requires a NAT rule on an alternative external port (e.g. 2222). Architect decision: declare ingress pinhole from dmz port 22 OR add a host-level SSH-forwarding rule. Not shipped by default — add in INSTALL.md §Advanced when NAT port is decided.",
   "ports": [
     {
       "port": 3000,
