@@ -3,8 +3,10 @@
 # reolink:api test-service
 #
 # The api service is policy-only (#173): it declares its ports in pinhole.json
-# and the consumer's network:rules compiles them. This test therefore verifies the
-# device is reachable and that the consumer's pinhole rules are present in OPNsense.
+# and the consumer's network:rules compiles them. reolink represents a FLEET of
+# cameras behind one shared pinhole, not a single device, so this test verifies
+# fleet-wide reachability (any declared camera answers) and that the consumer's
+# pinhole rules are present in OPNsense — not that every individual camera is up.
 #
 # Usage: test-service.sh <consumer-module-name>
 
@@ -24,24 +26,37 @@ info "reolink:api test-service for consumer: ${BL}${CONSUMER}${CL}"
 
 [[ -f "${MODULE_JSON}" ]] || die "Module config not found: ${MODULE_JSON}"
 
-# zone0 from reolink's own declared config (SSoT) rather than hardcoded, so this
-# stays correct if the zone ever changes on a given site.
-ZONE0="$(read_module_config reolink 2>/dev/null | jq -r '.zone0 // "iotCloud"')"
-FQDN="reolink.${ZONE0}.internal"
-
-DEV_IP=$(dig +short "${FQDN}" 2>/dev/null | head -1)
-[[ -n "${DEV_IP}" ]] || warn "  ${FQDN} does not resolve — testing by name"
+# zone0 and the declared camera fleet from reolink's own config (SSoT) rather
+# than hardcoded, so this stays correct as the zone or fleet changes.
+ZONE0="$(read_module_config reolink 2>/dev/null | jq -r '.zone0 // "iotCams"')"
+mapfile -t DEVICES < <(read_module_config reolink 2>/dev/null | jq -r '.devices[]?.name // empty')
 
 FAILURES=0
 
-# ── TCP reachability ─────────────────────────────────────────────────
+# ── TCP reachability (any-of-fleet) ──────────────────────────────────
+#
+# One camera being off is a device-health warning, not a firewall failure —
+# the pinhole is shared by the whole fleet, so ANY camera answering proves
+# the pinhole/routing path genuinely works.
 
-TARGET="${DEV_IP:-${FQDN}}"
-if nc -zv -w 5 "${TARGET}" 443 2>/dev/null; then
-    info "  TCP 443 (${TARGET}): ${GN}reachable${CL}"
-else
-    error "  TCP 443 (${TARGET}): ${RD}unreachable${CL}"
+if [[ "${#DEVICES[@]}" -eq 0 ]]; then
+    error "  no devices declared in reolink.json — add at least one under \"devices\" (see INSTALL.md)"
     (( FAILURES++ )) || true
+else
+    REACHABLE=0
+    for NAME in "${DEVICES[@]}"; do
+        TARGET="${NAME}.${ZONE0}.internal"
+        if nc -zv -w 5 "${TARGET}" 443 2>/dev/null; then
+            info "  TCP 443 (${TARGET}): ${GN}reachable${CL}"
+            REACHABLE=1
+        else
+            warn "  TCP 443 (${TARGET}): unreachable (individual camera, not fleet-wide)"
+        fi
+    done
+    if (( REACHABLE == 0 )); then
+        error "  no declared camera answered on TCP 443 — pinhole/routing likely broken"
+        (( FAILURES++ )) || true
+    fi
 fi
 
 # ── Pinhole rules (ports from pinhole.json) ──────────────────────────

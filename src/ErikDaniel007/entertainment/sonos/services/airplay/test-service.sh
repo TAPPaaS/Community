@@ -3,8 +3,10 @@
 # sonos:airplay test-service
 #
 # The airplay service is policy-only (#173): it declares its ports in pinhole.json
-# and the consumer's network:rules compiles them. This test therefore verifies the
-# device is reachable and that the consumer's pinhole rules are present in OPNsense.
+# and the consumer's network:rules compiles them. sonos represents a FLEET of
+# speakers behind one shared pinhole, not a single device, so this test verifies
+# fleet-wide reachability (any declared speaker answers) and that the consumer's
+# pinhole rules are present in OPNsense — not that every individual speaker is up.
 #
 # Usage: test-service.sh <consumer-module-name>
 
@@ -24,24 +26,37 @@ info "sonos:airplay test-service for consumer: ${BL}${CONSUMER}${CL}"
 
 [[ -f "${MODULE_JSON}" ]] || die "Module config not found: ${MODULE_JSON}"
 
-# zone0 from sonos's own declared config (SSoT) rather than hardcoded, so this
-# stays correct if the zone ever changes on a given site.
+# zone0 and the declared speaker fleet from sonos's own config (SSoT) rather
+# than hardcoded, so this stays correct as the zone or fleet changes.
 ZONE0="$(read_module_config sonos 2>/dev/null | jq -r '.zone0 // "iotCloud"')"
-FQDN="sonos.${ZONE0}.internal"
-
-DEV_IP=$(dig +short "${FQDN}" 2>/dev/null | head -1)
-[[ -n "${DEV_IP}" ]] || warn "  ${FQDN} does not resolve — testing by name"
+mapfile -t DEVICES < <(read_module_config sonos 2>/dev/null | jq -r '.devices[]?.name // empty')
 
 FAILURES=0
 
-# ── TCP reachability ─────────────────────────────────────────────────
+# ── TCP reachability (any-of-fleet) ─────────────────────────────────
+#
+# One speaker being off is a device-health warning, not a firewall failure —
+# the pinhole is shared by the whole fleet, so ANY speaker answering proves
+# the pinhole/routing path genuinely works.
 
-TARGET="${DEV_IP:-${FQDN}}"
-if nc -zv -w 5 "${TARGET}" 7000 2>/dev/null; then
-    info "  TCP 7000 (${TARGET}): ${GN}reachable${CL}"
-else
-    error "  TCP 7000 (${TARGET}): ${RD}unreachable${CL}"
+if [[ "${#DEVICES[@]}" -eq 0 ]]; then
+    error "  no devices declared in sonos.json — add at least one under \"devices\" (see INSTALL.md)"
     (( FAILURES++ )) || true
+else
+    REACHABLE=0
+    for NAME in "${DEVICES[@]}"; do
+        TARGET="${NAME}.${ZONE0}.internal"
+        if nc -zv -w 5 "${TARGET}" 7000 2>/dev/null; then
+            info "  TCP 7000 (${TARGET}): ${GN}reachable${CL}"
+            REACHABLE=1
+        else
+            warn "  TCP 7000 (${TARGET}): unreachable (individual speaker, not fleet-wide)"
+        fi
+    done
+    if (( REACHABLE == 0 )); then
+        error "  no declared speaker answered on TCP 7000 — pinhole/routing likely broken"
+        (( FAILURES++ )) || true
+    fi
 fi
 
 # ── Pinhole rules (ports from pinhole.json) ──────────────────────────

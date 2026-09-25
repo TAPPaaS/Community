@@ -8,6 +8,7 @@
   "vmname": "sonos",
   "vmtag": "TAPPaaS,Community,Entertainment,Hardware",
   "zone0": "iotCloud",
+  "devices": [],
   "aliasType": "network",
   "firewallType": "opnsense",
   "ports": [

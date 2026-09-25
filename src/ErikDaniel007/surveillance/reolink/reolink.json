@@ -8,6 +8,7 @@
   "vmname": "reolink",
   "vmtag": "TAPPaaS,Community,Surveillance,Hardware",
   "zone0": "iotCams",
+  "devices": [],
   "aliasType": "network",
   "firewallType": "opnsense",
   "ports": [

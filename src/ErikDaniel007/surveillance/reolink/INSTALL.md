@@ -8,6 +8,23 @@ Only manual steps are listed here. Scripts handle everything else automatically.
 2. **Enable RTSP** — in each camera: Settings → Network → Advanced → enable RTSP. Note the stream path and port.
 3. **Verify camera reachable** from `iotCams` subnet: `nc -zv -w 5 <camera-ip> 554`
 
+## Declare the fleet
+
+`rtsp`/`api` test-service.sh checks pinhole *reachability*, not just presence — it needs
+to know at least one real camera hostname to test against. Add each camera to the site's
+`config/reolink.json`:
+
+```json
+"devices": [
+  { "name": "cam-voordeur",   "description": "Front door camera" },
+  { "name": "cam-achtertuin", "description": "Back garden camera" }
+]
+```
+
+`name` is the DNS host (`<name>.iotCams.internal`, from its static DHCP reservation).
+The test passes when *any* declared device answers — an individual camera being down is
+a warning, not a module failure, since the pinhole is shared by the whole fleet.
+
 ## Install
 
 ```bash

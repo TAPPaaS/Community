@@ -100,6 +100,22 @@ or when power-cycled.
 
 ---
 
+## Declare the fleet
+
+`audio`/`airplay` test-service.sh checks pinhole *reachability*, not just presence — it
+needs to know real speaker hostnames to test against. Add each speaker to the site's
+`config/sonos.json` (same names as the DHCP reservations above):
+
+```json
+"devices": [
+  { "name": "sonos-livingroom",    "description": "Livingroom" },
+  { "name": "sonos-kitchen-eetf",  "description": "Kitchen Eettafel" }
+]
+```
+
+The test passes when *any* declared device answers — one speaker being off is a warning,
+not a module failure, since the pinhole is shared by the whole fleet.
+
 ## Install
 
 ```bash

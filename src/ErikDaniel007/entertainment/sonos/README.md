@@ -33,6 +33,8 @@ Install once — it configures the network plumbing for all speakers on your iot
 - **Static DHCP reservation** per speaker (MAC → fixed IP) via `dns-manager add --mac`
 - iotCloud SSID configured — see INSTALL.md Prerequisites §1
 - Home WiFi zone (`home`) for direct app and AirPlay access
+- List each speaker's hostname in `devices` (site config) so `audio`/`airplay`
+  test-service.sh can verify the pinhole actually carries traffic — see [INSTALL.md](./INSTALL.md).
 
 ## Network transport
 

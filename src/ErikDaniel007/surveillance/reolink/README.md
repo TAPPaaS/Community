@@ -32,6 +32,8 @@ Most installations only need `reolink:rtsp`. Add `reolink:api` when using the na
 - Static DHCP reservation per camera
 - RTSP enabled in each camera's settings
 - Firmware with local RTSP support
+- List each camera's hostname in `devices` (site config) so `rtsp`/`api` test-service.sh
+  can verify the pinhole actually carries traffic — see [INSTALL.md](./INSTALL.md).
 
 ## Dependencies
 
