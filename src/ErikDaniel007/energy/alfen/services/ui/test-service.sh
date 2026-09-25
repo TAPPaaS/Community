@@ -24,25 +24,17 @@ info "alfen:ui test-service for consumer: ${BL}${CONSUMER}${CL}"
 
 [[ -f "${MODULE_JSON}" ]] || die "Module config not found: ${MODULE_JSON}"
 
-# zone0 from alfen's own declared config (SSoT) rather than hardcoded, so this
-# stays correct if the zone ever changes on a given site.
-ZONE0="$(read_module_config alfen 2>/dev/null | jq -r '.zone0 // "iotCloud"')"
-FQDN="alfen.${ZONE0}.internal"
-
-DEV_IP=$(dig +short "${FQDN}" 2>/dev/null | head -1)
-[[ -n "${DEV_IP}" ]] || warn "  ${FQDN} does not resolve — testing by name"
-
 FAILURES=0
 
 # ── TCP reachability ─────────────────────────────────────────────────
-
-TARGET="${DEV_IP:-${FQDN}}"
-if nc -zv -w 5 "${TARGET}" 443 2>/dev/null; then
-    info "  TCP 443 (${TARGET}): ${GN}reachable${CL}"
-else
-    error "  TCP 443 (${TARGET}): ${RD}unreachable${CL}"
-    (( FAILURES++ )) || true
-fi
+#
+# Deliberately NOT tested: the wallbox's local HTTPS API is session-based
+# (login/logout, see switch.oprit_laadpaal_https_api_sessie in Home
+# Assistant) and only ONE session can be authenticated at a time. hassanova's
+# own Alfen integration holds that session continuously, so any competing
+# TCP probe from here is a structural false positive, not real drift — there
+# is no retry window that reliably finds a gap. Pinhole presence (below) is
+# the only thing this test can verify without racing the live integration.
 
 # ── Pinhole rules (ports from pinhole.json) ──────────────────────────
 
