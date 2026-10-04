@@ -74,24 +74,6 @@
             "status": "beta"
         },
         {
-            "moduleName": "jellyfin",
-            "repo": "community",
-            "moduleJson": "src/AndreasJe/jellyfin/jellyfin.json",
-            "vmid": 350,
-            "stack": "entertainment",
-            "category": "media",
-            "status": "beta"
-        },
-        {
-            "moduleName": "immich",
-            "repo": "community",
-            "moduleJson": "src/AndreasJe/immich/immich.json",
-            "vmid": 351,
-            "stack": "productivity",
-            "category": "photos",
-            "status": "Development"
-        },
-        {
             "moduleName": "hosting",
             "repo": "community",
             "moduleJson": "src/AndreasJe/hosting/hosting.json",
@@ -99,15 +81,6 @@
             "stack": "infrastructure",
             "category": "web-hosting",
             "status": "incomplete"
-        },
-        {
-            "moduleName": "forgejo",
-            "repo": "community",
-            "moduleJson": "src/ErikDaniel007/development/forgejo/forgejo.json",
-            "vmid": 350,
-            "stack": "development",
-            "category": "git",
-            "status": "beta"
         },
         {
             "moduleName": "hue",
