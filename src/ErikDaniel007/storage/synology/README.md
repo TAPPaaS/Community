@@ -11,8 +11,9 @@ installed on the device.
 |---|---|---|
 | DSM admin UI | Home network, work | `https://synology.<your-domain>` (via Caddy — internal zones only) |
 | File shares | Home network, TAPPaaS apps | SMB (`\\synology`) or NFS mount |
-| Synology Drive | Home network, mobile | `https://synology.srvHome.internal:5001/drive/` · Synology Drive app |
-| Synology Photos | Home network, mobile | `https://synology.srvHome.internal:5001/photo/` · Synology Photos app |
+| Synology Drive — web/mobile app | Home network, work, mobile | `https://drive.<your-domain>` (via Caddy — HTTPS only, proxyable) |
+| Synology Drive — **desktop sync client** | Home network, work | `synology.srvHome.internal` **only** — the sync protocol (TCP 6690) cannot traverse a reverse proxy; never the published domain |
+| Synology Photos | Home network, work, mobile | `https://photos.<your-domain>` (via Caddy) |
 | Surveillance Station | Home network | `https://synology.srvHome.internal:9901` |
 | Mac Time Machine | Home network | SMB Time Machine share — zero-config on macOS |
 | M365 backup | Internal (outbound) | Active Backup for Microsoft 365 — Exchange, OneDrive, Teams, SharePoint |
