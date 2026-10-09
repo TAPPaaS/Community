@@ -1,0 +1,36 @@
+{
+  "description": "Home Assistant Voice satellites — policy-only module for firewall rules (no VM)",
+  "version": "0.1.0",
+  "releaseDate": "2026-10-09",
+  "maintainer": "@ErikDaniel007",
+  "status": "Development",
+  "stack": "home",
+  "aliasType": "network",
+  "vmname": "voice-fleet",
+  "vmtag": "TAPPaaS,Community,HomeAutomation,Hardware",
+  "zone0": "iotCloud",
+  "firewallType": "opnsense",
+  "ports": [
+    {
+      "port": 6053,
+      "protocol": "TCP",
+      "description": "ESPHome native API"
+    }
+  ],
+  "egress": [
+    {
+      "to": "hass",
+      "ports": [
+        8123
+      ],
+      "protocol": "TCP",
+      "description": "Voice satellite fetches the spoken answer (TTS audio) from Home Assistant (consumer egress, iotCloud lacks access-to srvHome by default)"
+    }
+  ],
+  "provides": [
+    "satellite"
+  ],
+  "dependsOn": [
+    "network:rules"
+  ]
+}

@@ -128,6 +128,15 @@
             "status": "Development"
         },
         {
+            "moduleName": "voice-fleet",
+            "repo": "community",
+            "moduleJson": "src/ErikDaniel007/home-automation/voice-fleet/voice-fleet.json",
+            "vmid": null,
+            "stack": "home-automation",
+            "category": "voice",
+            "status": "Development"
+        },
+        {
             "moduleName": "solaredge",
             "repo": "community",
             "moduleJson": "src/ErikDaniel007/energy/solaredge/solaredge.json",
