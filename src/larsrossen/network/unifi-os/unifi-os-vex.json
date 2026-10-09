@@ -1,0 +1,2002 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "unifi-os",
+      "description": "TAPPaaS module unifi-os: triage of its own critical/high CVEs (#788)."
+    }
+  },
+  "vulnerabilities": [
+    {
+      "id": "CVE-2019-16224",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "liblmdb0: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/liblmdb0@0.9.31-1%2Bb2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2019-16225",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "liblmdb0: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/liblmdb0@0.9.31-1%2Bb2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2019-16226",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "liblmdb0: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/liblmdb0@0.9.31-1%2Bb2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2019-16227",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "liblmdb0: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/liblmdb0@0.9.31-1%2Bb2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2019-16228",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "liblmdb0: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/liblmdb0@0.9.31-1%2Bb2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2022-3872",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "QEMU emulator code (device models, 9pfs, VAPIC) built from the same source as qemu-guest-agent; the guest agent binary contains none of it.",
+        "justification": "code_not_present"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/qemu-guest-agent@10.0.13%2Bds-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/qemu-utils@10.0.13%2Bds-0%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2023-1386",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "QEMU emulator code (device models, 9pfs, VAPIC) built from the same source as qemu-guest-agent; the guest agent binary contains none of it.",
+        "justification": "code_not_present"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/qemu-guest-agent@10.0.13%2Bds-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/qemu-utils@10.0.13%2Bds-0%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2025-61662",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "grub-common grub-efi-amd64-bin grub-efi-amd64-unsigned grub-pc-bin grub2-common: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/grub-common@2.12-9%2Bdeb13u2"
+        },
+        {
+          "ref": "pkg:deb/debian/grub-efi-amd64-bin@2.12-9%2Bdeb13u2"
+        },
+        {
+          "ref": "pkg:deb/debian/grub-efi-amd64-unsigned@2.12-9%2Bdeb13u2"
+        },
+        {
+          "ref": "pkg:deb/debian/grub-pc-bin@2.12-9%2Bdeb13u2"
+        },
+        {
+          "ref": "pkg:deb/debian/grub2-common@2.12-9%2Bdeb13u2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2025-66471",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "python3-urllib3: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/python3-urllib3@2.3.0-3%2Bdeb13u2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2025-69720",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "libncursesw6 libtinfo6 ncurses-base ncurses-bin: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libncursesw6@6.5%2B20250216-2"
+        },
+        {
+          "ref": "pkg:deb/debian/libtinfo6@6.5%2B20250216-2"
+        },
+        {
+          "ref": "pkg:deb/debian/ncurses-base@6.5%2B20250216-2"
+        },
+        {
+          "ref": "pkg:deb/debian/ncurses-bin@6.5%2B20250216-2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2025-9566",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "podman kube play; UniFi OS Server runs its container with podman run, never kube play.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/podman@5.4.2%2Bds1-2%2Bb2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-0799",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "libpcap0.8t64: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libpcap0.8t64@1.10.5-2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-101917",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "PyJWT on the host: no running process on the VM loads it, and no host service imports it (UniFi runs in its own container).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/python3-jwt@2.10.1-2%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-101918",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "PyJWT on the host: no running process on the VM loads it, and no host service imports it (UniFi runs in its own container).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/python3-jwt@2.10.1-2%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-102266",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "PyJWT on the host: no running process on the VM loads it, and no host service imports it (UniFi runs in its own container).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/python3-jwt@2.10.1-2%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-102267",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "PyJWT on the host: no running process on the VM loads it, and no host service imports it (UniFi runs in its own container).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/python3-jwt@2.10.1-2%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-102271",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "PyJWT on the host: no running process on the VM loads it, and no host service imports it (UniFi runs in its own container).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/python3-jwt@2.10.1-2%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-102272",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "PyJWT on the host: no running process on the VM loads it, and no host service imports it (UniFi runs in its own container).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/python3-jwt@2.10.1-2%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-102273",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "PyJWT on the host: no running process on the VM loads it, and no host service imports it (UniFi runs in its own container).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/python3-jwt@2.10.1-2%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-102274",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "PyJWT on the host: no running process on the VM loads it, and no host service imports it (UniFi runs in its own container).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/python3-jwt@2.10.1-2%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-102275",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "PyJWT on the host: no running process on the VM loads it, and no host service imports it (UniFi runs in its own container).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/python3-jwt@2.10.1-2%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-12064",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "curl libcurl4t64: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5"
+        },
+        {
+          "ref": "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-12080",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "qemu-ga's guest-ssh-add-authorized-keys command; Proxmox never issues it (keys come from cloud-init).",
+        "justification": "requires_environment"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/qemu-guest-agent@10.0.13%2Bds-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/qemu-utils@10.0.13%2Bds-0%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-15308",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "Python runs on the VM only as unattended-upgrades, on signed Debian metadata."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libpython3.13-minimal@3.13.5-2%2Bdeb13u5"
+        },
+        {
+          "ref": "pkg:deb/debian/libpython3.13-stdlib@3.13.5-2%2Bdeb13u5"
+        },
+        {
+          "ref": "pkg:deb/debian/python3.13-minimal@3.13.5-2%2Bdeb13u5"
+        },
+        {
+          "ref": "pkg:deb/debian/python3.13@3.13.5-2%2Bdeb13u5"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-15816",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "dracut-install: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/dracut-install@106-6"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-16445",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "dracut-install: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/dracut-install@106-6"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-16742",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "systemd-homed signature verification; systemd-homed is not used on the VM.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libnss-myhostname@257.13-1~deb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libnss-resolve@257.13-1~deb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libpam-systemd@257.13-1~deb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libsystemd-shared@257.13-1~deb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libsystemd0@257.13-1~deb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libudev1@257.13-1~deb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/systemd-resolved@257.13-1~deb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/systemd-sysv@257.13-1~deb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/systemd-timesyncd@257.13-1~deb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/systemd@257.13-1~deb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/udev@257.13-1~deb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-19445",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "Python runs on the VM only as unattended-upgrades, on signed Debian metadata."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libpython3.13-minimal@3.13.5-2%2Bdeb13u5"
+        },
+        {
+          "ref": "pkg:deb/debian/libpython3.13-stdlib@3.13.5-2%2Bdeb13u5"
+        },
+        {
+          "ref": "pkg:deb/debian/python3.13-minimal@3.13.5-2%2Bdeb13u5"
+        },
+        {
+          "ref": "pkg:deb/debian/python3.13@3.13.5-2%2Bdeb13u5"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-19553",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "Python runs on the VM only as unattended-upgrades, on signed Debian metadata."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libpython3.13-minimal@3.13.5-2%2Bdeb13u5"
+        },
+        {
+          "ref": "pkg:deb/debian/libpython3.13-stdlib@3.13.5-2%2Bdeb13u5"
+        },
+        {
+          "ref": "pkg:deb/debian/python3.13-minimal@3.13.5-2%2Bdeb13u5"
+        },
+        {
+          "ref": "pkg:deb/debian/python3.13@3.13.5-2%2Bdeb13u5"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-24882",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "dirmngr gnupg gnupg-l10n gnupg-utils gpg gpg-agent gpg-wks-client gpgconf gpgsm gpgv: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/dirmngr@2.4.7-21%2Bdeb13u1%2Bb5"
+        },
+        {
+          "ref": "pkg:deb/debian/gnupg-l10n@2.4.7-21%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/gnupg-utils@2.4.7-21%2Bdeb13u1%2Bb5"
+        },
+        {
+          "ref": "pkg:deb/debian/gnupg@2.4.7-21%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/gpg-agent@2.4.7-21%2Bdeb13u1%2Bb5"
+        },
+        {
+          "ref": "pkg:deb/debian/gpg-wks-client@2.4.7-21%2Bdeb13u1%2Bb5"
+        },
+        {
+          "ref": "pkg:deb/debian/gpg@2.4.7-21%2Bdeb13u1%2Bb5"
+        },
+        {
+          "ref": "pkg:deb/debian/gpgconf@2.4.7-21%2Bdeb13u1%2Bb5"
+        },
+        {
+          "ref": "pkg:deb/debian/gpgsm@2.4.7-21%2Bdeb13u1%2Bb5"
+        },
+        {
+          "ref": "pkg:deb/debian/gpgv@2.4.7-21%2Bdeb13u1%2Bb5"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-26269",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-28417",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-28421",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-30892",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "crun's --user parsing; the user it runs the container as is UniFi OS Server's fixed configuration, not attacker input.",
+        "justification": "requires_configuration"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/crun@1.21-1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-33412",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-34982",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-35177",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-39881",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-43961",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-46483",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-47162",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-48526",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "PyJWT on the host: no running process on the VM loads it, and no host service imports it (UniFi runs in its own container).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/python3-jwt@2.10.1-2%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-52858",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-52860",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-54369",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "Symlink traversal through libacl into privilege; the VM has an unprivileged user (uosserver, which runs the UniFi container), so a compromised UniFi app plus a root ACL operation on its paths could escalate."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libacl1@2.3.2-2%2Bb1"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-55693",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-55895",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-57231",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "Needs a malicious container image; the only image is Ubiquiti's own UniFi OS Server image.",
+        "justification": "requires_environment"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/podman@5.4.2%2Bds1-2%2Bb2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-57455",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-57456",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-58471",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "wget: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/wget@1.25.0-2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-58472",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "wget: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/wget@1.25.0-2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-59856",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-59858",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-59999",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "The ssh client is used only by an admin; no service runs it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/openssh-client@10.0p1-7%2Bdeb13u4"
+        },
+        {
+          "ref": "pkg:deb/debian/openssh-server@10.0p1-7%2Bdeb13u4"
+        },
+        {
+          "ref": "pkg:deb/debian/openssh-sftp-server@10.0p1-7%2Bdeb13u4"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-60000",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "The ssh client is used only by an admin; no service runs it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/openssh-client@10.0p1-7%2Bdeb13u4"
+        },
+        {
+          "ref": "pkg:deb/debian/openssh-server@10.0p1-7%2Bdeb13u4"
+        },
+        {
+          "ref": "pkg:deb/debian/openssh-sftp-server@10.0p1-7%2Bdeb13u4"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-60002",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "The ssh client is used only by an admin; no service runs it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/openssh-client@10.0p1-7%2Bdeb13u4"
+        },
+        {
+          "ref": "pkg:deb/debian/openssh-server@10.0p1-7%2Bdeb13u4"
+        },
+        {
+          "ref": "pkg:deb/debian/openssh-sftp-server@10.0p1-7%2Bdeb13u4"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-66046",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "libexpat is loaded by dbus, polkit and unattended-upgrades, which parse only their own trusted configuration and Debian metadata.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libexpat1@2.8.3-1~deb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-6653",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "The host's libxml2: no running process on the VM loads it (the UniFi container's postgres loads the container's own copy).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libxml2@2.12.7%2Bdfsg%2Breally2.9.14-2.1%2Bdeb13u3"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-6893",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "dracut-install: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/dracut-install@106-6"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-69249",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "python3-cryptography: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/python3-cryptography@43.0.0-3%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-7210",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "Python runs on the VM only as unattended-upgrades, on signed Debian metadata."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libpython3.13-minimal@3.13.5-2%2Bdeb13u5"
+        },
+        {
+          "ref": "pkg:deb/debian/libpython3.13-stdlib@3.13.5-2%2Bdeb13u5"
+        },
+        {
+          "ref": "pkg:deb/debian/python3.13-minimal@3.13.5-2%2Bdeb13u5"
+        },
+        {
+          "ref": "pkg:deb/debian/python3.13@3.13.5-2%2Bdeb13u5"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-73072",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-73073",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-73076",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-73077",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-73078",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "vim on the VM runs only when an admin edits over SSH; reachable only if that admin opens attacker-supplied content."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/vim-common@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-runtime@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim-tiny@9.1.1230-2"
+        },
+        {
+          "ref": "pkg:deb/debian/vim@9.1.1230-2"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-74860",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "The host's libxml2: no running process on the VM loads it (the UniFi container's postgres loads the container's own copy).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libxml2@2.12.7%2Bdfsg%2Breally2.9.14-2.1%2Bdeb13u3"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-76642",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "util-linux mount helpers/nsenter: needs user mounts in /etc/fstab (there are none) or root running nsenter on attacker terms.",
+        "justification": "requires_configuration"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/bsdextrautils@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/bsdutils@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/eject@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/fdisk@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libblkid1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libfdisk1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/liblastlog2-2@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libmount1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libsmartcols1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libuuid1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/login@4.16.0-2%2Breally2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/mount@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/util-linux@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/uuid-runtime@2.41.5-0%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-76956",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "libexpat is loaded by dbus, polkit and unattended-upgrades, which parse only their own trusted configuration and Debian metadata.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libexpat1@2.8.3-1~deb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-76957",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "libexpat is loaded by dbus, polkit and unattended-upgrades, which parse only their own trusted configuration and Debian metadata.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libexpat1@2.8.3-1~deb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-78408",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "util-linux mount helpers/nsenter: needs user mounts in /etc/fstab (there are none) or root running nsenter on attacker terms.",
+        "justification": "requires_configuration"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/bsdextrautils@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/bsdutils@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/eject@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/fdisk@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libblkid1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libfdisk1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/liblastlog2-2@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libmount1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libsmartcols1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libuuid1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/login@4.16.0-2%2Breally2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/mount@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/util-linux@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/uuid-runtime@2.41.5-0%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-78409",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "util-linux mount helpers/nsenter: needs user mounts in /etc/fstab (there are none) or root running nsenter on attacker terms.",
+        "justification": "requires_configuration"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/bsdextrautils@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/bsdutils@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/eject@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/fdisk@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libblkid1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libfdisk1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/liblastlog2-2@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libmount1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libsmartcols1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libuuid1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/login@4.16.0-2%2Breally2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/mount@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/util-linux@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/uuid-runtime@2.41.5-0%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-78410",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "util-linux mount helpers/nsenter: needs user mounts in /etc/fstab (there are none) or root running nsenter on attacker terms.",
+        "justification": "requires_configuration"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/bsdextrautils@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/bsdutils@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/eject@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/fdisk@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libblkid1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libfdisk1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/liblastlog2-2@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libmount1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libsmartcols1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/libuuid1@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/login@4.16.0-2%2Breally2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/mount@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/util-linux@2.41.5-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/uuid-runtime@2.41.5-0%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-81627",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "QEMU emulator code (device models, 9pfs, VAPIC) built from the same source as qemu-guest-agent; the guest agent binary contains none of it.",
+        "justification": "code_not_present"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/qemu-guest-agent@10.0.13%2Bds-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/qemu-utils@10.0.13%2Bds-0%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-82049",
+      "analysis": {
+        "state": "exploitable",
+        "detail": "Python runs on the VM only as unattended-upgrades, on signed Debian metadata."
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libpython3.13-minimal@3.13.5-2%2Bdeb13u5"
+        },
+        {
+          "ref": "pkg:deb/debian/libpython3.13-stdlib@3.13.5-2%2Bdeb13u5"
+        },
+        {
+          "ref": "pkg:deb/debian/python3.13-minimal@3.13.5-2%2Bdeb13u5"
+        },
+        {
+          "ref": "pkg:deb/debian/python3.13@3.13.5-2%2Bdeb13u5"
+        }
+      ],
+      "ratings": [
+        {
+          "source": {
+            "name": "TAPPaaS"
+          },
+          "severity": "low",
+          "method": "other",
+          "justification": "risk in this deployment, from the triage"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-8286",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "curl libcurl4t64: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5"
+        },
+        {
+          "ref": "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-8458",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "curl libcurl4t64: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5"
+        },
+        {
+          "ref": "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-86138",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "The host's libxml2: no running process on the VM loads it (the UniFi container's postgres loads the container's own copy).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libxml2@2.12.7%2Bdfsg%2Breally2.9.14-2.1%2Bdeb13u3"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-86139",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "The host's libxml2: no running process on the VM loads it (the UniFi container's postgres loads the container's own copy).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libxml2@2.12.7%2Bdfsg%2Breally2.9.14-2.1%2Bdeb13u3"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-86140",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "The host's libxml2: no running process on the VM loads it (the UniFi container's postgres loads the container's own copy).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libxml2@2.12.7%2Bdfsg%2Breally2.9.14-2.1%2Bdeb13u3"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-86142",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "The host's libxml2: no running process on the VM loads it (the UniFi container's postgres loads the container's own copy).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libxml2@2.12.7%2Bdfsg%2Breally2.9.14-2.1%2Bdeb13u3"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-86143",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "The host's libxml2: no running process on the VM loads it (the UniFi container's postgres loads the container's own copy).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libxml2@2.12.7%2Bdfsg%2Breally2.9.14-2.1%2Bdeb13u3"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-86144",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "The host's libxml2: no running process on the VM loads it (the UniFi container's postgres loads the container's own copy).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libxml2@2.12.7%2Bdfsg%2Breally2.9.14-2.1%2Bdeb13u3"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-8927",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "curl libcurl4t64: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/curl@8.14.1-2%2Bdeb13u5"
+        },
+        {
+          "ref": "pkg:deb/debian/libcurl4t64@8.14.1-2%2Bdeb13u5"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-93834",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "QEMU emulator code (device models, 9pfs, VAPIC) built from the same source as qemu-guest-agent; the guest agent binary contains none of it.",
+        "justification": "code_not_present"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/qemu-guest-agent@10.0.13%2Bds-0%2Bdeb13u1"
+        },
+        {
+          "ref": "pkg:deb/debian/qemu-utils@10.0.13%2Bds-0%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-93990",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "libexpat is loaded by dbus, polkit and unattended-upgrades, which parse only their own trusted configuration and Debian metadata.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/libexpat1@2.8.3-1~deb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-94603",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "Needs a malicious container image; the only image is Ubiquiti's own UniFi OS Server image.",
+        "justification": "requires_environment"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/podman@5.4.2%2Bds1-2%2Bb2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-9538",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "Archive::Tar: no running process on the VM loads it on a crafted tar.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/perl-base@5.40.1-6%2Bdeb13u1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-96512",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "sudo NOTBEFORE/NOTAFTER rules; the VM's sudoers uses none.",
+        "justification": "requires_configuration"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/sudo@1.9.16p2-3%2Bdeb13u2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-97687",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "python3-urllib3: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/python3-urllib3@2.3.0-3%2Bdeb13u2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-97689",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "python3-urllib3: no running process on the VM loads it, and no configured feature uses it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:deb/debian/python3-urllib3@2.3.0-3%2Bdeb13u2"
+        }
+      ]
+    }
+  ]
+}
