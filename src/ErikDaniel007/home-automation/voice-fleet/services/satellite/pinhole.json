@@ -1,0 +1,6 @@
+{
+  "_comment": "Auto-pinhole declaration (#173) for the 'satellite' service of the Home Assistant Voice fleet. ESPHome native API, opened by Home Assistant towards each satellite.",
+  "ports": [
+    { "port": 6053, "protocol": "TCP", "description": "ESPHome native API" }
+  ]
+}
