@@ -162,6 +162,15 @@
             "stack": "entertainment",
             "category": "audio",
             "status": "archived"
+        },
+        {
+            "moduleName": "mediamanager",
+            "repo": "community",
+            "moduleJson": "src/AndreasJe/mediamanager/mediamanager.json",
+            "vmid": 352,
+            "stack": "home",
+            "category": "media",
+            "status": "Development"
         }
     ],
     "foundationModules": [

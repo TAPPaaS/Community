@@ -1,0 +1,35 @@
+{
+  "scope": "module",
+  "description": "Fields of the mediamanager module itself.",
+  "fields": {
+    "vpn": {
+      "description": "Optional: send qBittorrent's traffic through a WireGuard VPN, with a kill switch. Absent (the default): no VPN, torrents use the site's WAN address.",
+      "type": "object",
+      "usedBy": [],
+      "requiredBy": [],
+      "default": {},
+      "fields": {
+        "provider": {
+          "description": "Turns the VPN on, and decides how the incoming port is obtained.",
+          "type": "string",
+          "values": {
+            "proton": "Proton VPN: the port is leased over NAT-PMP every 45 seconds and handed to qBittorrent",
+            "airvpn": "AirVPN: the port reserved in its client area, given as forwardedPort",
+            "privado": "PrivadoVPN: no forwarded port; its WireGuard config expires after 30 days, so update warns from day 25",
+            "other": "Any WireGuard provider: forwardedPort if it has one, else no incoming port"
+          }
+        },
+        "forwardedPort": {
+          "description": "The provider's forwarded port (airvpn, other). Not used for proton or privado.",
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 65535
+        }
+      },
+      "example": {
+        "provider": "proton"
+      },
+      "note": "The WireGuard config itself is a secret and never goes in the module config: put the provider's .conf at /etc/secrets/vpn-wireguard.conf on the VM. Until it is there, qBittorrent stays stopped, so nothing leaks. Remove natRules when the VPN is on: the home port is then closed anyway."
+    }
+  }
+}

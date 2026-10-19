@@ -1,0 +1,113 @@
+{
+  "description": "Media download stack: qBittorrent, Sonarr, Radarr, Lidarr, Prowlarr, Bazarr and Seerr behind Authentik (admin UIs for mediamanager-admins from the site's networks, Seerr for users), wired together automatically and downloading into the shared NFS share 'media'. Optional WireGuard VPN with kill switch for qBittorrent.",
+  "kind": "vm",
+  "version": "0.5.0",
+  "stack": "home",
+  "releaseDate": "2026-10-18",
+  "maintainer": "@AndreasJe",
+  "status": "Development",
+  "vmname": "mediamanager",
+  "vmid": 352,
+  "vmtag": "TAPPaaS,App,Media",
+  "node": "tappaas1",
+  "rebootOk": true,
+  "dependsOn": [
+    "cluster:vm",
+    "backup:vm",
+    "network:proxy",
+    "identity:accessControl",
+    "network:nat",
+    "network:rules",
+    "storage:nfs",
+    "templates:nixos",
+    "identity:identity"
+  ],
+  "integratesWith": [
+    "logging:logs"
+  ],
+  "provides": [],
+  "appVersion": "5.2.2",
+  "identity": {
+    "providesAdminRole": true,
+    "oidcRedirectPaths": [
+      "/oauth2/callback"
+    ],
+    "scopes": [
+      "openid",
+      "email",
+      "profile"
+    ],
+    "configureService": "mediamanager-configure-oidc.service"
+  },
+  "config": {
+    "cluster:vm": {
+      "cores": 4,
+      "cputype": "x86-64-v3",
+      "memory": "4096",
+      "diskSize": "32G",
+      "storage": "tanka1",
+      "imageType": "clone",
+      "image": "8080",
+      "bridge0": "lan"
+    },
+    "storage:nfs": {
+      "mounts": [
+        {
+          "path": "/data",
+          "share": "media",
+          "access": "rw",
+          "stopUnits": [
+            "qbittorrent.service"
+          ],
+          "stopCommand": "systemctl stop 'sonarr*.service' 'radarr*.service' 'lidarr*.service' 'bazarr*.service'",
+          "startCommand": "systemctl start 'sonarr*.service' 'radarr*.service' 'lidarr*.service' 'bazarr*.service'"
+        }
+      ]
+    },
+    "network:proxy": {
+      "proxyPort": 8080,
+      "proxyPreserveHost": "true",
+      "proxyAllowedZones": [
+        "home",
+        "netbird",
+        "internet"
+      ],
+      "proxyRoutes": [
+        {
+          "name": "sonarr",
+          "port": 8080
+        },
+        {
+          "name": "radarr",
+          "port": 8080
+        },
+        {
+          "name": "lidarr",
+          "port": 8080
+        },
+        {
+          "name": "prowlarr",
+          "port": 8080
+        },
+        {
+          "name": "bazarr",
+          "port": 8080
+        },
+        {
+          "name": "seerr",
+          "port": 8080
+        }
+      ]
+    },
+    "network:nat": {
+      "natRules": [
+        {
+          "externalPort": 6881,
+          "internalPort": 6881,
+          "protocol": "TCP/UDP",
+          "description": "qBittorrent peer traffic"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,241 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "mediamanager",
+      "description": "TAPPaaS module mediamanager: triage of its own critical/high CVEs (#788)."
+    }
+  },
+  "vulnerabilities": [
+    {
+      "id": "CVE-2018-6553",
+      "analysis": {
+        "state": "false_positive",
+        "detail": "Ubuntu's CUPS AppArmor profile. NixOS ships no such profile, and only cups' library is present (pulled in by gtk and qt); no cupsd runs."
+      },
+      "affects": [
+        {
+          "ref": "pkg:nix/cups"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-107696",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "RTSP client redirect loop in libavformat. On this VM ffmpeg/ffprobe only read local files under /data (Bazarr's subtitle extraction, Sonarr/Radarr's media analysis), never an rtsp:// URL.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:nix/ffmpeg-headless@9.0.1"
+        },
+        {
+          "ref": "pkg:nix/ffmpeg@9.0.1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-0861",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "memalign overflow in glibc 2.30-2.42 with an attacker-chosen alignment. The flagged glibc 2.44 (apps from nixos-unstable) is outside that range; the base's 2.42 is only called with fixed alignments by the services (.NET, nginx, Go).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:nix/glibc@2.42-100"
+        },
+        {
+          "ref": "pkg:nix/glibc@2.44-25"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-19499",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "strfmon/strfmon_l width-padding overflow. Nothing on the VM calls strfmon: .NET, Python, Node, Go and nginx format money themselves.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:nix/glibc@2.42-100"
+        },
+        {
+          "ref": "pkg:nix/glibc@2.44-25"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-59850",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "libssh is linked only by ffmpeg 9 as libavformat's SFTP client and no running process maps it; nothing on the VM opens an sftp:// URL (ffprobe reads local files).",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:nix/libssh@0.12.2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-59851",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "Server-side GSSAPI key exchange. libssh is only ffmpeg's SFTP client here; the VM's sshd is OpenSSH.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:nix/libssh@0.12.2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-4775",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "TIFF decoding overflow. libtiff is loaded only by Bazarr through Pillow, and Bazarr never opens TIFF images (it handles subtitle text); gtk, gdk-pixbuf and openjpeg are not run by any service.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:nix/libtiff@4.7.2"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2025-7425",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "XSLT key() processing. libxslt is mapped by nginx (built-in xslt module, no xslt_stylesheet in the config) and by Bazarr through lxml (HTML parsing, no XSLT); nothing on the VM runs a stylesheet.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:nix/libxslt@1.1.45"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-106553",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "sshd GSSAPIAuthentication. This sshd is built without GSSAPI/Kerberos: not linked to libgssapi/libkrb5, and sshd -T lists no GSSAPI options.",
+        "justification": "code_not_present"
+      },
+      "affects": [
+        {
+          "ref": "pkg:nix/openssh@10.5p1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-106555",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "sshd GSSAPI authentication state. This sshd is built without GSSAPI/Kerberos: not linked to libgssapi/libkrb5, and sshd -T lists no GSSAPI options.",
+        "justification": "code_not_present"
+      },
+      "affects": [
+        {
+          "ref": "pkg:nix/openssh@10.5p1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-106583",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "Username injection in the ssh client's command line. No service on the VM starts ssh; only admins log in to it.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:nix/openssh@10.5p1"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-54873",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "OpenSSL's own QUIC stack. Nothing on the VM speaks QUIC: nginx serves plain HTTP on 8080, the apps are TLS clients over TCP, oauth2-proxy uses Go's TLS.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:nix/openssl@3.5.8"
+        },
+        {
+          "ref": "pkg:nix/openssl@3.6.5"
+        },
+        {
+          "ref": "pkg:nix/openssl@4.0.3"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-72897",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "Needs a TLS server that calls SSL_set_SSL_CTX mid-handshake. No TLS server runs on the VM: TLS ends at Caddy on the firewall, nginx serves plain HTTP.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:nix/openssl@3.5.8"
+        },
+        {
+          "ref": "pkg:nix/openssl@3.6.5"
+        },
+        {
+          "ref": "pkg:nix/openssl@4.0.3"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-84782",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "DTLS retransmission. Nothing on the VM speaks DTLS: TLS over TCP as a client only, no TLS server.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:nix/openssl@3.5.8"
+        },
+        {
+          "ref": "pkg:nix/openssl@3.6.5"
+        },
+        {
+          "ref": "pkg:nix/openssl@4.0.3"
+        }
+      ]
+    },
+    {
+      "id": "CVE-2026-84784",
+      "analysis": {
+        "state": "not_affected",
+        "detail": "NEW_CONNECTION_ID flood against OpenSSL's own QUIC stack. Nothing on the VM speaks QUIC: nginx serves plain HTTP, the apps are TLS clients over TCP.",
+        "justification": "code_not_reachable"
+      },
+      "affects": [
+        {
+          "ref": "pkg:nix/openssl@3.5.8"
+        },
+        {
+          "ref": "pkg:nix/openssl@3.6.5"
+        },
+        {
+          "ref": "pkg:nix/openssl@4.0.3"
+        }
+      ]
+    }
+  ]
+}
