@@ -31,6 +31,10 @@
   read again every 5 s until each bond exists with its members and is running (the
   node's side must answer LACP), for `--timeout` (90 s); then every changed port must
   read back as desired. Either failing is exit 1 with the reason.
+- **The MLAG peer link** (`/interface bridge mlag` `peer-port`, a port or a bond) is
+  never programmed: its ports read `disabled` with `peerLink: true` (neither parked nor
+  warned about), and a desired that names one is refused. Every VLAN a managed interface
+  carries is tagged on it too, in existing entries and new ones.
 - **MLAG:** the peer link and the shared settings are the operator's, once, in RouterOS
   (`/interface bridge mlag set bridge=bridge peer-port=…`); `mlag-status` reports them and
   the monitor's state, and an aggregate whose lead port names an `mlagId` in desired gets

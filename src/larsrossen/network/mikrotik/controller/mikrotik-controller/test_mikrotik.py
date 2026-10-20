@@ -166,6 +166,41 @@ class Plan(unittest.TestCase):
         self.assertEqual(mc.fix_empty([{"args": ".id=*1 tagged= untagged="}])[0]["args"], '.id=*1 tagged="" untagged=""')
 
 
+def mlag_raw():
+    """crs-a with an MLAG peer link: a bond of sfp-sfpplus15/16, tagged in 200,310."""
+    r = raw()
+    r["interface ethernet"] += [{".id": "*9", "name": "sfp-sfpplus15", "running": True},
+                                {".id": "*10", "name": "sfp-sfpplus16", "running": True}]
+    r["interface bonding"].append({".id": "*21", "name": "peer-link", "slaves": "sfp-sfpplus15,sfp-sfpplus16", "mode": "802.3ad", "running": True})
+    r["interface bridge port"].append({".id": "*46", "bridge": "bridge", "interface": "peer-link", "pvid": 99, "frame-types": "admit-all"})
+    r["interface bridge vlan"][0]["tagged"] += ",peer-link"
+    r["interface bridge mlag"] = [{"bridge": "bridge", "peer-port": "peer-link"}]
+    return r
+
+
+class Mlag(unittest.TestCase):
+    def test_peer_link_reported_off_limits(self):
+        p = mc.interrogate(mlag_raw(), "crs-a", "10.0.0.21")["switches"]["crs-a"]
+        self.assertTrue(p["ports"]["sfp-sfpplus15"]["peerLink"] and p["ports"]["sfp-sfpplus15"]["disabled"])
+        self.assertEqual(p["mlag"]["peerPort"], "peer-link")
+
+    def test_peer_link_never_programmed(self):
+        with self.assertRaises(mc.Refused) as e:
+            mc.plan(mlag_raw(), {"sfp-sfpplus15": {"type": "switch", "mode": "trunk", "taggedVlans": [200]}})
+        self.assertIn("MLAG peer link", str(e.exception))
+
+    def test_new_vlan_on_peer_link(self):
+        ops, _, _ = mc.plan(mlag_raw(), {"sfp-sfpplus1": {"type": "node", "mode": "trunk", "nativeVlan": 0, "taggedVlans": [200, 310, 410, 610]}})
+        self.assertIn({"op": "add", "path": "interface bridge vlan", "args": "bridge=bridge vlan-ids=610 tagged=peer-link,sfp-sfpplus1"}, ops)
+        self.assertIn({"op": "update", "path": "interface bridge vlan", "args": ".id=*51 tagged=peer-link,sfp-sfpplus1,sfp-sfpplus3 untagged="}, ops,
+                      "an existing VLAN the managed port carries gets the peer link")
+
+    def test_peer_link_kept(self):
+        ops, _, _ = mc.plan(mlag_raw(), {"sfp-sfpplus1": {"type": "node", "mode": "trunk", "nativeVlan": 0, "taggedVlans": []}})
+        upd = [o["args"] for o in ops if o["path"] == "interface bridge vlan"]
+        self.assertTrue(all("peer-link" in a for a in upd if "*50" in a), f"the peer link stays tagged where it was ({upd})")
+
+
 class Values(unittest.TestCase):
     def test_vlan_ranges(self):
         self.assertEqual(mc.vlan_ids("200,310-312"), [200, 310, 311, 312])
