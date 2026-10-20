@@ -11,6 +11,15 @@
             "status": "beta"
         },
         {
+            "moduleName": "mikrotik",
+            "repo": "community",
+            "moduleJson": "src/larsrossen/network/mikrotik/mikrotik.json",
+            "vmid": null,
+            "stack": "infrastructure",
+            "category": "network",
+            "status": "Development"
+        },
+        {
             "moduleName": "unifi-os",
             "repo": "community",
             "moduleJson": "src/larsrossen/network/unifi-os/unifi-os.json",

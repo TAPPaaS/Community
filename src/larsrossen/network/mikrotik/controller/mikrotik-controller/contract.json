@@ -1,0 +1,8 @@
+{
+  "contracts": ["switch/1"],
+  "vendors": ["mikrotik"],
+  "arch": "device",
+  "capabilities": ["vlans", "lag", "park", "mlag"],
+  "module": "mikrotik",
+  "credentials": "/home/tappaas/.mikrotik-credentials/<switch>.txt"
+}

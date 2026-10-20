@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# mikrotik-controller — MikroTik RouterOS switches for switch-manager (switch/1,
+# ADR-035). The verbs are mikrotik_controller.py's; this runs it with the Python
+# (Ansible, community.routeros, librouteros) install.sh built. See README.md.
+here="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+py="${MIKROTIK_PYTHON:-${TAPPAAS_GCROOTS:-${HOME}/.tappaas-gcroots}/mikrotik-controller-env/bin/python3}"
+[[ -x "${py}" ]] || { echo "mikrotik-controller: its runtime is not built (${py}) — run ${here}/install.sh" >&2; exit 1; }
+exec "${py}" "${here}/mikrotik_controller.py" "$@"

@@ -1,0 +1,34 @@
+---
+# apply.yml — run the operations mikrotik_controller.py planned, in order
+# (mikrotik-controller). Each is an add, update (by .id) or remove (by .id) on
+# one RouterOS path; the first that fails stops the run, and the controller
+# reads the switch back either way. Variables: conn, ops, out_file.
+- name: Apply planned operations to a RouterOS switch
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  module_defaults:
+    group/community.routeros.api:
+      hostname: "{{ conn.hostname }}"
+      username: "{{ conn.username }}"
+      password: "{{ conn.password }}"
+      tls: "{{ conn.tls }}"
+      port: "{{ conn.port | default(omit) }}"
+      validate_certs: "{{ conn.validate_certs }}"
+      force_no_cert: "{{ conn.force_no_cert }}"
+      timeout: "{{ conn.timeout }}"
+  tasks:
+    - name: "{{ item.op }} {{ item.path }}"
+      community.routeros.api:
+        path: "{{ item.path }}"
+        add: "{{ item.args if item.op == 'add' else omit }}"
+        update: "{{ item.args if item.op == 'update' else omit }}"
+        remove: "{{ item.id if item.op == 'remove' else omit }}"
+      loop: "{{ ops }}"
+      loop_control:
+        label: "{{ item.op }} {{ item.path }} {{ item.args | default(item.id) }}"
+    - name: Say it is done
+      ansible.builtin.copy:
+        content: '{"applied": {{ ops | length }}}'
+        dest: "{{ out_file }}"
+        mode: "0600"

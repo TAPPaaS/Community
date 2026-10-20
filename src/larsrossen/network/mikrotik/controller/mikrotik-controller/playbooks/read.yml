@@ -1,0 +1,39 @@
+---
+# read.yml — what a RouterOS switch has, path by path (mikrotik-controller).
+# Reads only. Each path's entries as the API returns them, written to out_file;
+# a path the device has not (system routerboard on a CHR) comes back empty.
+# Variables (a 0600 vars file from mikrotik_controller.py): conn, paths, out_file.
+- name: Read a RouterOS switch
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  module_defaults:
+    group/community.routeros.api:
+      hostname: "{{ conn.hostname }}"
+      username: "{{ conn.username }}"
+      password: "{{ conn.password }}"
+      tls: "{{ conn.tls }}"
+      port: "{{ conn.port | default(omit) }}"
+      validate_certs: "{{ conn.validate_certs }}"
+      force_no_cert: "{{ conn.force_no_cert }}"
+      timeout: "{{ conn.timeout }}"
+  tasks:
+    # One call first: an unreachable switch or a refused login fails here, once,
+    # instead of once per path below.
+    - name: Reach the switch
+      community.routeros.api:
+        path: system identity
+    - name: Read each path
+      community.routeros.api:
+        path: "{{ item }}"
+      loop: "{{ paths }}"
+      register: read
+      failed_when: >-
+        read.failed | default(false)
+        and item not in ['system routerboard', 'interface bridge mlag']
+    - name: Write what was read
+      ansible.builtin.copy:
+        content: >-
+          {{ dict(paths | zip(read.results | map(attribute='msg', default=[]))) | to_json }}
+        dest: "{{ out_file }}"
+        mode: "0600"

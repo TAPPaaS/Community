@@ -1,0 +1,36 @@
+{
+  "interface ethernet": [
+    {".id": "*1", "name": "ether1", "default-name": "ether1", "running": true, "disabled": false},
+    {".id": "*2", "name": "sfp-sfpplus1", "running": true, "disabled": false},
+    {".id": "*3", "name": "sfp-sfpplus2", "running": false, "disabled": false},
+    {".id": "*4", "name": "sfp-sfpplus3", "running": true, "disabled": false},
+    {".id": "*5", "name": "sfp-sfpplus4", "running": false, "disabled": false},
+    {".id": "*6", "name": "sfp-sfpplus5", "running": true, "disabled": false},
+    {".id": "*7", "name": "sfp-sfpplus6", "running": true, "disabled": false},
+    {".id": "*8", "name": "sfp-sfpplus10", "running": false, "disabled": true}
+  ],
+  "interface bonding": [
+    {".id": "*20", "name": "bond1", "slaves": "sfp-sfpplus6,sfp-sfpplus5", "mode": "802.3ad", "running": true}
+  ],
+  "interface bridge": [
+    {".id": "*30", "name": "bridge", "vlan-filtering": true, "pvid": 1}
+  ],
+  "interface bridge port": [
+    {".id": "*40", "bridge": "bridge", "interface": "sfp-sfpplus1", "pvid": 1, "frame-types": "admit-all"},
+    {".id": "*41", "bridge": "bridge", "interface": "sfp-sfpplus2", "pvid": 430, "frame-types": "admit-only-untagged-and-priority-tagged"},
+    {".id": "*42", "bridge": "bridge", "interface": "sfp-sfpplus3", "pvid": 1, "frame-types": "admit-all"},
+    {".id": "*43", "bridge": "bridge", "interface": "sfp-sfpplus4", "pvid": 1, "frame-types": "admit-all"},
+    {".id": "*44", "bridge": "bridge", "interface": "bond1", "pvid": 1, "frame-types": "admit-all"},
+    {".id": "*45", "bridge": "bridge", "interface": "sfp-sfpplus10", "pvid": 1, "frame-types": "admit-all", "disabled": true}
+  ],
+  "interface bridge vlan": [
+    {".id": "*50", "bridge": "bridge", "vlan-ids": "200,310", "tagged": "bridge,sfp-sfpplus1,bond1", "untagged": "", "dynamic": false},
+    {".id": "*51", "bridge": "bridge", "vlan-ids": "410", "tagged": "sfp-sfpplus1,sfp-sfpplus3", "untagged": "", "dynamic": false},
+    {".id": "*52", "bridge": "bridge", "vlan-ids": "430", "tagged": "", "untagged": "sfp-sfpplus2", "dynamic": false},
+    {".id": "*53", "bridge": "bridge", "vlan-ids": "1", "tagged": "", "untagged": "bridge,sfp-sfpplus1,sfp-sfpplus3", "dynamic": true}
+  ],
+  "interface bridge mlag": [],
+  "system resource": [{"version": "7.16.1 (stable)", "board-name": "CRS326-24S+2Q+"}],
+  "system identity": [{"name": "crs-a"}],
+  "system routerboard": [{"model": "CRS326-24S+2Q+", "current-firmware": "7.16.1"}]
+}
