@@ -72,7 +72,7 @@ vm "exit 0" 2>/dev/null || die "SSH to tappaas@${IP} not available"
 # local admin only exists AFTER the interactive owner setup. So credentials
 # cannot be provisioned at install; we pre-create an empty 0600 skeleton
 # (mirroring ~/.opnsense-credentials.txt) for the operator to fill in once via
-# setup-credentials.sh, and that the Stage-5 unifi.sh reads. Ensured on EVERY
+# setup-credentials.sh, and that unifi-controller reads. Ensured on EVERY
 # run (incl. the idempotent path); never overwrites an operator-populated file.
 readonly UOS_CRED="/home/tappaas/.unifi-os-credentials.txt"
 DOMAIN="$(get_variant_config "" 2>/dev/null | jq -r '.domain // empty' || true)"
@@ -90,8 +90,8 @@ fi
 ensure_cred_file() {
     [[ -f "${UOS_CRED}" ]] && { debug "  credentials file present: ${UOS_CRED} (left untouched)"; return 0; }
     cat > "${UOS_CRED}" <<EOF
-# UniFi OS Server credentials for TAPPaaS (ADR-008 Stage 5 unifi.sh).
-# Self-hosted UniFi OS has no API keys — unifi.sh logs in with a LOCAL admin
+# UniFi OS Server credentials for TAPPaaS (unifi-controller, ADR-035).
+# Self-hosted UniFi OS has no API keys — unifi-controller logs in with a LOCAL admin
 # (POST /api/auth/login -> TOKEN cookie + X-CSRF-Token) and calls the Network API
 # at \${url}/proxy/network/api/. This file is chmod 600.
 #
@@ -106,6 +106,10 @@ EOF
     info "  ${GN}✓${CL} created credentials skeleton: ${UOS_CRED} (fill username/password, or run setup-credentials.sh)"
 }
 ensure_cred_file
+
+# This instance as a controller of switch-manager (ADR-035 D6), on every run —
+# the idempotent path below exits early. Once its credentials are set.
+"${SCRIPT_DIR}/register-controller.sh" "${MODULE}" || warn "  ${MODULE}: not registered with switch-manager (see above)"
 
 # ── Idempotency: skip if already at the pinned version ───────────────
 CURRENT="$(vm "cat ${MARKER} 2>/dev/null" || true)"

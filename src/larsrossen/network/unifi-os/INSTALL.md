@@ -40,8 +40,8 @@ UniFi OS Server has **no default credentials**; the admin account is created int
    username/password in your password manager — there is no default to fall back on.
 2. **Adopt devices** — adopt your UniFi switches and access points (they should appear for
    adoption once on the LAN).
-3. **Store local-admin credentials for automation (ADR-008 Stage 5)** — self-hosted UniFi
-   OS Server has **no API-key / Integration feature**, so the Stage-5 plugin authenticates
+3. **Store local-admin credentials for automation** — self-hosted UniFi
+   OS Server has **no API-key / Integration feature**, so `unifi-controller` authenticates
    as a **local admin** via `POST /api/auth/login`. On `tappaas-cicd`, run the helper to
    validate and store the credentials of the local-admin account you created in step 1:
 
@@ -49,14 +49,28 @@ UniFi OS Server has **no default credentials**; the admin account is created int
    /home/tappaas/Community/src/larsrossen/network/unifi-os/setup-credentials.sh
    # prompts for the local-admin username + password (password hidden), validates them
    # via /api/auth/login, and writes url/username/password to
-   # /home/tappaas/.unifi-os-credentials.txt (chmod 600). Re-run anytime to rotate/verify.
+   # /home/tappaas/.unifi-os-credentials.txt (chmod 600), then registers this instance
+   # with switch-manager. Re-run anytime to rotate/verify. Another instance: --instance <name>.
    ```
 
    > Why a separate step: the admin only exists after the interactive owner setup above, so
    > the credentials can't be captured during install. Install pre-creates the empty 0600
    > credentials file (mirroring `~/.opnsense-credentials.txt`), and `setup-credentials.sh`
-   > validates + stores the login. The Stage-5 `unifi.sh` plugin reads `url`/`username`/
-   > `password` from that file and authenticates via `/api/auth/login`.
+   > validates + stores the login. `unifi-controller` reads `url`/`username`/`password`
+   > from that file and authenticates via `/api/auth/login`.
+
+4. **Adopt the switch ports** — the module's install linked `unifi-controller` (this
+   module's `controller/unifi-controller/`, ADR-035) and step 3 registered the instance with
+   `switch-manager`. Read what the controller adopts, then say which port goes where:
+
+   ```bash
+   switch-manager interrogate
+   switch-manager add-port "<switch>" <port> --type node --target tappaas1   # per uplink
+   switch-manager reconcile          # preview; --apply to program the switch
+   ```
+
+   Deleting the module removes the controller from `switch-manager` again; the switches stay
+   in its inventory until removed.
 
 ## Verification
 

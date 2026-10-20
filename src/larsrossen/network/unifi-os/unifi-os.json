@@ -1,6 +1,6 @@
 {
   "description": "UniFi OS Server — self-hosted UniFi OS (Network etc.) on Debian 13; the management plane that adopts UniFi switches and APs (ADR-008 Stage 5, #339)",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "appVersion": "5.0.6",
   "releaseDate": "2026-06-14",
   "maintainer": "@larsrossen",
@@ -20,6 +20,9 @@
   ],
   "dependsOn": ["cluster:vm", "templates:debian", "backup:vm", "network:proxy", "network:rules"],
   "provides": [],
+  "controllers": [
+    { "name": "unifi-controller", "path": "controller/unifi-controller", "plugsInto": ["switch-manager", "ap-manager"] }
+  ],
   "config": {
     "cluster:vm": {
       "bios": "seabios",

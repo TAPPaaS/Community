@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# unifi-controller — the UniFi controller (ADR-035): drives UniFi switches and
+# access points through a UniFi OS controller, for switch-manager (switch/1) and
+# ap-manager (ap/1). The vendor logic is unifi.sh; tappaas-cicd's controller shim
+# (lib/controller-shim.sh, linked into ~/bin) turns it into the contract's verbs.
+# See README.md, and `unifi-controller --help`. TAPPAAS_LIB: where the shim is.
+here="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+exec bash "${TAPPAAS_LIB:-/home/tappaas/bin}/controller-shim.sh" --plugin "${here}/unifi.sh" --contract "${here}/contract.json" "$@"

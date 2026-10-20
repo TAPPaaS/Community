@@ -8,6 +8,9 @@
 #   - the uosserver podman container is Running
 #   - the UniFi OS UI answers (HTTPS)
 #   - the /proxy/network/ API path responds (pre-auth 401/redirect is a pass)
+#   - unifi-controller is linked, recorded in control-plane.json, passes its
+#     offline tests, and (once credentials are set) is switch-manager's
+#     controller for this UniFi OS and can log in (ADR-035 D5, D6)
 #
 # Usage: test.sh <module-name>
 #
@@ -81,6 +84,44 @@ if [[ "${code}" =~ ^(200|302|401|403)$ ]]; then ok "UniFi OS console answers on 
 # /proxy/network/ API path responds (pre-auth 401/redirect is fine) — Stage 5 target
 acode="$(vm "curl -sk -o /dev/null -w '%{http_code}' https://localhost:11443/proxy/network/ 2>/dev/null" || echo 000)"
 if [[ "${acode}" =~ ^(200|301|302|401|403)$ ]]; then ok "/proxy/network/ API responds on :11443 (HTTP ${acode})"; else no "/proxy/network/ did not respond on :11443 (HTTP ${acode})"; fi
+
+# ── unifi-controller (ADR-035): linked, registered, answering its contracts ──
+HERE="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+REG="${CONFIG_DIR:-/home/tappaas/config}/control-plane.json"
+if [[ "$(readlink -f /home/tappaas/bin/unifi-controller 2>/dev/null)" == "${HERE}/controller/unifi-controller/"* ]]; then
+    ok "unifi-controller is linked from this module"
+else
+    no "unifi-controller is not linked from this module ($(readlink -f /home/tappaas/bin/unifi-controller 2>/dev/null || echo missing))"
+fi
+if jq -e --arg i "${MODULE}" '.components[]? | select(.name == "unifi-controller" and .module == "unifi-os" and ((.instances // []) | index($i)))' "${REG}" >/dev/null 2>&1; then
+    ok "control-plane.json records unifi-controller for ${MODULE}"
+else
+    no "control-plane.json has no unifi-controller entry for ${MODULE}"
+fi
+if out="$(bash "${HERE}/controller/unifi-controller/test.sh" 2>&1)"; then
+    ok "unifi-controller's offline tests pass ($(grep -oE '[0-9]+ passed' <<<"${out}" | head -1))"
+else
+    no "unifi-controller's offline tests fail:"; grep -E 'FAIL|✗' <<<"${out}" | head -5 >&2
+fi
+if out="$(bash "${HERE}/test-register-controller.sh" 2>&1)"; then
+    ok "register-controller.sh's offline tests pass ($(grep -oE '[0-9]+ passed' <<<"${out}" | head -1))"
+else
+    no "register-controller.sh's offline tests fail:"; grep -E '✗' <<<"${out}" | head -5 >&2
+fi
+CRED="/home/tappaas/.unifi-os-credentials.txt"
+URL="$(awk -F= '$1 == "url" { sub(/^[^=]*=/, ""); print; exit }' "${CRED}" 2>/dev/null)"
+if [[ -z "$(awk -F= '$1 == "password" { sub(/^[^=]*=/, ""); print; exit }' "${CRED}" 2>/dev/null)" ]]; then
+    info "  - no credentials yet (setup-credentials.sh): not a switch-manager controller yet"
+elif switch-manager list --json 2>/dev/null | jq -e --arg u "${URL}" '.controllers[]? | select(.vendor == "unifi" and .managementIp == $u)' >/dev/null; then
+    ok "switch-manager has this UniFi OS as a controller (${URL})"
+    if unifi-controller check-access --ip "${URL}" 2>/dev/null | jq -e '.ok == true' >/dev/null; then
+        ok "unifi-controller logs in to ${URL}"
+    else
+        no "unifi-controller cannot log in to ${URL} — check ${CRED} (a LOCAL admin)"
+    fi
+else
+    no "switch-manager has no controller at ${URL} — run ${HERE}/register-controller.sh ${MODULE}"
+fi
 
 echo ""
 info "Result: ${PASS} passed, ${FAIL} failed"

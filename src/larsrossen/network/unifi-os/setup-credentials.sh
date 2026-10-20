@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # setup-credentials.sh — capture, validate, and store UniFi OS Server local-admin
-# credentials for ADR-008 Stage 5 (the unifi.sh switch/ap-manager plugin).
+# credentials for unifi-controller (switch-manager and ap-manager, ADR-035).
 #
 # Self-hosted UniFi OS Server does NOT expose the API-key / Integration feature,
 # so automation uses a LOCAL ADMIN account against the classic Network API:
@@ -10,17 +10,19 @@
 #
 # Run this AFTER first-run owner setup. It logs in to validate the credentials,
 # confirms the Network API is reachable, then stores url/username/password
-# (chmod 600) in the credentials file the Stage-5 plugin reads. Re-run to update.
+# (chmod 600) in the credentials file unifi-controller reads, and registers the
+# instance with switch-manager (ADR-035 D6). Re-run to update.
 #
 # IMPORTANT: use a LOCAL admin account (not a Ubiquiti SSO/cloud login, and
 # ideally without MFA) — SSO/MFA logins are rejected by the local API.
 #
 # Usage:
 #   setup-credentials.sh [--url <https://unifi-os.<domain>>] [--user <name>]
-#                        [--pass <password>] [--cred <file>]
+#                        [--pass <password>] [--cred <file>] [--instance <name>]
 #     --user/--pass omitted -> prompted (password hidden)
 #     --url omitted         -> read from the cred file's url=, else prompted
 #     --cred default        -> /home/tappaas/.unifi-os-credentials.txt
+#     --instance default    -> unifi-os (the module instance to register)
 #
 
 set -euo pipefail
@@ -32,6 +34,7 @@ CRED="/home/tappaas/.unifi-os-credentials.txt"
 URL=""
 USER=""
 PASS=""
+INSTANCE="unifi-os"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -39,8 +42,9 @@ while [[ $# -gt 0 ]]; do
         --user) USER="$2"; shift 2 ;;
         --pass) PASS="$2"; shift 2 ;;
         --cred) CRED="$2"; shift 2 ;;
+        --instance) INSTANCE="$2"; shift 2 ;;
         -h|--help)
-            sed -n '2,20p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+            sed -n '2,24p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
             exit 0 ;;
         *) die "unknown argument: $1 (try --help)" ;;
     esac
@@ -111,8 +115,8 @@ fi
 # ── Store (refresh the file atomically, 0600) ────────────────────────
 umask 077
 cat > "${CRED}" <<EOF
-# UniFi OS Server credentials for TAPPaaS (ADR-008 Stage 5 unifi.sh).
-# Self-hosted UniFi OS has no API keys — unifi.sh logs in with this LOCAL admin
+# UniFi OS Server credentials for TAPPaaS (unifi-controller, ADR-035).
+# Self-hosted UniFi OS has no API keys — unifi-controller logs in with this LOCAL admin
 # (POST /api/auth/login -> TOKEN cookie + X-CSRF-Token) and calls the Network API
 # at \${url}/proxy/network/api/. Validated by setup-credentials.sh. chmod 600.
 url=${URL}
@@ -121,4 +125,9 @@ password=${PASS}
 EOF
 chmod 600 "${CRED}"
 info "${GN}✓${CL} stored validated credentials in ${BOLD}${CRED}${CL} (chmod 600)"
-info "  Stage-5 unifi.sh will log in with this local admin against ${URL}/proxy/network/api/"
+info "  unifi-controller will log in with this local admin against ${URL}/proxy/network/api/"
+
+# Now there is someone to log in as: this instance becomes switch-manager's
+# controller (ADR-035 D6), if it is not already.
+UOS_CRED="${CRED}" "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/register-controller.sh" "${INSTANCE}" \
+    || warn "  not registered with switch-manager (see above) — re-run: register-controller.sh ${INSTANCE}"

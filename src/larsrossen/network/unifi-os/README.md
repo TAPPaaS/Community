@@ -16,6 +16,7 @@ through the UniFi OS API.
 | Direct console | `mgmt` zone | `https://<vm-ip>:11443` |
 | UniFi OS API (for automation / ADR-008) | `mgmt` / `home` / `work` | `https://unifi-os.<domain>/proxy/network/api` |
 | Device adoption (switches, APs) | LAN | standard UniFi inform/discovery |
+| `unifi-controller` — TAPPaaS programs the switch ports and SSIDs | tappaas-cicd | `switch-manager` / `ap-manager`, through this module's [controller](controller/unifi-controller/) (ADR-035) |
 
 ## What is not included
 
@@ -45,6 +46,9 @@ through the UniFi OS API.
 - First-run **owner setup is manual** (interactive). Self-hosted UniFi OS has **no API-key /
   Integration feature**, so automation authenticates as a **local admin** (stored once by
   `setup-credentials.sh`) — neither can be auto-provisioned at install.
+- One credentials file (`~/.unifi-os-credentials.txt`) per site, so a second instance of
+  this module shares the first one's login and is registered with `switch-manager` only
+  when its address is the one that file names.
 
 ## Access (internal only)
 
