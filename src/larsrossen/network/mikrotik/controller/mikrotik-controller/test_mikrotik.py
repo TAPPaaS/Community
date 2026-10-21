@@ -222,6 +222,11 @@ class Values(unittest.TestCase):
         self.assertTrue(mc.truthy("true"))
         self.assertFalse(mc.truthy("false"))
 
+    def test_settled_lacp_members(self):
+        lags = [{"bond": "bond1", "members": ["sfp-sfpplus5", "sfp-sfpplus6"], "action": "form"}]
+        self.assertEqual(mc.bonds_settled(raw(), lags, "bridge", {"bond1": ["sfp-sfpplus5", "sfp-sfpplus6"]}), [])
+        self.assertIn("sfp-sfpplus6 not active in LACP yet", mc.bonds_settled(raw(), lags, "bridge", {"bond1": ["sfp-sfpplus5"]})[0])
+
     def test_settled(self):
         r = raw()
         lags = [{"bond": "bond1", "members": ["sfp-sfpplus5", "sfp-sfpplus6"], "action": "form"}]

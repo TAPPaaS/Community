@@ -10,8 +10,9 @@
 - **Ansible is the transport (ADR-035 D10).** `playbooks/read.yml` reads each path with
   `community.routeros.api` (ethernet, bonding, bridge, bridge port, bridge VLAN, MLAG,
   system resource/identity/routerboard); `playbooks/apply.yml` runs the planned
-  operations in order (add, update by `.id`, remove by `.id`); `playbooks/monitor.yml`
-  runs the MLAG monitor. The password reaches Ansible in a 0600 vars file, never argv.
+  operations in order (add, update by `.id`, remove by `.id`). The MLAG and bond
+  monitors are read through librouteros directly: the collection's `api` module runs a
+  `monitor` but drops its answer. The password reaches Ansible in a 0600 vars file, never argv.
 - **The mapping** (RouterOS → switch/1): a port is an ethernet interface; its VLANs are
   those of its bridge port, or of its bond's when it is a bond member. `nativeVlan` is
   its PVID, `0` for the bridge's own PVID (1); `taggedVlans` are the static VLAN entries
@@ -28,8 +29,8 @@
   bridge, bond added), bridge ports (added or PVID/frame types updated), VLAN entries.
   `--check` returns the plan and changes nothing.
 - **Settling:** after an apply that forms or takes apart an aggregate, the switch is
-  read again every 5 s until each bond exists with its members and is running (the
-  node's side must answer LACP), for `--timeout` (90 s); then every changed port must
+  read again every 5 s until each bond exists with its members, is running and has
+  every member active in LACP (the bond's monitor; the node's side must answer), for `--timeout` (90 s); then every changed port must
   read back as desired. Either failing is exit 1 with the reason.
 - **The MLAG peer link** (`/interface bridge mlag` `peer-port`, a port or a bond) is
   never programmed: its ports read `disabled` with `peerLink: true` (neither parked nor

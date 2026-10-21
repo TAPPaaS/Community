@@ -156,6 +156,35 @@ def ansible_reason(out):
     return (out.strip().splitlines() or ["no output"])[-1][:300]
 
 
+def monitor(ip, cred, path, **args):
+    """A RouterOS monitor (`… monitor once`), read through librouteros — the
+    library community.routeros itself uses: the collection's `api` module runs
+    the command but drops its answer. Reads only."""
+    import ssl
+    import librouteros
+    conn = connection(ip, cred)
+    kw = {"host": ip, "username": conn["username"], "password": conn["password"], "timeout": conn["timeout"]}
+    if conn.get("port"):
+        kw["port"] = conn["port"]
+    if conn["tls"]:
+        ctx = ssl.create_default_context()
+        if not conn["validate_certs"]:
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+        if conn["force_no_cert"]:
+            ctx.set_ciphers("ADH:@SECLEVEL=0")
+        kw["ssl_wrapper"] = ctx.wrap_socket
+        kw.setdefault("port", 8729)
+    try:
+        api = librouteros.connect(**kw)
+        try:
+            return list(api.path(*path.split())("monitor", once=True, **args))
+        finally:
+            api.close()
+    except Exception as e:  # noqa: BLE001 — the reason is what the caller reports
+        raise Refused(f"{ip}: {path} monitor failed — {e}")
+
+
 def read_raw(ip, cred, debug=False):
     r = run_playbook("read.yml", ip, cred, {"paths": READ_PATHS}, debug=debug)
     return {p: (r.get(p) if isinstance(r.get(p), list) else []) for p in READ_PATHS}
@@ -425,9 +454,12 @@ def fix_empty(ops):
     return ops
 
 
-def bonds_settled(raw, lags, bridge):
-    """Each bond formed is running with its members; the reason when not."""
+def bonds_settled(raw, lags, bridge, active=None):
+    """Each bond formed is running with its members — and, where its monitor was
+    read (`active`: bond -> active ports), every member is active in LACP; the
+    reason when not."""
     m = model(raw, bridge)
+    active = active or {}
     wrong = []
     for l in lags:
         if l["action"] == "take apart":
@@ -441,6 +473,9 @@ def bonds_settled(raw, lags, bridge):
             wrong.append(f"{l['bond']} has {b.get('slaves')}, not {','.join(l['members'])}")
         elif not truthy(b.get("running")):
             wrong.append(f"{l['bond']} is not running — is the LACP partner (the node's bond) up?")
+        elif l["bond"] in active and sorted(active[l["bond"]], key=natkey) != l["members"]:
+            idle = sorted(set(l["members"]) - set(active[l["bond"]]), key=natkey)
+            wrong.append(f"{l['bond']}: {', '.join(idle)} not active in LACP yet")
     return wrong
 
 
@@ -523,7 +558,15 @@ def cmd_apply(a):
     if lags:
         deadline = time.time() + a.timeout
         while True:
-            wrong = bonds_settled(read_raw(ip, cred, a.debug), lags, a.bridge)
+            active = {}
+            for l in lags:
+                if l["action"] != "take apart":
+                    try:
+                        mon = (monitor(ip, cred, "interface bonding", numbers=l["bond"]) or [{}])[0]
+                        active[l["bond"]] = split_list(mon.get("active-ports"))
+                    except Refused:
+                        pass   # not formed yet: the read below says so
+            wrong = bonds_settled(read_raw(ip, cred, a.debug), lags, a.bridge, active)
             if not wrong:
                 break
             if time.time() >= deadline:
@@ -555,15 +598,13 @@ def cmd_mlag_status(a):
     if mlag is None:
         out({"switch": a.switch, "configured": False, "peerPort": None, "ids": []})
         return 0
-    mon = run_playbook("monitor.yml", a.ip, cred, {"path": "interface bridge mlag", "command": "monitor once"}, debug=a.debug)
+    state = (monitor(a.ip, cred, "interface bridge mlag") or [{}])[0]
     m = model(raw, mlag.get("bridge", a.bridge))
     peer = m["eth"].get(mlag.get("peer-port")) or m["bonds"].get(mlag.get("peer-port")) or {}
     ids = sorted({int(b["mlag-id"]) for b in m["bonds"].values() if b.get("mlag-id") not in (None, "")})
-    state = (mon.get("result") or [{}])
-    state = state[0] if isinstance(state, list) and state else {}
     out({"switch": a.switch, "configured": True, "peerPort": mlag.get("peer-port"),
          "peerLink": "up" if truthy(peer.get("running")) else "down",
-         "state": state.get("status") or state.get("state") or "", "systemId": state.get("system-id", ""),
+         "state": state.get("status", ""), "role": state.get("active-role", ""), "systemId": state.get("system-id", ""),
          "ids": ids, "monitor": state})
     return 0
 
