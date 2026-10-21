@@ -207,13 +207,25 @@ def model(raw, bridge):
     br = next((b for b in raw["interface bridge"] if b.get("name") == bridge), None)
     # The MLAG peer link (a port or a bond of ports) is the operator's: it carries
     # every VLAN between the two switches and is never TAPPaaS's to program.
-    mlag = next((x for x in raw.get("interface bridge mlag", []) if x.get("bridge") == bridge and x.get("peer-port")), None)
-    peer = mlag.get("peer-port") if mlag else None
+    peer = mlag_peer(raw, bridge, br)
     peer_ifaces = set()
     if peer:
         peer_ifaces = {peer} | set(split_list(bonds.get(peer, {}).get("slaves")))
     return {"eth": eth, "bonds": bonds, "ports": ports, "vlans": vlans, "slave_of": slave_of, "bridge": br,
             "peer": peer, "peer_ifaces": peer_ifaces}
+
+
+def mlag_peer(raw, bridge, br=None):
+    """The bridge's MLAG peer port, wherever this RouterOS keeps it: up to 7.2x in
+    its own menu (`/interface bridge mlag`, `peer-port`), from 7.23 on the bridge
+    itself (`mlag-peer-port`). None when MLAG is not set up."""
+    if br is None:
+        br = next((b for b in raw.get("interface bridge", []) if b.get("name") == bridge), None) or {}
+    p = br.get("mlag-peer-port")
+    if p not in (None, "", "none"):
+        return p
+    old = next((x for x in raw.get("interface bridge mlag", []) if x.get("bridge") == bridge and x.get("peer-port")), None)
+    return old.get("peer-port") if old else None
 
 
 def native_of(pvid, bridge_pvid=1):
@@ -271,9 +283,8 @@ def interrogate(raw, name, ip, bridge="bridge"):
     sw = {"vendor": "mikrotik", "model": rb.get("model") or res.get("board-name") or "",
           "managementIp": ip, "firmware": str(res.get("version", "")), "identity": ident.get("name", ""),
           "bridge": bridge, "ports": out_ports}
-    mlag = next((x for x in raw["interface bridge mlag"] if x.get("bridge") == bridge and x.get("peer-port")), None)
-    if mlag:
-        sw["mlag"] = {"peerPort": mlag.get("peer-port"), "bridge": bridge}
+    if m["peer"]:
+        sw["mlag"] = {"peerPort": m["peer"], "bridge": bridge}
     return {"switches": {name: sw}, "aps": {}}
 
 
@@ -594,15 +605,21 @@ def cmd_mlag_status(a):
     need(a, "switch", "ip")
     cred = credentials(a.switch, a.credentials)
     raw = read_raw(a.ip, cred, a.debug)
-    mlag = next((x for x in raw["interface bridge mlag"] if x.get("peer-port")), None)
-    if mlag is None:
+    m = model(raw, a.bridge)
+    if not m["peer"]:
         out({"switch": a.switch, "configured": False, "peerPort": None, "ids": []})
         return 0
-    state = (monitor(a.ip, cred, "interface bridge mlag") or [{}])[0]
-    m = model(raw, mlag.get("bridge", a.bridge))
-    peer = m["eth"].get(mlag.get("peer-port")) or m["bonds"].get(mlag.get("peer-port")) or {}
+    br = m["bridge"] or {}
+    if br.get("mlag-peer-port") not in (None, "", "none"):
+        # 7.23 on: the bridge's own monitor carries the MLAG state.
+        mon = (monitor(a.ip, cred, "interface bridge", numbers=a.bridge) or [{}])[0]
+        state = {"status": mon.get("mlag-state", ""), "active-role": mon.get("mlag-active-role", ""),
+                 "system-id": mon.get("mlag-system-id", "")}
+    else:
+        state = (monitor(a.ip, cred, "interface bridge mlag") or [{}])[0]
+    peer = m["eth"].get(m["peer"]) or m["bonds"].get(m["peer"]) or {}
     ids = sorted({int(b["mlag-id"]) for b in m["bonds"].values() if b.get("mlag-id") not in (None, "")})
-    out({"switch": a.switch, "configured": True, "peerPort": mlag.get("peer-port"),
+    out({"switch": a.switch, "configured": True, "peerPort": m["peer"],
          "peerLink": "up" if truthy(peer.get("running")) else "down",
          "state": state.get("status", ""), "role": state.get("active-role", ""), "systemId": state.get("system-id", ""),
          "ids": ids, "monitor": state})

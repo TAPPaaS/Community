@@ -178,6 +178,33 @@ def mlag_raw():
     return r
 
 
+def mlag_raw_723():
+    """The same, as RouterOS 7.23 keeps it: no MLAG menu, the peer port on the bridge."""
+    r = mlag_raw()
+    r["interface bridge mlag"] = []
+    r["interface bridge"][0].update({"mlag-peer-port": "peer-link", "mlag-priority": 0, "mlag-heartbeat": "none"})
+    return r
+
+
+class Mlag723(unittest.TestCase):
+    def test_peer_link_from_bridge(self):
+        p = mc.interrogate(mlag_raw_723(), "crs-a", "10.0.0.21")["switches"]["crs-a"]
+        self.assertEqual(p["mlag"]["peerPort"], "peer-link")
+        self.assertTrue(p["ports"]["sfp-sfpplus16"]["peerLink"])
+
+    def test_peer_link_never_programmed(self):
+        with self.assertRaises(mc.Refused):
+            mc.plan(mlag_raw_723(), {"sfp-sfpplus15": {"type": "switch", "mode": "trunk", "taggedVlans": [200]}})
+
+    def test_vlans_on_peer_link(self):
+        ops, _, _ = mc.plan(mlag_raw_723(), {"sfp-sfpplus1": {"type": "node", "mode": "trunk", "nativeVlan": 0, "taggedVlans": [200, 310, 410, 610]}})
+        self.assertIn({"op": "add", "path": "interface bridge vlan", "args": "bridge=bridge vlan-ids=610 tagged=peer-link,sfp-sfpplus1"}, ops)
+
+    def test_none_is_no_mlag(self):
+        r = raw(); r["interface bridge"][0]["mlag-peer-port"] = "none"
+        self.assertIsNone(mc.model(r, "bridge")["peer"])
+
+
 class Mlag(unittest.TestCase):
     def test_peer_link_reported_off_limits(self):
         p = mc.interrogate(mlag_raw(), "crs-a", "10.0.0.21")["switches"]["crs-a"]
