@@ -1,5 +1,6 @@
 {
   "description": "UniFi OS Server — self-hosted UniFi OS (Network etc.) on Debian 13; the management plane that adopts UniFi switches and APs (ADR-008 Stage 5, #339)",
+  "stack": "misc",
   "version": "0.2.0",
   "appVersion": "5.0.6",
   "releaseDate": "2026-06-14",
