@@ -370,6 +370,15 @@ def plan(raw, desired_ports, bridge="bridge", mlag_ids=None):
         if d.get("mode") == "trunk":
             for v in d.get("taggedVlans") or []:
                 want.setdefault(int(v), set()).add(target[port])
+    # Across an MLAG pair the peer link carries every VLAN an MLAG port uses,
+    # untagged ones too (a port's PVID: 1 for TAPPaaS's native 0, the site's
+    # mgmt): tagged on the peer link, so a frame that enters on one switch can
+    # leave through the other. The PVID entries are the peer link's alone.
+    peer_pvids = set()
+    if m["peer"]:
+        for port, d in leads.items():
+            nv = int(d.get("nativeVlan") or 0)
+            peer_pvids.add(nv if nv > 0 else bpvid)
     seen = set()
     for vl in m["vlans"]:
         ids = vlan_ids(vl.get("vlan-ids"))
@@ -379,7 +388,7 @@ def plan(raw, desired_ports, bridge="bridge", mlag_ids=None):
         # Across an MLAG pair every VLAN a managed interface carries is on the
         # peer link too, or the two halves of an aggregate cannot meet.
         peer = [m["peer"]] if m["peer"] else []
-        new_by_id = {v: join_list(keep + sorted(want.get(v, set())) + (peer if want.get(v) else [])) for v in ids}
+        new_by_id = {v: join_list(keep + sorted(want.get(v, set())) + (peer if (want.get(v) or v in peer_pvids) else [])) for v in ids}
         old_tag, old_untag = join_list(split_list(vl.get("tagged"))), join_list(split_list(vl.get("untagged")))
         if len(set(new_by_id.values())) <= 1:
             nt = next(iter(new_by_id.values()), "")
@@ -391,9 +400,9 @@ def plan(raw, desired_ports, bridge="bridge", mlag_ids=None):
             for v in ids:
                 ops.append({"op": "add", "path": "interface bridge vlan",
                             "args": f"bridge={bridge} vlan-ids={v} tagged={new_by_id[v]}" + (f" untagged={join_list(untag)}" if untag else "")})
-    for v in sorted(set(want) - seen):
+    for v in sorted((set(want) | peer_pvids) - seen):
         ops.append({"op": "add", "path": "interface bridge vlan",
-                    "args": f"bridge={bridge} vlan-ids={v} tagged={join_list(sorted(want[v]) + ([m['peer']] if m['peer'] else []))}"})
+                    "args": f"bridge={bridge} vlan-ids={v} tagged={join_list(sorted(want.get(v, set())) + ([m['peer']] if m['peer'] else []))}"})
 
     # What changes, per managed port, in switch/1 terms.
     cur = interrogate(raw, "_", "", bridge)["switches"]["_"]["ports"]

@@ -195,6 +195,19 @@ class Mlag(unittest.TestCase):
         self.assertIn({"op": "update", "path": "interface bridge vlan", "args": ".id=*51 tagged=peer-link,sfp-sfpplus1,sfp-sfpplus3 untagged="}, ops,
                       "an existing VLAN the managed port carries gets the peer link")
 
+    def test_native_vlan_on_peer_link(self):
+        ops, _, _ = mc.plan(mlag_raw(), {"sfp-sfpplus1": {"type": "node", "mode": "trunk", "nativeVlan": 0, "taggedVlans": [200, 310, 410]}})
+        self.assertIn({"op": "add", "path": "interface bridge vlan", "args": "bridge=bridge vlan-ids=1 tagged=peer-link"}, ops,
+                      "the untagged mgmt VLAN (PVID 1) of an MLAG-side port is tagged on the peer link")
+
+    def test_parked_vlan_on_peer_link(self):
+        ops, _, _ = mc.plan(mlag_raw(), {"sfp-sfpplus4": {"parked": True, "mode": "access", "nativeVlan": 430}})
+        self.assertIn({"op": "update", "path": "interface bridge vlan", "args": ".id=*52 tagged=peer-link untagged=sfp-sfpplus2"}, ops)
+
+    def test_no_peer_no_pvid_entries(self):
+        ops, _, _ = mc.plan(raw(), {"sfp-sfpplus1": {"type": "node", "mode": "trunk", "nativeVlan": 0, "taggedVlans": [200, 310, 410]}})
+        self.assertEqual(ops, [], "without MLAG nothing is added for the PVID")
+
     def test_peer_link_kept(self):
         ops, _, _ = mc.plan(mlag_raw(), {"sfp-sfpplus1": {"type": "node", "mode": "trunk", "nativeVlan": 0, "taggedVlans": []}})
         upd = [o["args"] for o in ops if o["path"] == "interface bridge vlan"]

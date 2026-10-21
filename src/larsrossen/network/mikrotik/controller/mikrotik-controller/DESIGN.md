@@ -34,7 +34,9 @@
 - **The MLAG peer link** (`/interface bridge mlag` `peer-port`, a port or a bond) is
   never programmed: its ports read `disabled` with `peerLink: true` (neither parked nor
   warned about), and a desired that names one is refused. Every VLAN a managed interface
-  carries is tagged on it too, in existing entries and new ones.
+  carries is tagged on it too, in existing entries and new ones — the untagged ones
+  included: a managed port's PVID (1 for the site's untagged mgmt) is tagged on the
+  peer link, as MLAG requires of every VLAN its ports use.
 - **MLAG:** the peer link and the shared settings are the operator's, once, in RouterOS
   (`/interface bridge mlag set bridge=bridge peer-port=…`); `mlag-status` reports them and
   the monitor's state, and an aggregate whose lead port names an `mlagId` in desired gets
