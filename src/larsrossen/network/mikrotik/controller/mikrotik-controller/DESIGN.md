@@ -38,6 +38,12 @@
   carries is tagged on it too, in existing entries and new ones — the untagged ones
   included: a managed port's PVID (1 for the site's untagged mgmt) is tagged on the
   peer link, as MLAG requires of every VLAN its ports use.
+- **MLAG bonds get `up-delay` (20 s, `MIKROTIK_MLAG_UP_DELAY`).** A switch that boots
+  otherwise brings its MLAG legs up while the peers are still syncing, and the pair
+  then floods its own MLAG bonds now and then (1–4 % loss on hrossen) until the MLAG
+  session restarts. With it, a leg joins once the sync is done; a re-plugged leg simply
+  joins 20 s later. An existing MLAG bond without it gets it at the next apply (the bond
+  re-forms once, about 3 s).
 - **MLAG:** the peer link and the shared settings are the operator's, once, in RouterOS
   (`/interface bridge mlag set bridge=bridge peer-port=…`); `mlag-status` reports them and
   the monitor's state, and an aggregate whose lead port names an `mlagId` in desired gets

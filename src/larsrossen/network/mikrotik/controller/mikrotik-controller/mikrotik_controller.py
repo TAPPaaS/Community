@@ -30,6 +30,10 @@ CONFIG_DIR = os.environ.get("CONFIG_DIR", "/home/tappaas/config")
 ACCESS_FRAMES = "admit-only-untagged-and-priority-tagged"
 TRUNK_FRAMES = "admit-all"
 BOND_DEFAULTS = {"mode": "802.3ad", "lacp-rate": "1sec", "transmit-hash-policy": "layer-2-and-3"}
+# An MLAG bond's leg joins only after the peers have synced: a switch that boots
+# brings its legs up mid-sync otherwise, and the pair then floods its own MLAG
+# bonds now and then (1-4 % loss on hrossen, 2026-10-22) until the session restarts.
+MLAG_UP_DELAY = os.environ.get("MIKROTIK_MLAG_UP_DELAY", "20s")
 READ_PATHS = ["interface ethernet", "interface bonding", "interface bridge", "interface bridge port",
               "interface bridge vlan", "interface bridge mlag", "system resource", "system identity",
               "system routerboard"]
@@ -344,8 +348,11 @@ def plan(raw, desired_ports, bridge="bridge", mlag_ids=None):
                                   "mlag": want_mlag})
                 lags.append({"port": port, "bond": name, "members": sorted(members, key=natkey), "action": "form"})
             elif want_mlag is not None and str(m["bonds"][name].get("mlag-id", "")) != str(want_mlag):
-                ops.append({"op": "update", "path": "interface bonding", "args": f".id={m['bonds'][name]['.id']} mlag-id={want_mlag}"})
+                ops.append({"op": "update", "path": "interface bonding", "args": f".id={m['bonds'][name]['.id']} mlag-id={want_mlag} up-delay={MLAG_UP_DELAY}"})
                 lags.append({"port": port, "bond": name, "members": sorted(members, key=natkey), "action": "mlag-id"})
+            elif want_mlag is not None and str(m["bonds"][name].get("up-delay", "0ms")) in ("0ms", "0s", "0", ""):
+                # An MLAG bond made before up-delay was the rule: set it (the bond re-forms once, ~3 s).
+                ops.append({"op": "update", "path": "interface bonding", "args": f".id={m['bonds'][name]['.id']} up-delay={MLAG_UP_DELAY}"})
         else:
             target[port] = port
             if cur_bond:
@@ -379,6 +386,7 @@ def plan(raw, desired_ports, bridge="bridge", mlag_ids=None):
         args = {**BOND_DEFAULTS, "slaves": ",".join(nb["members"])}
         if nb["mlag"] is not None:
             args["mlag-id"] = str(nb["mlag"])
+            args["up-delay"] = MLAG_UP_DELAY
         if nb["update"]:
             ops.append({"op": "update", "path": "interface bonding", "args": f".id={m['bonds'][nb['name']]['.id']} slaves={args['slaves']}"})
         else:

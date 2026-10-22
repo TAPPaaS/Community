@@ -118,13 +118,13 @@ class Plan(unittest.TestCase):
     def test_lag_mlag_id(self):
         ops, _, _ = mc.plan(raw(), {"sfp-sfpplus3": {"type": "node", "mode": "trunk", "taggedVlans": [], "lagMembers": ["sfp-sfpplus3", "sfp-sfpplus4"]}},
                             mlag_ids={"sfp-sfpplus3": 10})
-        self.assertTrue(ops_of(ops, "add", "interface bonding")[0]["args"].endswith("mlag-id=10"))
+        self.assertTrue(ops_of(ops, "add", "interface bonding")[0]["args"].endswith("mlag-id=10 up-delay=20s"))
 
     def test_mlag_one_member(self):
         ops, _, lags = mc.plan(raw(), {"sfp-sfpplus3": {"type": "node", "mode": "trunk", "taggedVlans": [], "lagMembers": ["sfp-sfpplus3"], "mlagId": 10}},
                                mlag_ids={"sfp-sfpplus3": 10})
         self.assertEqual(ops_of(ops, "add", "interface bonding")[0]["args"],
-                         "name=bond-sfp-sfpplus3 mode=802.3ad lacp-rate=1sec transmit-hash-policy=layer-2-and-3 slaves=sfp-sfpplus3 mlag-id=10",
+                         "name=bond-sfp-sfpplus3 mode=802.3ad lacp-rate=1sec transmit-hash-policy=layer-2-and-3 slaves=sfp-sfpplus3 mlag-id=10 up-delay=20s",
                          "one member here, the other on the peer")
         self.assertEqual(lags[0]["action"], "form")
 
@@ -137,7 +137,17 @@ class Plan(unittest.TestCase):
         r = raw(); r["interface bonding"][0]["mlag-id"] = 12
         ops, _, _ = mc.plan(r, {"sfp-sfpplus5": {"type": "node", "mode": "trunk", "nativeVlan": 0, "taggedVlans": [200, 310],
                                                  "lagMembers": ["sfp-sfpplus5", "sfp-sfpplus6"]}}, mlag_ids={"sfp-sfpplus5": 14})
-        self.assertEqual(ops, [{"op": "update", "path": "interface bonding", "args": ".id=*20 mlag-id=14"}])
+        self.assertEqual(ops, [{"op": "update", "path": "interface bonding", "args": ".id=*20 mlag-id=14 up-delay=20s"}])
+
+    def test_mlag_bond_gets_up_delay(self):
+        r = raw(); r["interface bonding"][0].update({"mlag-id": 12, "up-delay": "0ms"})
+        ops, _, _ = mc.plan(r, {"sfp-sfpplus5": {"type": "node", "mode": "trunk", "nativeVlan": 0, "taggedVlans": [200, 310],
+                                                 "lagMembers": ["sfp-sfpplus5", "sfp-sfpplus6"]}}, mlag_ids={"sfp-sfpplus5": 12})
+        self.assertEqual(ops, [{"op": "update", "path": "interface bonding", "args": ".id=*20 up-delay=20s"}])
+        r["interface bonding"][0]["up-delay"] = "20s"
+        ops, _, _ = mc.plan(r, {"sfp-sfpplus5": {"type": "node", "mode": "trunk", "nativeVlan": 0, "taggedVlans": [200, 310],
+                                                 "lagMembers": ["sfp-sfpplus5", "sfp-sfpplus6"]}}, mlag_ids={"sfp-sfpplus5": 12})
+        self.assertEqual(ops, [], "set once, then in sync")
 
     def test_lag_existing_in_sync(self):
         ops, _, lags = mc.plan(raw(), {"sfp-sfpplus5": {"type": "node", "mode": "trunk", "nativeVlan": 0, "taggedVlans": [200, 310],
