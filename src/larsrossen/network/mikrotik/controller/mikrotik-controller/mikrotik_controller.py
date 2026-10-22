@@ -284,7 +284,13 @@ def interrogate(raw, name, ip, bridge="bridge"):
           "managementIp": ip, "firmware": str(res.get("version", "")), "identity": ident.get("name", ""),
           "bridge": bridge, "ports": out_ports}
     if m["peer"]:
-        sw["mlag"] = {"peerPort": m["peer"], "bridge": bridge}
+        br = m["bridge"] or {}
+        # What MikroTik requires alike on both peers (or the pair floods its own
+        # MLAG bonds): the heartbeat on, the same STP priority. Reported so the
+        # manager can compare the two (mlag-pair list, the mlag-pairs gate).
+        sw["mlag"] = {"peerPort": m["peer"], "bridge": bridge,
+                      "heartbeat": str(br.get("mlag-heartbeat", "")) if "mlag-heartbeat" in br else None,
+                      "priority": br.get("mlag-priority"), "stpPriority": br.get("priority")}
     return {"switches": {name: sw}, "aps": {}}
 
 

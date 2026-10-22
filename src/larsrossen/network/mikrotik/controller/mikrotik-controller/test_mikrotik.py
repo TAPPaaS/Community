@@ -200,6 +200,11 @@ class Mlag723(unittest.TestCase):
         ops, _, _ = mc.plan(mlag_raw_723(), {"sfp-sfpplus1": {"type": "node", "mode": "trunk", "nativeVlan": 0, "taggedVlans": [200, 310, 410, 610]}})
         self.assertIn({"op": "add", "path": "interface bridge vlan", "args": "bridge=bridge vlan-ids=610 tagged=peer-link,sfp-sfpplus1"}, ops)
 
+    def test_mlag_settings_reported(self):
+        r = mlag_raw_723(); r["interface bridge"][0]["priority"] = "0x4000"
+        mlag = mc.interrogate(r, "crs-a", "10.0.0.21")["switches"]["crs-a"]["mlag"]
+        self.assertEqual((mlag["heartbeat"], mlag["priority"], mlag["stpPriority"]), ("none", 0, "0x4000"))
+
     def test_none_is_no_mlag(self):
         r = raw(); r["interface bridge"][0]["mlag-peer-port"] = "none"
         self.assertIsNone(mc.model(r, "bridge")["peer"])
