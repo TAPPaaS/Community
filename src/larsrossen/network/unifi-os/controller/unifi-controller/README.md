@@ -7,6 +7,9 @@ managers'.
 
 - **Controller architecture:** one UniFi OS controller adopts every switch and AP, so
   `interrogate --controller <name> --ip <controller>` returns all of them.
+- **What is behind a port:** each port's `neighbors` — the wired clients the controller
+  sees on it (MAC, the lease's hostname and address) and its LLDP neighbour — so
+  switch-manager can learn a netbooting machine's MAC from the port it is cabled to.
 - **Credentials:** a local admin of the controller in `~/.unifi-os-credentials.txt`
   (`username=`, `password=`; no SSO or MFA), or `--credentials FILE`.
 - **What it sets:** VLANs on the ports TAPPaaS annotated or parked, aggregates (the lead

@@ -291,5 +291,37 @@ class Verbs(unittest.TestCase):
         self.assertEqual(mc.main(["interrogate", "--switch", "crs-a", "--ip", "1.2.3.4"]), 1)
 
 
+class Neighbors(unittest.TestCase):
+    """What is behind a port (ADR-037 D4): the bridge's learned MACs and LLDP."""
+
+    def ports(self, hosts=(), neighbors=()):
+        r = raw()
+        r["interface bridge host"] = list(hosts)
+        r["ip neighbor"] = list(neighbors)
+        return mc.interrogate(r, "crs-a", "10.0.0.5")["switches"]["crs-a"]["ports"]
+
+    def test_a_learned_mac_is_on_its_port_lower_case(self):
+        p = self.ports(hosts=[{"mac-address": "02:AA:BB:CC:DD:01", "on-interface": "ether1", "local": "false"},
+                              {"mac-address": "04:F4:1C:00:00:01", "on-interface": "ether1", "local": "true"}])
+        self.assertEqual(p["ether1"]["neighbors"], [{"mac": "02:aa:bb:cc:dd:01"}])
+        self.assertEqual(p["sfp-sfpplus1"]["neighbors"], [])
+
+    def test_a_bonds_macs_are_on_its_lead_port(self):
+        p = self.ports(hosts=[{"mac-address": "02:aa:bb:cc:dd:02", "on-interface": "bond1", "local": False}])
+        self.assertEqual(p["sfp-sfpplus5"]["neighbors"], [{"mac": "02:aa:bb:cc:dd:02"}])
+        self.assertEqual(p["sfp-sfpplus6"]["neighbors"], [])
+
+    def test_an_lldp_neighbour_joins_its_mac_on_the_physical_port(self):
+        p = self.ports(hosts=[{"mac-address": "74:83:c2:d0:d0:dd", "on-interface": "sfp-sfpplus2", "local": False}],
+                       neighbors=[{"interface": "sfp-sfpplus2,bridge", "mac-address": "74:83:C2:D0:D0:DD",
+                                   "identity": "USW-Pro", "interface-name": "SFP 1"},
+                                  {"interface": "sfp-sfpplus3,bridge", "mac-address": "not-a-mac", "identity": "x"}])
+        self.assertEqual(p["sfp-sfpplus2"]["neighbors"], [{"mac": "74:83:c2:d0:d0:dd", "lldp": {"name": "USW-Pro", "port": "SFP 1"}}])
+        self.assertEqual(p["sfp-sfpplus3"]["neighbors"], [])
+
+    def test_a_read_without_the_tables_reports_none(self):
+        self.assertTrue(all(v["neighbors"] == [] for v in mc.interrogate(raw(), "crs-a", "10.0.0.5")["switches"]["crs-a"]["ports"].values()))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

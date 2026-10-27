@@ -331,6 +331,39 @@ ck "take apart: verified" "0" "${rc}"
 unset -f sleep
 rm -rf "${LTMP}"
 
+# ── What is behind a port (ADR-037 D4): wired clients and LLDP ──────
+_unifi_get() {
+    case "$1" in
+        /rest/networkconf) echo '{"data":[]}' ;;
+        /stat/device) cat <<'JSON'
+{"data":[{"_id":"d1","name":"sw1","ip":"1.2.3.4","model":"USWX","type":"usw","mac":"a8:9c:6c:00:00:01",
+  "port_table":[{"port_idx":1,"forward":"all"},{"port_idx":2,"forward":"all"},{"port_idx":3,"forward":"all"}],
+  "lldp_table":[{"local_port_idx":1,"chassis_id":"74:83:C2:D0:D0:DD","port_id":"eth0","is_wired":true},
+                {"local_port_idx":2,"chassis_id":"not-a-mac","port_id":"x","is_wired":true}],
+  "port_overrides":[]}]}
+JSON
+        ;;
+        /stat/sta) cat <<'JSON'
+{"data":[{"mac":"02:AA:BB:CC:DD:01","is_wired":true,"sw_mac":"a8:9c:6c:00:00:01","sw_port":3,"hostname":"pxe-box","ip":"10.0.0.211"},
+         {"mac":"02:aa:bb:cc:dd:02","is_wired":true,"sw_mac":"a8:9c:6c:00:00:01","sw_port":3},
+         {"mac":"02:aa:bb:cc:dd:03","is_wired":false,"sw_mac":"a8:9c:6c:00:00:01","sw_port":3},
+         {"mac":"02:aa:bb:cc:dd:04","is_wired":true,"sw_mac":"ff:ff:ff:00:00:09","sw_port":3},
+         {"mac":"74:83:c2:d0:d0:dd","is_wired":true,"sw_mac":"a8:9c:6c:00:00:01","sw_port":1,"hostname":"tappaas2"}]}
+JSON
+        ;;
+    esac
+}
+NB="$(plugin_interrogate sw1 1.2.3.4)"
+ck "neighbors: port 3's two wired clients, lower-case" "02:aa:bb:cc:dd:01,02:aa:bb:cc:dd:02" "$(jq -rc '.ports["3"].neighbors | map(.mac) | join(",")' <<<"$NB")"
+ck "neighbors: the lease's hostname and address" "pxe-box 10.0.0.211" "$(jq -r '.ports["3"].neighbors[0].lease | "\(.hostname) \(.address)"' <<<"$NB")"
+ck "neighbors: a client and the LLDP neighbour with one MAC are one entry" "1:tappaas2:eth0" \
+   "$(jq -r '.ports["1"].neighbors | "\(length):\(.[0].lease.hostname):\(.[0].lldp.port)"' <<<"$NB")"
+ck "neighbors: an LLDP chassis that is no MAC is none; an empty port has []" "0" "$(jq -r '.ports["2"].neighbors | length' <<<"$NB")"
+NC="$(plugin_controller_interrogate ctl 1.2.3.4)"
+ck "neighbors: the controller upload carries them too" "2" "$(jq -r '.switches.sw1.ports["3"].neighbors | length' <<<"$NC")"
+_unifi_get() { case "$1" in /stat/device) echo '{"data":[{"name":"sw1","ip":"1.2.3.4","type":"usw","mac":"m","port_table":[{"port_idx":1}]}]}' ;; *) echo "" ;; esac; }
+ck "neighbors: no client list from the controller is []" "0" "$(plugin_interrogate sw1 1.2.3.4 | jq -r '.ports["1"].neighbors | length')"
+
 echo ""
 echo "test-unifi-controller: ${PASS} passed, ${FAIL} failed"
 [[ "${FAIL}" -eq 0 ]]

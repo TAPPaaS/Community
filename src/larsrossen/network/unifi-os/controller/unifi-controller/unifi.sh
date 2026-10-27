@@ -107,12 +107,24 @@ _unifi_get() {
 # POST/PUT with a JSON body.
 _unifi_send() { local m="$1" path="$2" body="$3"; curl -sk -m 25 -b "${_UNIFI_JAR}" ${_UNIFI_CSRF:+-H "X-CSRF-Token: ${_UNIFI_CSRF}"} -H "Content-Type: application/json" -X "${m}" -d "${body}" "${_UNIFI_URL}/proxy/network/api/s/${UNIFI_SITE}${path}" 2>/dev/null; }
 
+# What is behind a port (ADR-037 D4, ADR-036 step 2): the wired clients the
+# controller sees on it (/stat/sta: sw_mac + sw_port, with the lease's hostname
+# and address) and the LLDP neighbour the switch reports (lldp_table), one entry
+# per MAC — so switch-manager can learn a netbooting machine's MAC from its port.
 # A port's live aggregate (#40): the lead port of a LAG lists its members in
 # port_table.aggregate_members (op_mode "aggregate"); every other port lists none.
 # Its link (#853): port_table.up — switch-manager parks only a port with none.
 _UNIFI_LAG_JQ='def _lag: if (.op_mode // "") == "aggregate" and ((.aggregate_members // []) | length) > 1
                            then (.aggregate_members | sort) else [] end;
-               def _link: if .up == true then "up" elif .up == false then "down" else null end;'
+               def _link: if .up == true then "up" elif .up == false then "down" else null end;
+               def _mac: type == "string" and test("^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$");
+               def _nbrs($d; $k; $stas):
+                 ([ ($stas.data // [])[] | select(.is_wired == true and .sw_mac == $d.mac and ((.sw_port // -1) | tostring) == $k)
+                    | {mac: (.mac | ascii_downcase), lldp: null,
+                       lease: {hostname: (.hostname // .name // null), address: (.ip // .last_ip // null)}} ]
+                  + [ ($d.lldp_table // [])[] | select((.local_port_idx | tostring) == $k and (.chassis_id | _mac))
+                    | {mac: (.chassis_id | ascii_downcase), lldp: {name: null, port: (.port_id // null)}, lease: null} ])
+                 | group_by(.mac) | map(reduce .[] as $n ({}; . + ($n | with_entries(select(.value != null)))));'
 
 # ── Contract: supports + management metadata ────────────────────────
 plugin_supports() { [[ "${1:-}" == "unifi" ]]; }
@@ -146,15 +158,17 @@ plugin_check_access() {
 plugin_interrogate() {
     local name="$1" mgmt_ip="${2:-}"
     _unifi_login || { echo "{}"; return 1; }
-    local devs nets
+    local devs nets stas
     devs=$(_unifi_get /stat/device)
     [[ -n "${devs}" ]] || { _unifi_warn "${name}: no device list from the controller"; echo "{}"; return 1; }
     nets=$(_unifi_get /rest/networkconf)
     echo "${nets}" | jq -e . >/dev/null 2>&1 || nets='{"data":[]}'
+    stas=$(_unifi_get /stat/sta)
+    echo "${stas}" | jq -e . >/dev/null 2>&1 || stas='{"data":[]}'
 
     jq -n --arg name "${name}" --arg ip "${mgmt_ip}" \
-          --slurpfile devs <(printf '%s' "${devs}") --slurpfile nets <(printf '%s' "${nets}") "${_UNIFI_LAG_JQ}"'
-        $devs[0] as $devs | $nets[0] as $nets
+          --slurpfile devs <(printf '%s' "${devs}") --slurpfile nets <(printf '%s' "${nets}") --slurpfile stas <(printf '%s' "${stas}") "${_UNIFI_LAG_JQ}"'
+        $devs[0] as $devs | $nets[0] as $nets | $stas[0] as $stas
         # vlan map: networkconf _id -> vlan id (0 when untagged/Default)
         | (reduce (($nets.data // [])[]) as $n ({}; .[$n._id] = ($n.vlan // 0))) as $id2vlan
         # all defined tagged VLAN ids (for forward=all/customize trunks)
@@ -184,7 +198,7 @@ plugin_interrogate() {
                         { mode:"trunk", nativeVlan:$natvlan, taggedVlans:($allvlans - $exclv), source:"discovered" }
                       else   # "all"
                         { mode:"trunk", nativeVlan:$natvlan, taggedVlans:$allvlans, source:"discovered" }
-                      end) + { lagMembers: ($p | _lag), link: ($p | _link) }) }
+                      end) + { lagMembers: ($p | _lag), link: ($p | _link), neighbors: _nbrs($d; $k; $stas) }) }
               ))
           }
         end'
@@ -201,14 +215,16 @@ plugin_interrogate() {
 plugin_controller_interrogate() {
     local name="$1" mgmt_ip="${2:-}"   # mgmt_ip unused: creds carry the URL
     _unifi_login || { echo "{}"; return 1; }
-    local devs nets
+    local devs nets stas
     devs=$(_unifi_get /stat/device)
     [[ -n "${devs}" ]] || { _unifi_warn "${name}: no device list from the controller"; echo "{}"; return 1; }
     nets=$(_unifi_get /rest/networkconf)
     echo "${nets}" | jq -e . >/dev/null 2>&1 || nets='{"data":[]}'
+    stas=$(_unifi_get /stat/sta)
+    echo "${stas}" | jq -e . >/dev/null 2>&1 || stas='{"data":[]}'
 
-    jq -n --slurpfile devs <(printf '%s' "${devs}") --slurpfile nets <(printf '%s' "${nets}") "${_UNIFI_LAG_JQ}"'
-        $devs[0] as $devs | $nets[0] as $nets
+    jq -n --slurpfile devs <(printf '%s' "${devs}") --slurpfile nets <(printf '%s' "${nets}") --slurpfile stas <(printf '%s' "${stas}") "${_UNIFI_LAG_JQ}"'
+        $devs[0] as $devs | $nets[0] as $nets | $stas[0] as $stas
         | (reduce (($nets.data // [])[]) as $n ({}; .[$n._id] = ($n.vlan // 0))) as $id2vlan
         | ([ ($nets.data // [])[] | (.vlan // 0) | select(. > 0) ] | sort | unique) as $allvlans
         # switch MAC -> name, to resolve an AP uplink to its switch.
@@ -232,7 +248,7 @@ plugin_controller_interrogate() {
                         elif $fwd == "disabled" then { mode:"access", nativeVlan:0, disabled:true, source:"discovered" }
                         elif $fwd == "customize" then { mode:"trunk", nativeVlan:$natvlan, taggedVlans:($allvlans - $exclv), source:"discovered" }
                         else { mode:"trunk", nativeVlan:$natvlan, taggedVlans:$allvlans, source:"discovered" } end)
-                        + { lagMembers: ($p | _lag), link: ($p | _link) }) }
+                        + { lagMembers: ($p | _lag), link: ($p | _link), neighbors: _nbrs($d; $k; $stas) }) }
                   ))
               } )),
             # APs (type "uap") with their wired uplink resolved to a switch + port,

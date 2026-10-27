@@ -36,7 +36,8 @@ BOND_DEFAULTS = {"mode": "802.3ad", "lacp-rate": "1sec", "transmit-hash-policy":
 MLAG_UP_DELAY = os.environ.get("MIKROTIK_MLAG_UP_DELAY", "20s")
 READ_PATHS = ["interface ethernet", "interface bonding", "interface bridge", "interface bridge port",
               "interface bridge vlan", "interface bridge mlag", "system resource", "system identity",
-              "system routerboard"]
+              "system routerboard", "interface bridge host", "ip neighbor"]
+MAC = re.compile(r"^([0-9a-f]{2}:){5}[0-9a-f]{2}$")
 
 
 class Refused(Exception):
@@ -238,6 +239,25 @@ def native_of(pvid, bridge_pvid=1):
     return 0 if pvid == int(bridge_pvid or 1) else pvid
 
 
+def port_neighbors(raw, ifname, target, lead=True):
+    """What is behind a port (ADR-037 D4): the MACs the bridge learned on it (or on
+    its bond, reported on the bond's lead port) and the LLDP/MNDP neighbour seen on
+    it, one entry per MAC — so switch-manager can learn a netbooting machine's MAC
+    from the port it is cabled to."""
+    by = {}
+    for h in raw.get("interface bridge host", []):
+        mac = str(h.get("mac-address") or "").lower()
+        if truthy(h.get("local")) or h.get("on-interface") != target or not lead or not MAC.match(mac):
+            continue
+        by.setdefault(mac, {"mac": mac})
+    for n in raw.get("ip neighbor", []):
+        mac = str(n.get("mac-address") or "").lower()
+        if not MAC.match(mac) or ifname not in split_list(n.get("interface")):
+            continue
+        by.setdefault(mac, {"mac": mac})["lldp"] = {"name": n.get("identity") or None, "port": n.get("interface-name") or None}
+    return [by[m] for m in sorted(by)]
+
+
 def interrogate(raw, name, ip, bridge="bridge"):
     m = model(raw, bridge)
     if m["bridge"] is None:
@@ -256,14 +276,17 @@ def interrogate(raw, name, ip, bridge="bridge"):
         bp = m["ports"].get(target)
         p = {"link": "up" if truthy(e.get("running")) else "down",
              "disabled": truthy(e.get("disabled")), "source": "discovered", "lagMembers": []}
+        lead = True
         if bond:
             members = sorted(split_list(m["bonds"][bond].get("slaves")), key=natkey)
+            lead = bool(members) and members[0] == ifname
             p["bond"] = bond
             if members and members[0] == ifname:
                 p["lagMembers"] = members
             mlag = m["bonds"][bond].get("mlag-id")
             if mlag not in (None, ""):
                 p["liveMlagId"] = int(mlag)
+        p["neighbors"] = port_neighbors(raw, ifname, target, lead)
         if ifname in m["peer_ifaces"]:
             # The MLAG peer link: reported disabled so the manager neither parks
             # nor warns about it, and refused if anything asks to program it.

@@ -23,4 +23,7 @@ mikrotik-controller apply --switch <name> [--desired FILE] [--check]
 mikrotik-controller mlag-status --switch <name> --ip <address>
 ```
 
-The managers call it; an operator uses `switch-manager`.
+The managers call it; an operator uses `switch-manager`. `interrogate` reports, per port,
+its `neighbors`: the MACs the bridge learned on it (a bond's on its lead port) and the
+LLDP/MNDP neighbour seen there, so switch-manager can learn a netbooting machine's MAC
+from the port it is cabled to.
