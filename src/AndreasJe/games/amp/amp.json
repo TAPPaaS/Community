@@ -1,0 +1,65 @@
+{
+  "description": "CubeCoders AMP — web panel that creates and runs game servers on demand, with their ports forwarded automatically",
+  "displayName": "AMP",
+  "kind": "vm",
+  "version": "0.1.0",
+  "stack": "misc",
+  "releaseDate": "2026-10-30",
+  "maintainer": "@AndreasJe",
+  "status": "Testing",
+  "vmname": "amp",
+  "vmid": 354,
+  "vmtag": "TAPPaaS,Community,Games",
+  "zone0": "dmz",
+  "dependsOn": [
+    "cluster:vm",
+    "templates:debian",
+    "backup:vm",
+    "network:proxy",
+    "network:rules"
+  ],
+  "provides": [],
+  "config": {
+    "cluster:vm": {
+      "cores": 2,
+      "memory": 4096,
+      "diskSize": "32G",
+      "storage": "tanka1",
+      "imageType": "img",
+      "image": "debian-13-generic-amd64.qcow2",
+      "imageLocation": "https://cdimage.debian.org/cdimage/cloud/trixie/latest",
+      "cloudInit": "true",
+      "bridge0": "lan"
+    },
+    "network:proxy": {
+      "proxyPort": 8080,
+      "proxyAllowedZones": [
+        "home",
+        "netbird",
+        "mgmt"
+      ]
+    }
+  },
+  "ports": [
+    {
+      "port": 8080,
+      "protocol": "TCP",
+      "description": "AMP panel (behind Caddy)"
+    },
+    {
+      "port": "1024:65535",
+      "protocol": "TCP/UDP",
+      "description": "Game servers, on whatever ports AMP gives them"
+    }
+  ],
+  "ingress": [
+    {
+      "from": "home",
+      "ports": [
+        "1024:65535"
+      ],
+      "protocol": "TCP/UDP",
+      "description": "LAN players reach game servers directly on any port AMP gives them, without hairpinning via the WAN IP"
+    }
+  ]
+}

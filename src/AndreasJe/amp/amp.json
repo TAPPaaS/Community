@@ -1,0 +1,66 @@
+{
+  "description": "CubeCoders AMP — web panel that creates and runs game servers (Minecraft, Valheim, Satisfactory, ...) on demand",
+  "displayName": "AMP",
+  "kind": "vm",
+  "version": "0.1.0",
+  "stack": "misc",
+  "releaseDate": "2026-10-30",
+  "maintainer": "@AndreasJe",
+  "status": "Development",
+  "vmname": "amp",
+  "vmid": 354,
+  "vmtag": "TAPPaaS,Community,Games",
+  "node": "tappaas2",
+  "zone0": "dmz",
+  "dependsOn": [
+    "cluster:vm",
+    "templates:debian",
+    "backup:vm",
+    "network:proxy",
+    "network:rules"
+  ],
+  "provides": [],
+  "config": {
+    "cluster:vm": {
+      "cores": 4,
+      "memory": 4096,
+      "diskSize": "24G",
+      "storage": "local-lvm",
+      "imageType": "img",
+      "image": "debian-13-generic-amd64-20260112-2355.qcow2",
+      "imageLocation": "https://cdimage.debian.org/cdimage/cloud/trixie/20260112-2355",
+      "cloudInit": "true",
+      "bridge0": "lan"
+    },
+    "network:proxy": {
+      "proxyPort": 8080,
+      "proxyAllowedZones": [
+        "home",
+        "netbird",
+        "mgmt"
+      ]
+    }
+  },
+  "ports": [
+    {
+      "port": 8080,
+      "protocol": "TCP",
+      "description": "AMP panel (behind Caddy)"
+    },
+    {
+      "port": "1024:65535",
+      "protocol": "TCP/UDP",
+      "description": "Game servers, on whatever ports AMP gives them"
+    }
+  ],
+  "ingress": [
+    {
+      "from": "home",
+      "ports": [
+        "1024:65535"
+      ],
+      "protocol": "TCP/UDP",
+      "description": "LAN players reach game servers directly on any port AMP gives them, without hairpinning via the WAN IP"
+    }
+  ]
+}

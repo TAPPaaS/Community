@@ -1,0 +1,20 @@
+{
+  "scope": "module",
+  "description": "Fields of the amp module itself.",
+  "fields": {
+    "portSync": {
+      "description": "What port-sync.sh does with the game ports AMP's instances use: forward them on the firewall's WAN interface, only report what it would forward, or nothing.",
+      "type": "string",
+      "values": {
+        "on": "Forward each instance's game ports; remove forwards of deleted or stopped instances",
+        "dry-run": "Print AMP's port data and the forwards it would create; change nothing",
+        "off": "Remove every AMP forward: game servers are LAN-only"
+      },
+      "usedBy": [],
+      "requiredBy": [],
+      "default": "on",
+      "example": "on",
+      "note": "LAN players reach every game port through the module's ingress rule from home, whatever this is set to."
+    }
+  }
+}
