@@ -74,7 +74,7 @@ main() {
     tj="${WEBHOST_ROOT}/templates/${t}/template.json"
     [[ -f "${tj}" ]] || tj="${WEBHOST_DECL_DIR}/webhost/templates/${t}/template.json"
     size="$(jq -c --slurpfile t "${tj}" '($t[0].defaults.size // {}) * (.size // {})' "${dest}")"
-    ov+=(--cores "$(jq -r '.cores // 1' <<<"${size}")" --memory "$(jq -r '.memory // 256' <<<"${size}")")
+    ov+=(--cores "$(jq -r '.cores // 1' <<<"${size}")" --memory "$(jq -r '.memory // 512' <<<"${size}")")
     [[ -z "$(jq -r '.diskSize // empty' <<<"${size}")" ]] || ov+=(--diskSize "$(jq -r '.diskSize' <<<"${size}")")
     [[ -z "$(jq -r '.public.tls // empty' "${dest}")" ]] || ov+=(--proxyTls "$(jq -r '.public.tls' "${dest}")")
     [[ -z "$(jq -r '.public.zones // empty' "${dest}")" ]] || ov+=(--proxyAllowedZones "$(jq -c '.public.zones' "${dest}")")

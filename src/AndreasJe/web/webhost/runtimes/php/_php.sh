@@ -32,7 +32,7 @@ EOF
 php_content() {
     [[ "${APP}" == wordpress ]] && return 0
     mirrors_sync "${SITE}"
-    install_site_agent "${NODE}" "${VMID}" "${SITE}" "${REPO}" "${REF}" "${SUBDIR}"
+    install_site_agent "${NODE}" "${VMID}" "${SITE}" "${REPO}" "${REF}" "${SUBDIR}" $'RELOAD=php*-fpm.service\n'
 }
 
 # php_configure — FPM pool (unix socket, sized), MariaDB on loopback, backup timer.
@@ -92,5 +92,24 @@ WantedBy=timers.target
 UNIT
 systemctl daemon-reload
 systemctl enable --now site-db-backup.timer >/dev/null 2>&1
+EOF
+}
+
+# php_env — the site's secrets (DB_*, DATABASE_URL) for the app, as FPM pool
+# env[] lines; run after db_setup, which writes them.
+php_env() {
+    pct_exec_script "${NODE}" "${VMID}" <<'EOF'
+set -euo pipefail
+PHPV="$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')"
+P="/etc/php/${PHPV}/fpm/pool.d/site.conf"
+sed -i '/^env\[/d' "${P}"
+printf 'env[DB_HOST] = 127.0.0.1\n' >> "${P}"
+if [[ -f /etc/secrets/site.env ]]; then
+    grep -E '^(DB_[A-Z]+|DATABASE_URL)=' /etc/secrets/site.env | grep -v '^DB_HOST=' | while IFS='=' read -r k v; do
+        printf 'env[%s] = "%s"\n' "${k}" "${v//\"/}" >> "${P}"
+    done
+fi
+chmod 0640 "${P}"
+systemctl reload "php${PHPV}-fpm"
 EOF
 }

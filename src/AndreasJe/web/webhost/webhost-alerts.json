@@ -5,7 +5,9 @@
       "title": "Package snapshot failed on its canary",
       "kind": "event",
       "match": "^canary-failed",
-      "capture": { "runtime": "runtime=(?P<runtime>[a-z]+)" },
+      "capture": {
+        "runtime": "runtime=(?P<runtime>[a-z]+)"
+      },
       "window": 3600,
       "summary": "A new package snapshot failed its canary's update or tests and was not promoted. Sites stay on the current lock."
     },
@@ -14,7 +16,9 @@
       "title": "Package snapshot is stale",
       "kind": "state",
       "match": "^snapshot-stale",
-      "capture": { "runtime": "runtime=(?P<runtime>[a-z]+)" },
+      "capture": {
+        "runtime": "runtime=(?P<runtime>[a-z]+)"
+      },
       "window": 86400,
       "repeat": "24h",
       "summary": "No snapshot has been promoted for this runtime for two days, so sites receive no package updates."
@@ -24,7 +28,10 @@
       "title": "Site update wave halted",
       "kind": "event",
       "match": "^update-wave-halted",
-      "capture": { "runtime": "runtime=(?P<runtime>[a-z]+)", "site": "site=(?P<site>[a-z0-9-]+)" },
+      "capture": {
+        "runtime": "runtime=(?P<runtime>[a-z]+)",
+        "site": "site=(?P<site>[a-z0-9-]+)"
+      },
       "window": 3600,
       "summary": "A site failed to upgrade to the current snapshot, so the other sites of its runtime skip that snapshot until a new one is promoted."
     },
@@ -33,10 +40,23 @@
       "title": "Site repository cannot be mirrored",
       "kind": "state",
       "match": "^mirror-failed",
-      "capture": { "site": "site=(?P<site>[a-z0-9-]+)" },
+      "capture": {
+        "site": "site=(?P<site>[a-z0-9-]+)"
+      },
       "window": 1800,
       "above": 10,
       "summary": "The webhost container could not fetch a site's repository for half an hour. The site keeps serving its current release."
+    },
+    {
+      "name": "inspection-blocked",
+      "title": "Site release blocked by inspection",
+      "kind": "event",
+      "match": "^inspection-blocked",
+      "capture": {
+        "site": "site=(?P<site>[a-z0-9-]+)"
+      },
+      "window": 3600,
+      "summary": "A new revision of a site failed its inspection (server code in a static site, a web shell, a leaked key or a critical vulnerable dependency) and was not published. The site keeps its last good release."
     }
   ]
 }

@@ -42,18 +42,39 @@ Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 SRC
 apt-get update -qq
 apt-get full-upgrade -y -qq -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold
-apt-get install -y -qq -o Dpkg::Options::=--force-confold curl jq git ca-certificates unattended-upgrades apt-cacher-ng
+apt-get install -y -qq -o Dpkg::Options::=--force-confold curl jq git ca-certificates unattended-upgrades apt-cacher-ng python3
 apt-get install -y -qq -t trixie-backports caddy
 apt-get purge -y -qq openssh-server >/dev/null 2>&1 || true
 systemctl enable --now unattended-upgrades >/dev/null 2>&1 || true
 id webhost-mirror >/dev/null 2>&1 || useradd --system --home-dir /nonexistent --shell /usr/sbin/nologin webhost-mirror
-install -d -m 0755 /srv/webhost/www /srv/webhost/www/artefacts /srv/webhost/www/snapshots
-install -d -m 0755 -o webhost-mirror -g webhost-mirror /srv/webhost/www/git
+id webhost-portal >/dev/null 2>&1 || useradd --system --home-dir /nonexistent --shell /usr/sbin/nologin -G webhost-mirror webhost-portal
+install -d -m 0755 /srv/webhost/www /srv/webhost/www/artefacts /srv/webhost/www/snapshots /srv/webhost/portal
+install -d -m 0755 -o webhost-mirror -g webhost-mirror /srv/webhost/www/git /srv/webhost/mirror /srv/webhost/inspect
+install -d -m 0775 -o webhost-portal -g webhost-portal /srv/webhost/portal/requests
+install -d -m 0700 -o webhost-portal -g webhost-portal /srv/webhost/portal/tokens
+install -d -m 2770 -o webhost-portal -g webhost-mirror /srv/webhost/portal/uploads
+
+# osv-scanner for the dependency check: the latest release, checked against
+# the SHA-256 list its project publishes.
+v="$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/google/osv-scanner/releases/latest | sed -n 's#.*/tag/v##p')"
+if [[ -n "${v}" ]] && ! /usr/local/bin/osv-scanner --version 2>/dev/null | grep -q "${v}"; then
+    u="https://github.com/google/osv-scanner/releases/download/v${v}"
+    if curl -fsSL --max-time 120 -o /tmp/osv-scanner "${u}/osv-scanner_linux_amd64" \
+        && curl -fsSL --max-time 30 "${u}/osv-scanner_SHA256SUMS" | grep ' osv-scanner_linux_amd64$' | sed 's# .*#  /tmp/osv-scanner#' | sha256sum -c --status -; then
+        install -m 0755 /tmp/osv-scanner /usr/local/bin/osv-scanner
+    else
+        echo "osv-scanner ${v}: download or checksum failed; keeping the installed one" >&2
+    fi
+    rm -f /tmp/osv-scanner
+fi
 EOF
 pct_push "${NODE}" "${VMID}" "${SCRIPT_DIR}/guest/acng.conf" /etc/apt-cacher-ng/acng.conf
 pct_push "${NODE}" "${VMID}" "${SCRIPT_DIR}/guest/Caddyfile" /etc/caddy/Caddyfile
 pct_push "${NODE}" "${VMID}" "${SCRIPT_DIR}/guest/webhost-mirror.sh" /usr/local/sbin/webhost-mirror 0755
-for f in tappaas-webhost-mirror.service tappaas-webhost-mirror.timer; do
+pct_push "${NODE}" "${VMID}" "${SCRIPT_DIR}/guest/webhost-inspect.py" /usr/local/sbin/webhost-inspect 0755
+pct_push "${NODE}" "${VMID}" "${SCRIPT_DIR}/guest/webhost-ingest.py" /usr/local/sbin/webhost-ingest 0755
+pct_push "${NODE}" "${VMID}" "${SCRIPT_DIR}/guest/webhost-portal.py" /usr/local/sbin/webhost-portal 0755
+for f in tappaas-webhost-mirror.service tappaas-webhost-mirror.timer tappaas-webhost-portal.service; do
     pct_push "${NODE}" "${VMID}" "${SCRIPT_DIR}/guest/${f}" "/etc/systemd/system/${f}"
 done
 webhost_sh <<'EOF'
@@ -64,7 +85,53 @@ systemctl enable caddy apt-cacher-ng >/dev/null 2>&1
 systemctl reload-or-restart caddy
 systemctl restart apt-cacher-ng
 systemctl enable --now tappaas-webhost-mirror.timer >/dev/null
+systemctl enable tappaas-webhost-portal.service >/dev/null 2>&1
+systemctl restart tappaas-webhost-portal.service
 EOF
+
+# Portal users: the gate creates the Authentik group; declaring it lets
+# identity-manager add members (identity-manager user modify <u> --add-groups webhost).
+if ! identity-manager group show webhost >/dev/null 2>&1; then
+    org="$(identity-manager org list --json 2>/dev/null | jq -r '.[0] // empty')"
+    if [[ -n "${org}" ]]; then
+        identity-manager group add webhost --type access-set --displayName "Website owners" --ownerOrg "${org}" >/dev/null 2>&1 \
+            || warn "could not declare the 'webhost' group in identity-manager"
+    else
+        warn "no identity-manager organisation: declare the 'webhost' group yourself to add portal users"
+    fi
+fi
+
+# The portal's requests are taken on the mothership by a user timer (lingering
+# keeps it running without a login); the portal itself holds no rights.
+info "webhost: portal sync timer"
+UNIT_DIR="${HOME}/.config/systemd/user"
+mkdir -p "${UNIT_DIR}"
+cat > "${UNIT_DIR}/webhost-portal-sync.service" <<UNIT
+[Unit]
+Description=TAPPaaS webhost: take the site portal's requests
+
+[Service]
+Type=oneshot
+# The TAPPaaS toolbox (module-manager, backup-manager, …) lives in ~/bin.
+Environment=PATH=${TAPPAAS_BIN:-/home/tappaas/bin}:/run/wrappers/bin:/etc/profiles/per-user/tappaas/bin:/run/current-system/sw/bin
+ExecStart=${SCRIPT_DIR}/manager/webhost-manager/webhost-manager portal sync
+UNIT
+cat > "${UNIT_DIR}/webhost-portal-sync.timer" <<UNIT
+[Unit]
+Description=Take the site portal's requests every minute
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=60s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target
+UNIT
+[[ "$(loginctl show-user "$(whoami)" -p Linger --value 2>/dev/null)" == yes ]] || loginctl enable-linger "$(whoami)" 2>/dev/null \
+    || warn "could not enable lingering for $(whoami): the portal timer stops at logout — run 'sudo loginctl enable-linger $(whoami)'"
+systemctl --user daemon-reload
+systemctl --user enable --now webhost-portal-sync.timer >/dev/null 2>&1 || warn "could not enable webhost-portal-sync.timer"
 
 pct_push "${NODE}" "${VMID}" "${SCRIPT_DIR}/guest/webhost-upstreams.sh" /usr/local/sbin/webhost-upstreams 0755
 
@@ -120,7 +187,7 @@ canary_remove() {
 
 canary_ensure() {
     local rt="$1" tpl="$2" site="canary-$1" base decl fixture cur
-    cur="$(jq -r '.template // empty' "${WEBHOST_DECL_DIR}/${site}/website.json" 2>/dev/null)"
+    cur="$(jq -r '.template // empty' "${WEBHOST_DECL_DIR}/${site}/website.json" 2>/dev/null || true)"
     [[ -f "${WEBHOST_CONFIG_DIR}/${site}.json" && "${cur}" == "${tpl}" ]] && return 0
     [[ -f "${WEBHOST_CONFIG_DIR}/${site}.json" ]] && canary_remove "${site}"
     base="$(jq -r '.tappaas.domain' "${WEBHOST_CONFIG_DIR}/configuration.json")"

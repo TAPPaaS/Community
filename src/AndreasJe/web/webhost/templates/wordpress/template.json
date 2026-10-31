@@ -1,5 +1,7 @@
 {
   "template": "wordpress",
+  "group": "sites",
+  "label": "WordPress",
   "summary": "WordPress on native PHP-FPM and MariaDB; no containers.",
   "runtime": "php",
   "app": "wordpress",
@@ -33,5 +35,12 @@
     "downloads.wordpress.org",
     "wordpress.org"
   ],
-  "csp": {}
+  "csp": {},
+  "guide": [
+    "WordPress and its MariaDB database are installed for you; you give no repository. Themes and plugins are managed in WordPress itself.",
+    "The database runs on the same container on loopback; wp-config.php is already set up with its credentials.",
+    "/wp-admin, /wp-login.php and /xmlrpc.php are only reachable from your own networks.",
+    "Outgoing connections are limited to wordpress.org, api.wordpress.org and downloads.wordpress.org.",
+    "The database is dumped daily at 02:00 and the last 14 dumps are kept on the container."
+  ]
 }

@@ -29,4 +29,23 @@ On first use the copy is seeded from the release file (`webhost-manager.json`), 
 
 Changes to `public.domain`, `public.tls`, `public.zones` and `size` go through `module-manager modify`. Everything else is applied with the site's own update.
 
-Until the platform registers contributed managers (ADR-035 D5), run it by path: `src/AndreasJe/web/webhost/manager/webhost-manager/webhost-manager`. Until `module-manager declaration validate` exists (ADR-038 D4), the module validates with `lib/declaration.jq`, an implementation of ADR-038 D1's schema subset.
+Until `module-manager declaration validate` exists (ADR-038 D4), the module validates with `lib/declaration.jq`, an implementation of ADR-038 D1's schema subset.
+
+Per site, `owner` names the portal user who created it, `source.upload: true` marks a site whose content is uploaded packages, and `inspection.accept` lists findings accepted on purpose (a rule name such as `web-shell`, or an advisory id such as `CVE-…`).
+
+## Backups and restore
+
+- `webhost-manager site backups <name> [--json]` lists restore points (nightly, from the platform's backup job).
+- `webhost-manager site restore <name> [--backup ID]`: a deployed site is restored in place, then updated. A deleted (archived) site gets its backup back in its own VMID and returns to the declaration from `~/config/webhost-deleted/<name>.json`. Changes after the backup are lost.
+- Deleted sites keep their private mirror, inspection result and deploy token.
+
+## Portal sync
+
+`webhost-manager portal sync` serves the site portal. A user timer, `webhost-portal-sync.timer`, runs it every minute. It:
+
+- writes the portal's settings (`/etc/webhost/portal.json`), the gate key (`/etc/webhost/portal-gate.json`, read from Authentik's API with `~/.authentik-credentials.txt`, refreshed hourly) and the site list (`/srv/webhost/portal/sites.json`)
+- validates each request: name free, domain unused, template exists, owner's limit
+- adds the site to the declaration with its `owner`, has its content inspected, and creates it only if the inspection passes; a blocked inspection rejects the request with the findings before any container exists
+- pushes the log of a running create or restore to `/srv/webhost/portal/logs/<request>.log` every 10 s, with colour codes stripped and secrets hidden
+- handles backup and restore requests from the owner or an installer
+- handles delete requests from the owner or an installer; deleting archives the site

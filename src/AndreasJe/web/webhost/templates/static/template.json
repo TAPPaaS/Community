@@ -1,6 +1,8 @@
 {
   "template": "static",
-  "summary": "Static site: a git repository served by Caddy. No database.",
+  "group": "sites",
+  "label": "Static files",
+  "summary": "Static site: a git repository served by Caddy. No database. A frontend (React, Vue, Astro…) is built beforehand and shipped as its output (e.g. dist/).",
   "runtime": "static",
   "requiredFields": [
     "source.repo",
@@ -13,10 +15,16 @@
     },
     "size": {
       "cores": 1,
-      "memory": 256,
+      "memory": 512,
       "diskSize": "4G"
     }
   },
   "adminPaths": [],
-  "csp": {}
+  "csp": {},
+  "guide": [
+    "Your content is a git branch or an uploaded package. It is inspected, then goes live within about 2 minutes.",
+    "If a new release fails inspection or does not answer, the last good release stays live.",
+    "Files are served as they are by Caddy from the repository (or the configured subdirectory). No database, nothing runs on the server.",
+    "Build any frontend beforehand and ship its output (for example dist/) in the branch or package."
+  ]
 }

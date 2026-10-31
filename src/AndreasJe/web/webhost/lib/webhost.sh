@@ -147,25 +147,88 @@ mirror_url() {
     printf 'http://%s/git/%s.git\n' "${WEBHOST_HOST}" "${fx:+_fixture-}${fx:-$1}"
 }
 
-# mirrors_sync [site] — mirror every declared site's repo (deployed sites and
-# [site], not quarantined ones) on the webhost container, then fetch them all
-# once now.
+# mirrors_sync [site] — the content list of every site (deployed sites and
+# [site], not quarantined ones), then one mirror run now: new revisions are
+# inspected and only passing ones published (guest/webhost-mirror.sh).
 mirrors_sync() {
-    local want="${1:-}" d s repo list=""
+    local want="${1:-}" d s list="" line tar
     for d in "${WEBHOST_DECL_DIR}"/*/website.json; do
         [[ -f "${d}" ]] || continue
         s="$(basename "$(dirname "${d}")")"
         [[ "${s}" == "${want}" || -f "${WEBHOST_CONFIG_DIR}/${s}.json" ]] || continue
         jq -e --arg n "${s}" '.sites[]? | select(.name == $n and .state == "quarantined")' \
             "${WEBHOST_MANAGER_DECL}" >/dev/null 2>&1 && continue
-        repo="$(jq -r '.source.repo // empty' "${d}")"
-        [[ -n "${repo}" ]] && validate_repo_url "${repo}" 2>/dev/null && list+="${s} ${repo}"$'\n'
+        line="$(jq -r --arg s "${s}" '
+            (if .source.upload then "upload" else (.source.repo // empty) end) as $src
+            | select($src != "")
+            | [$s, $src, (.source.ref // "main"), .template, .runtime,
+               ((.inspection.accept // []) | if length == 0 then "-" else join(",") end)] | join(" ")' "${d}")"
+        [[ -n "${line}" ]] || continue
+        [[ "${line}" == *" upload "* ]] || validate_repo_url "$(cut -d' ' -f2 <<<"${line}")" 2>/dev/null || continue
+        list+="${line}"$'\n'
     done
-    webhost_sh "${list}" <<'EOF'
+    if compgen -G "${WEBHOST_TOKENS}/*" >/dev/null; then
+        tar="$(mktemp)"
+        tar -C "${WEBHOST_TOKENS}" -cf "${tar}" .
+        pct_push "${WEBHOST_NODE}" "${WEBHOST_VMID}" "${tar}" /etc/webhost/tokens.tar 0600
+        rm -f "${tar}"
+    fi
+    local retain=""
+    for d in "${WEBHOST_DELETED}"/*.json; do [[ -f "${d}" ]] && retain+="$(basename "${d}" .json)"$'\n'; done
+    webhost_sh "${list}" "${retain}" <<'EOF'
 set -euo pipefail
 install -d -m 0755 /etc/webhost
+printf '%s' "$2" > /etc/webhost/retain.list
+rm -rf /etc/webhost/tokens.new
+install -d -m 0750 -g webhost-mirror /etc/webhost/tokens.new
+if [[ -f /etc/webhost/tokens.tar ]]; then
+    tar -xf /etc/webhost/tokens.tar --no-same-owner -C /etc/webhost/tokens.new
+    rm -f /etc/webhost/tokens.tar
+    find /etc/webhost/tokens.new -type f -exec chgrp webhost-mirror {} + -exec chmod 0640 {} +
+fi
+rm -rf /etc/webhost/tokens && mv /etc/webhost/tokens.new /etc/webhost/tokens
 printf '%s' "$1" > /etc/webhost/mirrors.list
 systemctl start tappaas-webhost-mirror.service
+EOF
+}
+
+WEBHOST_DELETED="${WEBHOST_DELETED:-${WEBHOST_CONFIG_DIR}/webhost-deleted}"
+
+# backup_store — the PBS storage the cluster's backups are in.
+backup_store() {
+    [[ -n "${WEBHOST_BACKUP_STORE:-}" ]] || WEBHOST_BACKUP_STORE="$(backup-manager placement 2>/dev/null | sed -n 's/^pbsStorageName:[[:space:]]*//p')"
+    printf '%s' "${WEBHOST_BACKUP_STORE:-tappaas_backup}"
+}
+
+# site_backups <vmid> — a guest's restore points, newest first, as JSON
+# ([{volid, time, size}]); read from Proxmox, so a deleted guest's are listed too.
+site_backups() {
+    local store
+    store="$(backup_store)"
+    ssh -n "${WEBHOST_SSH_OPTS[@]}" "root@${WEBHOST_NODE}" \
+        "pvesh get /nodes/${WEBHOST_NODE%%.*}/storage/${store}/content --vmid $1 --content backup --output-format json" 2>/dev/null \
+        | jq -c '[.[] | select(.volid | test(":backup/ct/")) | {volid, time: .ctime, size}] | sort_by(-.time)' 2>/dev/null \
+        || echo '[]'
+}
+
+# Deploy tokens for private repositories: one file per site, "<token>" or
+# "<user>:<token>". Only the webhost container's mirror uses them.
+WEBHOST_TOKENS="${WEBHOST_TOKENS:-/home/tappaas/.webhost-tokens}"
+
+# token_set <site> — the token from stdin; empty input removes it.
+token_set() {
+    local t=""
+    IFS= read -r t || true
+    install -d -m 0700 "${WEBHOST_TOKENS}"
+    if [[ -z "${t}" ]]; then rm -f "${WEBHOST_TOKENS:?}/$1"; return 0; fi
+    [[ "${t}" =~ ^[[:graph:]]{1,512}$ ]] || { echo "a token is one line of printable characters" >&2; return 1; }
+    (umask 077; printf '%s\n' "${t}" >"${WEBHOST_TOKENS}/$1")
+}
+
+# inspection_of <site> — the site's last inspection, as JSON ({} when none).
+inspection_of() {
+    webhost_sh "$1" <<'EOF'
+cat "/srv/webhost/inspect/$1.json" 2>/dev/null || echo '{}'
 EOF
 }
 

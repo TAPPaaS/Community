@@ -1,5 +1,5 @@
 [Unit]
-Description=TAPPaaS webhost: mirror site repositories
+Description=TAPPaaS webhost: mirror, inspect and publish site content
 After=network-online.target
 Wants=network-online.target
 
@@ -11,4 +11,4 @@ NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=tmpfs
-ReadWritePaths=/srv/webhost/www/git
+ReadWritePaths=/srv/webhost/www/git /srv/webhost/mirror /srv/webhost/inspect /srv/webhost/portal/uploads

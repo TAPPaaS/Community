@@ -32,8 +32,9 @@ TEMPLATE_JSON="$(resolve_template "${SITE}")"
 webhost_locate || die "a website needs the webhost module"
 # The site-agent pulls from the webhost container's mirror, not the internet.
 REPO=""
-[[ -z "$(decl_get "${SITE}" .source.repo '')$(decl_get "${SITE}" .source.fixture '')" ]] || REPO="$(mirror_url "${SITE}")"
+[[ -z "$(decl_get "${SITE}" .source.repo '')$(decl_get "${SITE}" .source.fixture '')$(decl_get "${SITE}" .source.upload '')" ]] || REPO="$(mirror_url "${SITE}")"
 REF="$(decl_get "${SITE}" .source.ref main)"
+[[ -z "$(decl_get "${SITE}" .source.upload '')" ]] || REF=main
 SUBDIR="$(decl_get "${SITE}" .source.subdir .)"
 
 # opt <key> <fallback> — the site's option, else the template's default.

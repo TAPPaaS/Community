@@ -3,18 +3,20 @@
 | | |
 |---|---|
 | **Status** | **Proposed** — every decision is built and tested on a TAPPaaS cluster. |
-| **Version** | 0.1 |
+| **Version** | 0.3 |
 | **Date** | 2026-10-31 |
 | **Authors** | see [AUTHORS.md](AUTHORS.md) |
 | **Scope** | Community module `src/AndreasJe/web/webhost`: the `webhost` module and the `website` module it ships. |
 | **Depends on** | ADR-007b (Apps), ADR-007f (Manager → Controller → Service), ADR-020 (declared-field change model), ADR-023 (proxy access rules), ADR-035 (module managers), ADR-038 (declarations; under review), ADR-039 (alert rules). |
-| **Changelog** | v0.1 (2026-10-31) — first published version. |
+| **Changelog** | v0.3 (2026-10-31) — D21 data folders, D22 PHP-FPM reload, D23 deploy target; D19 and D7 checked against the code. v0.2 (2026-10-31) — D17 site portal, D18 release inspection; webhost-manager registered by the platform. v0.1 (2026-10-31) — first published version. |
 
 This is a living document: a decision is changed in place, its status updated and the change noted in the changelog. How each decision is built is in [DESIGN.md](DESIGN.md).
 
 ## Context
 
 TAPPaaS needs a way to host many small websites: static sites from a git repository, WordPress, and PHP, Node.js and Python applications, some with a database of their own. Each site is internet-facing, so it is the most exposed workload on the platform. A site must be cheap to create, fully unattended, isolated from every other site, updated without an operator, and unable to reach anything it does not need.
+
+**webhost is where you deploy, not where you develop.** Bring a release: finished files, or an app with its dependencies included. webhost inspects it, runs it, gives it a database when the template has one and keeps the runtime patched. It runs no build steps: build React, Vue, Astro or any other frontend first and ship its output.
 
 ## Decisions
 
@@ -101,7 +103,7 @@ A manager per ADR-035 (`webhost-manager`, `--help --json`) owns `site add|list|s
 
 The declaration is `config/declarations/<instance>/webhost-manager.json`, with the schema `manager/webhost-manager/schema.json` in ADR-038's subset. Each site's own declaration (`config/declarations/<site>/website.json`) is written from its entry. A site whose entry does not validate is blocked with the path at fault; the other sites go on.
 
-Alert rules (ADR-039) are events and states, never `absent`: a suspended canary would otherwise alert all the time. Per site: `rollback`, `content-pull-failed`, `agent-failed`, `egress-not-applied`. On the webhost container: `canary-failed`, `snapshot-stale`, `update-wave-halted`, `mirror-failed`.
+Alert rules (ADR-039) are events and states, never `absent`: a suspended canary would otherwise alert all the time. Per site: `rollback`, `content-pull-failed`, `agent-failed`, `egress-not-applied`. On the webhost container: `canary-failed`, `snapshot-stale`, `update-wave-halted`, `mirror-failed`, `inspection-blocked`.
 
 This decision is revisited when ADR-038 is accepted.
 
@@ -124,6 +126,42 @@ App templates allow no egress: nothing is fetched at run time.
 
 `templateSources` in the webhost-manager declaration lists git repositories, each pinned to a full commit id. The webhost update fetches each at its commit and accepts only **preset** templates: a `template.json` on a built-in runtime, with no other files, whose CSP may only tighten the runtime's, whose start command is a plain command line and whose `egress` names at most ten hosts. An accepted template is named `<source>-<name>` and cannot replace a built-in. A source that ships hooks or a runtime is refused: third-party template code never runs on the mothership or in a site.
 
+### D17 — A site portal that holds no rights
+
+A portal in the webhost container (`guest/webhost-portal.py`, port 8080) lets people who are not administrators create and delete their own sites. It is reached at the webhost instance's proxy name (`webhost.<domain>`, `proxyDomain` overrides it), only from the operator's own zones and the admin VPN, behind the Authentik gate (`identity:accessControl`, `gateGroups` `webhost` and `installer`).
+
+The portal holds no rights. It writes request files and uploads under `/srv/webhost/portal/requests` and nothing else. The mothership (`webhost-manager portal sync`, every minute) validates each request (name free, domain unused, template exists, owner's limit), adds the site to the declaration with its `owner`, and creates it only after its content passes inspection (D18). Delete requests are accepted from the owner or an installer and archive the site.
+
+Members of `webhost` see and manage only their own sites, at most 10; members of `installer` manage all. The portal accepts connections only from the firewall and verifies Authentik's signed token (`X-Authentik-Jwt`: HS256 with the gate provider's secret, audience, issuer, expiry), like the TAPPaaS console. Forms carry a CSRF token. The gate key is written to the container by the sync and refreshed hourly.
+
+### D18 — Every release is inspected before a site can serve it
+
+The webhost container keeps a private copy of each site's content (`/srv/webhost/mirror`): a mirror of its https repository, or a repository built from uploaded packages by `guest/webhost-ingest.py`, which refuses absolute paths, `..`, links out of the package, device files, and more than 2 GB or 50,000 files. Each new revision of the site's ref is inspected by `guest/webhost-inspect.py`; the result is recorded in `/srv/webhost/inspect/<site>.json`. Only a revision that passes is published to the repository sites pull from (`/srv/webhost/www/git`). A blocked revision never reaches a site, which keeps its last good release.
+
+Blocking rules: server code or ELF executables in a static site; links pointing outside the release; a file over 100 MB or a release over 2 GB; web-shell patterns in PHP; secrets (private keys, AWS, GitHub, Slack, Stripe keys); a dependency with a known critical vulnerability (CVSS 9 or higher) found by OSV-Scanner in the lockfiles. Lower-severity vulnerabilities and configuration files such as `.env` only warn. `node_modules` and `vendor` are covered by the dependency scan, not the pattern scan.
+
+OSV-Scanner is installed from its latest release and checked against the project's published SHA-256 list on every webhost update. A site accepts a finding on purpose with `inspection.accept` in its declaration, a rule name or an advisory id; accepted findings are shown as accepted. A block is logged as `inspection-blocked site=… rules=…` and raises an alert on the webhost container. The inspection applies to every site, including those the operator creates.
+
+### D19 — Deleted sites can be restored
+
+A delete keeps the site's declaration as a record (`~/config/webhost-deleted/<name>.json`), its private mirror and inspection result (`/etc/webhost/retain.list`) and its deploy token. Backups are the platform's nightly job; restore points are listed from Proxmox storage content. `webhost-manager site restore` restores the backup into the site's own VMID, deployed or deleted: the platform's archive keeps a deleted site's config and VMID, so the site comes back with its own name and address, and its record puts it back in the declaration. Changes after the backup are lost. The portal offers both to the owner or an installer, behind a confirm.
+
+### D20 — Owners see what happened
+
+While a request creates or restores a site, the sync pushes its log to the portal every 10 s. The request page shows the error, the progress tail and the full log on demand. The log is sanitized first: colour codes are stripped and values after `password`, `secret`, `token` and `api_key` are hidden. Each template's `guide` tells the owner what the site gets once it is live.
+
+### D21 — Data folders outlive releases
+
+A release is replaced on every push and stays read-only, so files an app writes cannot live in it. `options.dataDirs` lists release folders (for example `uploads`); the site agent links each to `/srv/site/data/dirs/<folder>`, seeds it from the repository on first use and gives it to the app user. Those folders are in the nightly backup. A path that resolves outside the release is refused, and `static` sites cannot declare any.
+
+### D22 — PHP-FPM reloads on every release swap
+
+PHP-FPM caches the resolved paths of scripts, so after the `current` link moves it would keep serving the previous release. The site agent reloads FPM on every swap and every rollback. Node and Python apps restart their service instead.
+
+### D23 — A deploy target, not a development environment
+
+The intent in Context stands: no build step, no editor, no shell in the site. Templates are grouped as Sites (served files) and Stacks (code that runs), each with a label an owner recognises and a short guide of what the site gets (D15). The portal and the README show the label, not the template name.
+
 ## Fallbacks for core gaps
 
 Each row is retired when its issue lands.
@@ -141,7 +179,6 @@ Each row is retired when its issue lands.
 | Guests without SSH in `wait_for_guest_settled` | not filed yet | each update waits about 8 minutes (300 s before, 180 s after); canary runs set `TAPPAAS_READY_WAIT=10` |
 | Path routes | #897 (rejected) | a hostname per site |
 | Declaration validator (`module-manager declaration validate`) | ADR-038 P1 | `lib/declaration.jq`, ADR-038 D1's subset |
-| Registration of contributed managers | ADR-035 D5 | `webhost-manager` run by its path where the platform does not link it |
 | Provisioning of module alert rules | ADR-039 P3 | the rule files ship with the module and apply once the platform provisions them |
 
 ## Consequences
@@ -150,3 +187,4 @@ Each row is retired when its issue lands.
 - Package updates arrive at most once a day, after a canary, and never on a site that has not passed through the canary's snapshot.
 - The webhost container is a dependency of every site. If it is down, sites keep serving but cannot install, update or publish new content.
 - One suspended canary per runtime in use costs its disk at all times and its CPU and memory during the nightly snapshot run. A cluster with only static sites has one.
+- The portal is the first web face for people who are not administrators. It can only request sites, and every release still passes inspection.

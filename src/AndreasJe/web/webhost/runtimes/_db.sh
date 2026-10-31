@@ -38,6 +38,7 @@ set -euo pipefail
 DB="$1"; NAME="$2"; SEC=/etc/secrets/site.env
 install -d -m 0700 /etc/secrets
 touch "${SEC}"; chmod 0600 "${SEC}"
+grep -q '^DB_HOST=' "${SEC}" || printf 'DB_HOST=127.0.0.1\n' >> "${SEC}"
 grep -q '^DB_PASSWORD=' "${SEC}" && { echo "database credentials present, not regenerating"; exit 0; }
 PASS="$(openssl rand -hex 24)"
 case "${DB}" in

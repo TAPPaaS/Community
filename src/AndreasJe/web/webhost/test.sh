@@ -22,7 +22,7 @@ check "container running" "${rc}"
 rc=0; pct_remote "${NODE}" exec "${VMID}" -- true >/dev/null 2>&1 || rc=$?
 check "pct exec reachable" "${rc}"
 
-for u in caddy apt-cacher-ng tappaas-webhost-mirror.timer; do
+for u in caddy apt-cacher-ng tappaas-webhost-mirror.timer tappaas-webhost-portal.service; do
     rc=0; pct_remote "${NODE}" exec "${VMID}" -- systemctl is-active --quiet "${u}" || rc=$?
     check "${u} active" "${rc}"
 done
@@ -40,6 +40,16 @@ for rt in $(templates_in_use | awk '{print $1}' | sort -u); do
         check "${rt}: pinned ${key} present and matching" "${rc}"
     done
 done
+rc=0; pct_remote "${NODE}" exec "${VMID}" -- curl -fs --max-time 5 http://127.0.0.1:8080/healthz >/dev/null || rc=$?
+check "portal answers" "${rc}"
+rc=0; pct_remote "${NODE}" exec "${VMID}" -- bash -c "curl -s -o /dev/null -w '%{http_code}' --max-time 5 -H 'X-Authentik-Jwt: forged' http://\$(hostname -I | cut -d' ' -f1):8080/ | grep -q 403" || rc=$?
+check "portal refuses anyone but the firewall" "${rc}"
+rc=0; pct_remote "${NODE}" exec "${VMID}" -- /usr/local/bin/osv-scanner --version >/dev/null 2>&1 || rc=$?
+check "dependency scanner installed" "${rc}"
+rc=0; systemctl --user is-active --quiet webhost-portal-sync.timer || rc=$?
+check "portal sync timer active on the mothership" "${rc}"
+rc=0; systemctl --user show webhost-portal-sync.service -p Environment | grep -q "PATH=${TAPPAAS_BIN:-/home/tappaas/bin}:" || rc=1
+check "portal sync finds the TAPPaaS toolbox" "${rc}"
 rc=0; pct_remote "${NODE}" exec "${VMID}" -- curl -s -o /dev/null --max-time 10 -x http://127.0.0.1:3142 http://deb.debian.org/debian/dists/trixie/InRelease -w '%{http_code}' | grep -qv '^200$' || rc=1
 check "apt cache refuses upstreams other than snapshot.debian.org" "${rc}"
 

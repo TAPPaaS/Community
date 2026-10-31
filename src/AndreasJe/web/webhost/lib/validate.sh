@@ -64,15 +64,22 @@ validate_declaration() {
     if [[ -n "${fixture}" && ! ( "${fixture}" =~ ^[a-z]+$ && -d "$(dirname "${BASH_SOURCE[0]}")/../fixtures/${fixture}" ) ]]; then
         _vfail "source.fixture: no module fixture '${fixture}'"; rc=1
     fi
+    local upload
+    upload="$(jq -r 'if .source.upload == true then "upload" else "" end' "${f}")"
+    if [[ -n "${upload}" && -n "$(jq -r '.source.repo // .source.fixture // empty' "${f}")" ]]; then
+        _vfail "source.upload: a site takes uploads or a repository, not both"; rc=1
+    fi
     if [[ "${runtime}" != php || ( -f "${tj}" && "$(jq -r '.app // empty' "${tj}")" != wordpress ) ]]; then
         v="$(jq -r '.source.repo // empty' "${f}")"
-        if [[ -z "${v}${fixture}" ]]; then _vfail "source.repo: required for the ${runtime} runtime"; rc=1
+        if [[ -z "${v}${fixture}${upload}" ]]; then _vfail "source.repo: required for the ${runtime} runtime (or source.upload)"; rc=1
         elif [[ -n "${v}" ]]; then validate_repo_url "${v}" || rc=1; fi
     else
         v="$(jq -r '.source.repo // empty' "${f}")"
         if [[ -n "${v}" ]]; then validate_repo_url "${v}" || rc=1; fi
     fi
     v="$(jq -r '.source.ref // "main"' "${f}")";   validate_git_ref "${v}" || rc=1
+    v="$(jq -r '(.inspection.accept // []) | map(select(type != "string" or (test("^[A-Za-z0-9._:-]{1,64}$") | not))) | length' "${f}" 2>/dev/null)"
+    [[ "${v}" == 0 ]] || { _vfail "inspection.accept: a list of rule names or advisory ids (e.g. web-shell, GHSA-xxxx, CVE-2026-1)"; rc=1; }
     v="$(jq -r '.source.subdir // "."' "${f}")";   validate_subdir "${v}" || rc=1
 
     if [[ "${runtime}" == "php" ]]; then
@@ -84,6 +91,17 @@ validate_declaration() {
         if [[ -n "${v}" && ! "${v}" =~ ^[1-9][0-9]*$ ]]; then _vfail "options.phpMaxChildren: expected a positive integer (got '${v}')"; rc=1; fi
     fi
 
+    if jq -e '.options.dataDirs' "${f}" >/dev/null 2>&1; then
+        if [[ "${runtime}" == static ]]; then _vfail "options.dataDirs: a static site writes nothing"; rc=1
+        elif ! jq -e '.options.dataDirs | type == "array" and length <= 20 and all(type == "string")' "${f}" >/dev/null; then
+            _vfail "options.dataDirs: a list of at most 20 folders"; rc=1
+        else
+            while IFS= read -r v; do
+                validate_subdir "${v}" 2>/dev/null && [[ "${v}" != . && -n "${v}" ]] \
+                    || { _vfail "options.dataDirs: '${v}' is not a folder inside the release"; rc=1; }
+            done < <(jq -r '.options.dataDirs[]' "${f}")
+        fi
+    fi
     v="$(jq -r '.options.docroot // empty' "${f}")"
     if [[ -n "${v}" ]] && ! validate_subdir "${v}" 2>/dev/null; then _vfail "options.docroot: only [A-Za-z0-9._/-], no '..', no leading '/' (got '${v}')"; rc=1; fi
     v="$(jq -r '.options.start // empty' "${f}")"

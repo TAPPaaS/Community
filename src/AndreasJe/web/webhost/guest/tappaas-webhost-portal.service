@@ -1,0 +1,21 @@
+[Unit]
+Description=TAPPaaS webhost: site portal
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=webhost-portal
+Group=webhost-portal
+ExecStart=/usr/local/sbin/webhost-portal
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/srv/webhost/portal/requests /srv/webhost/portal/uploads /srv/webhost/portal/tokens
+CapabilityBoundingSet=
+SystemCallFilter=@system-service
+
+[Install]
+WantedBy=multi-user.target

@@ -172,6 +172,81 @@
       ]
     },
     {
+      "verb": "site token",
+      "keys": [
+        [
+          "site",
+          "token"
+        ]
+      ],
+      "usage": "site token <name>",
+      "note": "Set the deploy token for a site's private repository, read from stdin; empty input removes it.",
+      "details": "The token is \"<token>\" or \"<user>:<token>\". It is kept on the mothership and given only to the webhost container's mirror, as a header for the repository's host.",
+      "positionals": [
+        {
+          "name": "name",
+          "description": "Site name"
+        }
+      ],
+      "options": []
+    },
+    {
+      "verb": "site backups",
+      "keys": [
+        [
+          "site",
+          "backups"
+        ]
+      ],
+      "usage": "site backups <name> [--json]",
+      "note": "The site's restore points, newest first; also for a deleted site.",
+      "details": null,
+      "positionals": [
+        {
+          "name": "name",
+          "description": "Site name"
+        }
+      ],
+      "options": [
+        {
+          "flag": "--json",
+          "takesValue": false,
+          "arg": null,
+          "choices": null,
+          "repeatable": false,
+          "description": "JSON output."
+        }
+      ]
+    },
+    {
+      "verb": "site restore",
+      "keys": [
+        [
+          "site",
+          "restore"
+        ]
+      ],
+      "usage": "site restore <name> [--backup ID]",
+      "note": "Put a backup back: a deployed site is restored in place; a deleted site is re-created as it was and its backup restored into it.",
+      "details": "Without --backup the newest restore point is used. Changes made after the backup are lost.",
+      "positionals": [
+        {
+          "name": "name",
+          "description": "Site name"
+        }
+      ],
+      "options": [
+        {
+          "flag": "--backup",
+          "takesValue": true,
+          "arg": "ID",
+          "choices": null,
+          "repeatable": false,
+          "description": "A restore point from 'site backups'."
+        }
+      ]
+    },
+    {
       "verb": "site quarantine",
       "keys": [
         [
@@ -275,6 +350,20 @@
       ],
       "usage": "template sync",
       "note": "Fetch templateSources at their commits and install their preset templates.",
+      "details": null,
+      "positionals": [],
+      "options": []
+    },
+    {
+      "verb": "portal sync",
+      "keys": [
+        [
+          "portal",
+          "sync"
+        ]
+      ],
+      "usage": "portal sync",
+      "note": "Take the site portal's requests: validate, inspect, create or delete sites; refresh the portal's settings, gate key and site list.",
       "details": null,
       "positionals": [],
       "options": []

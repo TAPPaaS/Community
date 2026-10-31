@@ -22,6 +22,8 @@ WEBHOST_ROOT="$(cd "${HERE}/../.." && pwd)"
 . "${WEBHOST_ROOT}/lib/webhost.sh"
 # shellcheck source=../../lib/csp.sh
 . "${WEBHOST_ROOT}/lib/csp.sh"
+# shellcheck source=../../lib/portal.sh
+. "${WEBHOST_ROOT}/lib/portal.sh"
 # shellcheck source=../../lib/templates.sh
 . "${WEBHOST_ROOT}/lib/templates.sh"
 
@@ -43,12 +45,16 @@ Usage:
                                                     change a site's declaration, then apply it
   webhost-manager site delete <name> [--remove]     take a site out of the declaration and archive it
   webhost-manager site secret <name> [--key KEY]    print the site's generated secrets
+  webhost-manager site backups <name> [--json]      the site's restore points, newest first (also of a deleted site)
+  webhost-manager site restore <name> [--backup ID] put a backup back: in place, or a deleted site as it was
+  webhost-manager site token <name>                 set the deploy token for a private repository (stdin; empty removes it)
   webhost-manager site quarantine <name>            suspend the site and stop its content; keep its disk
   webhost-manager site release <name>               undo a quarantine
   webhost-manager media sync <name> <dir>           copy a local directory into the site's media
   webhost-manager template list                     built-in and custom templates
   webhost-manager template validate <template.json> check a template against the preset rules
   webhost-manager template sync                     fetch templateSources at their commits
+  webhost-manager portal sync                       take the site portal's requests (the timer runs it every minute)
   webhost-manager snapshots list [--json]           each runtime's lock, previous lock and halted wave
   webhost-manager snapshots build [--runtime R]     test a new snapshot on the canaries now
   webhost-manager reconcile [--apply]               compare the declaration with what is deployed
@@ -65,12 +71,16 @@ site show: --json
 site modify: --set= --unset=
 site delete: --remove
 site secret: --key=
+site token:
+site backups: --json
+site restore: --backup=
 site quarantine:
 site release:
 media sync:
 template list:
 template validate:
 template sync:
+portal sync:
 snapshots list: --json
 snapshots build: --runtime=
 reconcile: --apply
@@ -121,7 +131,7 @@ site_entry() {
 }
 
 # website_decl <name> — the entry as the website module's declaration.
-website_decl() { site_entry "$1" | jq 'del(.name, .state)'; }
+website_decl() { site_entry "$1" | jq 'del(.name, .state, .owner)'; }
 
 deployed_sites() {
     local f n
@@ -170,6 +180,16 @@ reconcile_site() {
     if [[ ! -f "${WEBHOST_CONFIG_DIR}/${site}.json" ]]; then
         if [[ "${state}" == quarantined ]]; then echo "${site}: quarantined (not deployed)"; rm -f "${want}"; return 0; fi
         if [[ "${apply}" -eq 0 ]]; then echo "${site}: missing: would be created"; rm -f "${want}"; return 0; fi
+        # A site is created only from content that passed its inspection.
+        if jq -e '.source.repo or .source.upload' "${want}" >/dev/null; then
+            install -d -m 0755 "$(dirname "$(decl_path "${site}")")"
+            cp "${want}" "$(decl_path "${site}")"
+            mirrors_sync "${site}"
+            f="$(inspection_of "${site}" | jq -r 'if .verdict == "pass" then "" elif .verdict == "block"
+                then "inspection: " + ([.findings[] | select(.level == "block") | "\(.rule) (\(.file))"] | join(", "))
+                else "no content from the source yet" end')"
+            if [[ -n "${f}" ]]; then echo "${site}: blocked: ${f}"; rm -f "${want}"; return 0; fi
+        fi
         rc=0
         "${WEBHOST_ROOT}/lib/site-create.sh" "${site}" "${want}" </dev/null \
             >"/home/tappaas/logs/webhost-${site}-create.log" 2>&1 || rc=$?
@@ -335,14 +355,102 @@ cmd_site_delete() {
     local name="${1:?site delete <name>}" mode="--archive" tmp
     [[ "${OPT_REMOVE}" -eq 1 ]] && mode="--remove"
     require_site "${name}"
+    deleted_record "${name}"
     tmp="$(mktemp)"
     jq --arg n "${name}" '.sites |= map(select(.name != $n))' "${HM_DECL}" >"${tmp}"
     hm_write "${tmp}"; rm -f "${tmp}"
     if [[ -f "${WEBHOST_CONFIG_DIR}/${name}.json" ]]; then
         module-manager delete "${name}" "${mode}" --yes
     fi
+    [[ "${mode}" == --remove ]] && rm -f "${WEBHOST_DELETED:?}/${name}.json"
+    [[ -f "${WEBHOST_DELETED}/${name}.json" ]] || rm -f "${WEBHOST_TOKENS:?}/${name}"
     mirrors_sync
     echo "${name}: deleted (${mode#--})"
+}
+
+# ── Backups and restore ──────────────────────────────────────────────
+# A deleted site leaves a record (its declaration entry and old VMID) in
+# WEBHOST_DELETED; its backups stay in PBS, so it can be restored as it was.
+
+# deleted_record <site> — remember a deployed site before it is deleted.
+deleted_record() {
+    local vmid
+    vmid="$(jq -r '.vmid // empty' "${WEBHOST_CONFIG_DIR}/$1.json" 2>/dev/null || true)"
+    [[ -n "${vmid}" ]] || return 0
+    install -d -m 0755 "${WEBHOST_DELETED}"
+    jq --arg n "$1" --argjson v "${vmid}" --arg t "$(date -u +%FT%TZ)" \
+        '{entry: (.sites[] | select(.name == $n)), vmid: $v, deleted: $t}' "${HM_DECL}" >"${WEBHOST_DELETED}/$1.json"
+}
+
+# site_vmid <site> — the deployed VMID, else the deleted one.
+site_vmid() {
+    jq -r '.vmid // empty' "${WEBHOST_CONFIG_DIR}/$1.json" 2>/dev/null | grep . \
+        || jq -r '.vmid // empty' "${WEBHOST_DELETED}/$1.json" 2>/dev/null | grep .
+}
+
+# restore_point <vmid> — the chosen backup (--backup), checked to be that
+# guest's, else its newest.
+restore_point() {
+    local id="${OPT_BACKUP}"
+    [[ -n "${id}" ]] || id="$(site_backups "$1" | jq -r '.[0].volid // empty')"
+    [[ -n "${id}" ]] || { echo "no backup of VMID $1" >&2; return 1; }
+    [[ "${id}" =~ ^[A-Za-z0-9_.-]+:backup/ct/$1/[0-9TZ:-]+$ ]] || { echo "'${id}' is not a backup of VMID $1" >&2; return 1; }
+    printf '%s' "${id}"
+}
+
+cmd_site_backups() {
+    local name="${1:?site backups <name>}" vmid
+    vmid="$(site_vmid "${name}")" || die "no deployed or deleted site '${name}'"
+    if [[ "${OPT_JSON}" -eq 1 ]]; then site_backups "${vmid}"; return; fi
+    site_backups "${vmid}" | jq -r '.[] | "\(.time | todate)  \(.volid)"'
+}
+
+cmd_site_restore() {
+    local name="${1:?site restore <name>}" log cfg vmid id rec node st tmp
+    log="/home/tappaas/logs/webhost-${name}-restore.log"
+    cfg="${WEBHOST_CONFIG_DIR}/${name}.json"
+    rec="${WEBHOST_DELETED}/${name}.json"
+    : >"${log}"
+    # A deleted site is archived by the platform: its config and VMID stay, so
+    # the backup goes back into its own guest, with its own name and address.
+    [[ -f "${cfg}" ]] || die "no site '${name}' to restore (a site removed with --remove is gone)"
+    if [[ "$(jq -r '.status // empty' "${cfg}")" == archived ]]; then
+        [[ -f "${rec}" ]] || die "'${name}' was not deleted through webhost; restore it with backup-manager"
+        [[ -z "$(site_entry "${name}")" ]] || die "'${name}' is declared again; delete that site first"
+    fi
+    vmid="$(jq -r .vmid "${cfg}")"
+    id="$(restore_point "${vmid}")" || die "${name}: nothing to restore"
+    st="$(jq -r '.storage // .config["cluster:lxc"].storage // empty' "${cfg}")"
+    info "${name}: restoring ${id}" | tee -a "${log}"
+    backup-manager restore restore "${name}" --backup-id "${id}" ${st:+--storage "${st}"} --yes >>"${log}" 2>&1 \
+        || die "${name}: the restore failed (see ${log})"
+    node="$(resolve_lxc_node "${vmid}")"
+    ssh -n "${WEBHOST_SSH_OPTS[@]}" "root@${node}" "pct start ${vmid}" >>"${log}" 2>&1 \
+        || die "${name}: restored, but it does not start (see ${log})"
+    if [[ -f "${rec}" && -z "$(site_entry "${name}")" ]]; then
+        # Back in the declaration, and no longer archived.
+        tmp="$(mktemp)"
+        jq --argjson e "$(jq -c .entry "${rec}")" '.sites += [$e]' "${HM_DECL}" >"${tmp}"
+        hm_write "${tmp}" || { rm -f "${tmp}"; die "${name}: restored, but its old declaration no longer validates"; }
+        jq --slurpfile o "${cfg}.orig" '.status = ($o[0].status // "Development")' "${cfg}" >"${tmp}" && install -m 0644 "${tmp}" "${cfg}"
+        rm -f "${tmp}"
+        install -d -m 0755 "$(dirname "$(decl_path "${name}")")"
+        website_decl "${name}" >"$(decl_path "${name}")"
+        rm -f "${rec}"
+        mirrors_sync
+    fi
+    update-module.sh "${name}" >>"${log}" 2>&1 || die "${name}: restored, but re-applying its declaration failed (see ${log})"
+    echo "${name}: restored (${id##*/})"
+}
+
+cmd_site_token() {
+    local name="${1:?site token <name>}"
+    [[ -n "$(site_entry "${name}")" ]] || die "no site '${name}' in the declaration"
+    [[ -t 0 ]] && printf 'Token (empty to remove): ' >&2
+    if [[ -t 0 ]]; then local t; IFS= read -rs t; echo >&2; printf '%s\n' "${t}" | token_set "${name}"
+    else token_set "${name}"; fi || die "token not set"
+    mirrors_sync
+    if [[ -f "${WEBHOST_TOKENS}/${name}" ]]; then info "deploy token set for '${name}'"; else info "no deploy token for '${name}'"; fi
 }
 
 cmd_site_secret() {
@@ -417,16 +525,17 @@ if [[ "${1:-}" == --help && "${2:-}" == --json ]]; then cat "${HERE}/help.json";
 if [[ $# -eq 0 || "$1" == --help || "$1" == -h ]]; then usage; exit 0; fi
 cli_gate usage "${CLI_SPEC}" "$@"
 
-OPT_JSON=0; OPT_REMOVE=0; OPT_APPLY=0; OPT_KEY=""; OPT_RUNTIME=""
+OPT_JSON=0; OPT_REMOVE=0; OPT_APPLY=0; OPT_KEY=""; OPT_RUNTIME=""; OPT_BACKUP=""
 declare -a POS=() REST=()
 verb="$1"; shift
-[[ "${verb}" =~ ^(site|media|snapshots|template)$ && $# -gt 0 ]] && { verb+=" $1"; shift; }
+[[ "${verb}" =~ ^(site|media|snapshots|template|portal)$ && $# -gt 0 ]] && { verb+=" $1"; shift; }
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --json) OPT_JSON=1; shift ;;
         --remove) OPT_REMOVE=1; shift ;;
         --apply) OPT_APPLY=1; shift ;;
         --key) OPT_KEY="${2:-}"; shift 2 ;;
+        --backup) OPT_BACKUP="${2:-}"; shift 2 ;;
         --runtime) OPT_RUNTIME="${2:-}"; shift 2 ;;
         --set|--unset) REST+=("$1" "${2:-}"); shift 2 ;;
         *) POS+=("$1"); shift ;;
@@ -448,6 +557,9 @@ case "${verb}" in
     "site modify")     cmd_site_modify "${POS[@]}" "${REST[@]}" ;;
     "site delete")     cmd_site_delete "${POS[@]}" ;;
     "site secret")     cmd_site_secret "${POS[@]}" ;;
+    "site token")      cmd_site_token "${POS[@]}" ;;
+    "site backups")    cmd_site_backups "${POS[@]}" ;;
+    "site restore")    cmd_site_restore "${POS[@]}" ;;
     "site quarantine") cmd_site_quarantine "${POS[@]}" ;;
     "site release")    cmd_site_release "${POS[@]}" ;;
     "media sync")      exec "${WEBHOST_ROOT}/lib/media-sync.sh" "${POS[@]}" ;;
@@ -455,6 +567,7 @@ case "${verb}" in
     "template validate") f="$(template_check "${POS[0]:?template validate <template.json>}")"
                        [[ -z "${f}" ]] && { echo "valid preset: ${POS[0]}"; exit 0; }; echo "${f}"; exit 1 ;;
     "template sync")   templates_sync ;;
+    "portal sync")     portal_sync ;;
     "snapshots list")  cmd_snapshots_list ;;
     "snapshots build") cmd_snapshots_build ;;
     reconcile)         reconcile "${OPT_APPLY}" ;;

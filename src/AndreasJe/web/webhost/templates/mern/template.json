@@ -1,6 +1,8 @@
 {
   "template": "mern",
-  "summary": "Preset: a Node.js application with its own MongoDB database (Percona Server for MongoDB 8.0).",
+  "group": "stacks",
+  "label": "Node.js + MongoDB",
+  "summary": "Preset: a Node.js application with its own MongoDB database (Percona Server for MongoDB 8.0); you bring the app. A frontend is built beforehand and shipped as its output (e.g. dist/).",
   "runtime": "node",
   "database": "mongodb",
   "pins": [
@@ -23,5 +25,14 @@
   },
   "adminPaths": [],
   "egress": [],
-  "csp": {}
+  "csp": {},
+  "guide": [
+    "Your content is a git branch or an uploaded package. It is inspected, then goes live within about 2 minutes.",
+    "If a new release fails inspection or does not answer, the last good release stays live.",
+    "The app listens on 127.0.0.1:3000 behind Caddy: your start command (default npm start) must listen on $HOST and $PORT.",
+    "Nothing is built on the server: ship everything the app needs in the release. Include node_modules and the built frontend (for example dist/).",
+    "MongoDB (Percona 8.0) runs on this container on loopback. process.env has DB_HOST (127.0.0.1), DB_NAME, DB_USER, DB_PASSWORD and DATABASE_URL.",
+    "Load your schema yourself: ask an administrator, or create the tables from your app on first start.",
+    "Files your app writes (uploads) must go in folders listed in options.dataDirs: kept across releases and backed up. Every push replaces the release itself."
+  ]
 }

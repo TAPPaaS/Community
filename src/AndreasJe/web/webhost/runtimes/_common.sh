@@ -53,8 +53,13 @@ EOF
 
 # install_site_agent <node> <vmid> <site> <mirror-url|""> <ref> <subdir> [extra-conf]
 install_site_agent() {
-    local node="$1" vmid="$2" site="$3" repo="$4" ref="$5" subdir="$6" conf
-    printf -v conf 'SITE=%q\nREPO=%q\nREF=%q\nSUBDIR=%q\nKEEP=3\n%s' "${site}" "${repo}" "${ref}" "${subdir}" "${7:-}"
+    local node="$1" vmid="$2" site="$3" repo="$4" ref="$5" subdir="$6" conf dirs owner
+    dirs="$(jq -r '(.options.dataDirs // []) | join(" ")' "$(decl_path "${site}")" 2>/dev/null || true)"
+    case "$(jq -r '.runtime // empty' "$(decl_path "${site}")" 2>/dev/null)" in
+        php) owner=www-data ;; node|python) owner=site ;; *) owner="" ;;
+    esac
+    printf -v conf 'SITE=%q\nREPO=%q\nREF=%q\nSUBDIR=%q\nKEEP=3\nDATA_DIRS=%q\nDATA_OWNER=%q\n%s' \
+        "${site}" "${repo}" "${ref}" "${subdir}" "${dirs}" "${owner}" "${7:-}"
     pct_exec_script "${node}" "${vmid}" "${conf}" <<'EOF'
 set -euo pipefail
 printf '%s' "$1" > /etc/site-agent.conf
@@ -120,18 +125,21 @@ test -L /srv/site/current
 EOF
 }
 
-# render_caddyfile <runtime> <template.json> <csp> [docroot] — prints the
+# render_caddyfile <runtime> <template.json> <csp> [docroot] [clean-urls] — prints the
 # Caddyfile. Security floor (ground rule 7): HSTS, nosniff, referrer-policy,
 # CSP, no Server header, admin paths only from internal clients, masked
 # access log.
 render_caddyfile() {
-    local runtime="$1" tj="$2" csp="$3" docroot="${4:-.}" admin_paths root handler
+    local runtime="$1" tj="$2" csp="$3" docroot="${4:-.}" clean="${5:-false}" admin_paths root handler
     admin_paths="$(jq -r '(.adminPaths // []) | join(" ")' "${tj}")"
     case "${runtime}" in
         static) root="/srv/site/current"; handler="file_server" ;;
         php)    root="/srv/site/current/${docroot}"
                 [[ "$(jq -r '.app // empty' "${tj}")" == wordpress ]] && root="/srv/site/data/www"
-                handler="php_fastcgi unix//run/php/php-fpm-site.sock"$'\n\t'"file_server" ;;
+                handler="php_fastcgi unix//run/php/php-fpm-site.sock"
+                # Clean URLs: /products runs products.php, as Apache rewrite rules often arrange.
+                [[ "${clean}" == true ]] && handler+=" {"$'\n\t\t'"try_files {path} {path}.php {path}/index.php index.php"$'\n\t'"}"
+                handler+=$'\n\t'"file_server" ;;
         node|python) root="/srv/site/current"; handler="reverse_proxy 127.0.0.1:3000" ;;
     esac
 
@@ -183,12 +191,13 @@ CADDY
 
 # push_caddyfile <node> <vmid> <runtime> <template.json> [declaration.json]
 push_caddyfile() {
-    local node="$1" vmid="$2" runtime="$3" tj="$4" decl="${5:-/dev/null}" csp tmp docroot
+    local node="$1" vmid="$2" runtime="$3" tj="$4" decl="${5:-/dev/null}" csp tmp docroot clean
     csp="$(build_csp "${runtime}" "${tj}" "${decl}")" || return 1
     docroot="$(jq -r '.options.docroot // empty' "${decl}" 2>/dev/null)"
     [[ -n "${docroot}" ]] || docroot="$(jq -r '.defaults.options.docroot // "."' "${tj}")"
     tmp="$(mktemp)"
-    render_caddyfile "${runtime}" "${tj}" "${csp}" "${docroot}" >"${tmp}"
+    clean="$(jq -r '.options.cleanUrls // false' "${decl}" 2>/dev/null || echo false)"
+    render_caddyfile "${runtime}" "${tj}" "${csp}" "${docroot}" "${clean}" >"${tmp}"
     pct_push "${node}" "${vmid}" "${tmp}" /etc/caddy/Caddyfile
     rm -f "${tmp}"
     pct_exec_script "${node}" "${vmid}" <<'EOF'

@@ -1,5 +1,5 @@
 {
-  "description": "Web hosting for TAPPaaS: the shared services (package cache, snapshots, git mirrors) and the manager behind the website module.",
+  "description": "Web hosting for TAPPaaS: the shared services (package cache, snapshots, inspected git mirrors), the site portal and the manager behind the website module.",
   "displayName": "Webhost",
   "kind": "lxc",
   "version": "0.3.0",
@@ -14,7 +14,8 @@
   "dependsOn": [
     "cluster:lxc",
     "network:proxy",
-    "network:rules"
+    "network:rules",
+    "identity:accessControl"
   ],
   "integratesWith": [
     "logging:logs"
@@ -39,7 +40,13 @@
       "bridge0": "lan"
     },
     "network:proxy": {
-      "proxyPort": 80
+      "proxyPort": 8080
+    },
+    "identity:accessControl": {
+      "gateGroups": [
+        "webhost",
+        "installer"
+      ]
     }
   }
 }

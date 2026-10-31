@@ -1,5 +1,7 @@
 {
   "template": "php-app",
+  "group": "stacks",
+  "label": "PHP",
   "summary": "A PHP application from git, served from its docroot by PHP-FPM; MariaDB installed, no database created.",
   "runtime": "php",
   "database": "none",
@@ -22,5 +24,15 @@
   },
   "adminPaths": [],
   "egress": [],
-  "csp": {}
+  "csp": {},
+  "guide": [
+    "Your content is a git branch or an uploaded package. It is inspected, then goes live within about 2 minutes.",
+    "If a new release fails inspection or does not answer, the last good release stays live.",
+    "The web root is the docroot (default public/) inside your repo; PHP-FPM runs your code behind Caddy.",
+    "Nothing is built on the server: ship everything the app needs in the release. Include vendor/ (run composer install first).",
+    "MariaDB is installed on this container (loopback) but no database is created for you; DB_HOST=127.0.0.1 is set and read with getenv('DB_HOST').",
+    "Uploads up to 32M and 256M memory per request by default; MariaDB is dumped daily at 02:00 and the last 14 dumps are kept.",
+    "Caddy does not read .htaccess. For /page to run page.php, set options.cleanUrls; to serve the repo root instead of public/, set options.docroot to \".\".",
+    "Files your app writes (uploads) must go in folders listed in options.dataDirs: kept across releases and backed up. Every push replaces the release itself."
+  ]
 }

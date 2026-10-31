@@ -22,4 +22,7 @@ for c in ${sites}; do
     info "webhost: removing ${c}"
     module-manager delete "${c}" --remove --yes --force || die "could not remove ${c}"
 done
+systemctl --user disable --now webhost-portal-sync.timer >/dev/null 2>&1 || true
+rm -f "${HOME}/.config/systemd/user/webhost-portal-sync.service" "${HOME}/.config/systemd/user/webhost-portal-sync.timer"
+systemctl --user daemon-reload 2>/dev/null || true
 info "webhost: no sites left, deleting"

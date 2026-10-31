@@ -1,5 +1,7 @@
 {
   "template": "django",
+  "group": "stacks",
+  "label": "Django + PostgreSQL",
   "summary": "Preset: a Django application with its own PostgreSQL database; /admin is internal only.",
   "runtime": "python",
   "database": "postgresql",
@@ -21,5 +23,15 @@
     "/admin/*"
   ],
   "egress": [],
-  "csp": {}
+  "csp": {},
+  "guide": [
+    "Your content is a git branch or an uploaded package. It is inspected, then goes live within about 2 minutes.",
+    "If a new release fails inspection or does not answer, the last good release stays live.",
+    "The app listens on 127.0.0.1:3000 behind Caddy: set options.start (default gunicorn app:app); gunicorn is bound to $PORT for you.",
+    "Nothing is built on the server: ship everything the app needs in the release. Put dependencies in vendor/ (pip install --target vendor); it is on PYTHONPATH.",
+    "PostgreSQL runs on this container on loopback. os.environ has DB_HOST (127.0.0.1), DB_NAME, DB_USER, DB_PASSWORD and DATABASE_URL.",
+    "Load your schema yourself: ask an administrator, or create the tables from your app on first start.",
+    "/admin/* is only reachable from your own networks.",
+    "Files your app writes (uploads) must go in folders listed in options.dataDirs: kept across releases and backed up. Every push replaces the release itself."
+  ]
 }

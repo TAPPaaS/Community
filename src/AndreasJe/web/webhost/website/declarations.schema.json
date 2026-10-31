@@ -45,10 +45,24 @@
           "pattern": "^[A-Za-z0-9][A-Za-z0-9 ._:/=@+-]*$",
           "description": "node, python: the app's start command (default from the template)."
         },
+        "cleanUrls": {
+          "type": "boolean",
+          "description": "php apps: /page runs page.php when no such file exists (what Apache rewrite rules often do)."
+        },
         "docroot": {
           "type": "string",
           "pattern": "^[A-Za-z0-9._/-]*$",
           "description": "php apps: the directory of the release that is served."
+        },
+        "dataDirs": {
+          "type": "array",
+          "maxItems": 20,
+          "uniqueItems": true,
+          "description": "php, node, python apps: folders of the release that hold the app's data (uploads), kept across releases in /srv/site/data/dirs and backed up.",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$"
+          }
         }
       },
       "additionalProperties": false
@@ -74,6 +88,10 @@
           "type": "string",
           "pattern": "^[a-z]+$",
           "description": "A content fixture shipped with the module (fixtures/<name>), used by the canaries instead of a repo."
+        },
+        "upload": {
+          "type": "boolean",
+          "description": "The content comes from packages uploaded through the site portal."
         }
       },
       "additionalProperties": false
@@ -129,6 +147,22 @@
         "type": "array",
         "items": {
           "type": "string"
+        }
+      }
+    },
+    "inspection": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How a release is inspected before it goes live.",
+      "properties": {
+        "accept": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "Findings accepted on purpose: a rule name (web-shell, secret, server-code-in-static…) or an advisory id (CVE-…, GHSA-…).",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._:-]{1,64}$"
+          }
         }
       }
     }

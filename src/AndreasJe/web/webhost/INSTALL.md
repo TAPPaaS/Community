@@ -17,7 +17,7 @@ This creates the webhost container, in about four minutes.
 
 Each night the update also keeps one small test site for each kind of site you run (`canary-static`, `canary-php`, `canary-node`, `canary-python`), on the heaviest template you use for it. A new night's packages are tried on it before any real site gets them. It is created the night after the first site of that kind, removed when the last one goes, stays stopped except during the test, and needs no attention. With only static sites there is one: `canary-static`.
 
-The manager is run by its path: `src/AndreasJe/web/webhost/manager/webhost-manager/webhost-manager`. The examples below call it `webhost-manager`.
+The install links the manager into `/home/tappaas/bin`; call it as `webhost-manager`.
 
 ## Create a site
 
@@ -36,16 +36,38 @@ Write the site's declaration, for example `blog.json`:
 
 The site is created and live in about two minutes. `public.zones: ["internet"]` makes it public; leave it out to reach the site only from your own zones. Every field is described in [website/declarations.schema.json](./website/declarations.schema.json); [examples/](./examples/) has a static site and a WordPress site.
 
+## Site portal
+
+The portal lets other people create sites without admin rights. It is installed with the webhost container and reached at `https://webhost.<domain>` (set `proxyDomain` on the webhost instance to use another name). It is open only from your own zones and the admin VPN, behind the Authentik login.
+
+Once, create the group:
+
+    identity-manager group add webhost --type access-set --displayName "Website owners" --ownerOrg <org>
+
+Add each person:
+
+    identity-manager user modify <user> --add-groups webhost
+
+- Members of `webhost` see only their own sites, at most 10.
+- Members of `installer` see and manage every site.
+- A new site's address defaults to `<name>.<domain>`; the person may tick "public on the internet".
+- The mothership picks up requests every minute (`webhost-portal-sync.timer`, a user timer). Check it with `systemctl --user status webhost-portal-sync.timer`; run it by hand with `webhost-manager portal sync`.
+
+- The site page has a Backups card and the home page lists deleted sites; restoring needs a confirm checkbox. Both use `webhost-manager site backups` and `site restore`.
+- The request page shows progress, the error of a failed request and the full log.
+
 ## Deploy an app
+
+Templates come in two groups: Sites (`wordpress`, `static`; nothing of yours runs on the server) and Stacks (`php-app`, `lamp`, `node-app`, `pern`, `mern`, `python-app`, `django`; your code runs on the server).
 
 A site runs what is in its repository; nothing is built on TAPPaaS. Build in CI and push the result to a branch the site follows, for example `deploy`:
 
 | App | Template | The branch must contain |
 |---|---|---|
-| WordPress | `wordpress` | nothing: no `source` at all; WordPress is installed for you |
-| PHP (Laravel, Symfony…) | `php-app`, or `lamp` with MariaDB | the app with `vendor/` (run `composer install` in CI); the web root in `public/` |
-| Node.js (Express, Next.js…) | `node-app`; `pern` (PostgreSQL) or `mern` (MongoDB) | the built app and `node_modules`; `npm start` must listen on `$HOST:$PORT` |
-| Python (Flask, Django…) | `python-app`; `django` (PostgreSQL) | the app and its dependencies in `vendor/` (`pip install --target vendor`); set `options.start`, e.g. `gunicorn app:app` |
+| WordPress (Sites) | `wordpress` (WordPress) | nothing: no `source` at all; WordPress is installed for you |
+| PHP (Laravel, Symfony…) | `php-app` (PHP), or `lamp` (PHP + MariaDB) | the app with `vendor/` (run `composer install` in CI); the web root in `public/` |
+| Node.js (Express, Next.js…) | `node-app` (Node.js); `pern` (Node.js + PostgreSQL) or `mern` (Node.js + MongoDB) | the built app and `node_modules`; `npm start` must listen on `$HOST:$PORT` |
+| Python (Flask, Django…) | `python-app` (Python (WSGI)); `django` (Django + PostgreSQL) | the app and its dependencies in `vendor/` (`pip install --target vendor`); set `options.start`, e.g. `gunicorn app:app` |
 
 A preset with a database gives the app `DATABASE_URL` in its environment, pointing at its own database.
 
@@ -70,12 +92,12 @@ Each template sets a starting size; a site's own `size` overrides it. The defaul
 
 | Template | Cores | Memory | Disk |
 |---|---|---|---|
-| `static` (also built React, Vue, Astro… sites) | 1 | 256 MB | 4 GB |
+| `static` (also built React, Vue, Astro… sites) | 1 | 512 MB | 4 GB |
 | `php-app`, `node-app`, `python-app` | 1 | 512 MB | 8 GB |
 | `lamp`, `pern`, `django` | 1 | 1 GB | 8–10 GB |
 | `wordpress`, `mern` | 2 | 2 GB | 10–12 GB |
 
-Memory is a limit, not a reservation: a site that uses 80 MB of its 256 MB takes 80 MB from the node, and disks only use what they hold. A busy WordPress site (WooCommerce, page builders) is comfortable at 2–4 GB.
+Memory is a limit, not a reservation: a site that uses 80 MB of its 512 MB takes 80 MB from the node, and disks only use what they hold. A busy WordPress site (WooCommerce, page builders) is comfortable at 2–4 GB.
 
     "size": { "cores": 2, "memory": 4096, "diskSize": "20G" }
 
@@ -113,8 +135,35 @@ Its entry in the declaration is invalid; the message names the field. Fix it wit
 **Updates stopped (`snapshots list` shows a halted wave).**
 A site failed to upgrade. The other sites of that runtime wait until a new snapshot is promoted, normally the next night. The failing site's update log says why.
 
+**A release is blocked (`inspection-blocked`).**
+Every release is inspected before a site can serve it, for portal and operator-created sites alike. A blocked release never goes live; the site keeps its last good release. See the findings on the site's page in the portal, in `/srv/webhost/inspect/<site>.json` on the webhost container, or with `journalctl -t tappaas-webhost` (line `inspection-blocked site=… rules=…`). Push a fixed revision to try again.
+
+What blocks:
+
+- server code (`.php`, `.phtml`, `.phar`, `.cgi`…) or executables in a static site
+- links pointing outside the release; a file over 100 MB; a release over 2 GB
+- web-shell patterns in PHP
+- secrets: private keys, AWS, GitHub, Slack and Stripe keys
+- a dependency with a known critical vulnerability (CVSS 9 or higher), found in lockfiles by OSV-Scanner
+
+Lower-severity vulnerabilities and files such as `.env` only warn. `node_modules` and `vendor` are not pattern-scanned; the dependency scan covers them. OSV-Scanner is fetched on every webhost update and checked against the project's published SHA-256 list.
+
+To accept a finding on purpose, add `inspection.accept` to the site's entry in the declaration: a list of rule names (for example `web-shell`) or advisory ids (`CVE-…`, `GHSA-…`):
+
+```json
+"inspection": { "accept": ["web-shell", "GHSA-xxxx-xxxx-xxxx"] }
+```
+
+Accepted findings are shown as "accepted". Uploaded packages are also refused if they contain absolute paths, `..`, links out of the package, device files, or more than 2 GB or 50,000 files.
+
 **Move a site from the previous `hosting` module.**
 A static site: `migrations/0001-sites-to-website.sh <old-site> [new-site] [media-dir]`, one site at a time. It creates the new site under a staging name and leaves the old one untouched; switch the domain over once the new site is checked. A WordPress site is moved by hand: create a `wordpress` site, then `wp db export` / `wp db import` and copy `wp-content`.
 
+**A portal request fails with "<tool> not found on PATH".**
+The sync service needs `~/bin` on its `PATH`; `install.sh` sets it. Re-run the webhost install or update, then `systemctl --user daemon-reload` and `systemctl --user restart webhost-portal-sync.timer`.
+
+**Restore a site.**
+`webhost-manager site backups <site>` lists restore points; `webhost-manager site restore <site> [--backup ID]` restores it, also after a delete. Changes after the backup are lost. `tests/e2e-restore.sh` exercises it.
+
 **Delete a site.**
-`webhost-manager site delete <site>` archives it: the container goes, its configuration stays (add `--remove` to drop that too). `module delete webhost` is refused while any site exists.
+`webhost-manager site delete <site>` archives it: the container goes, its configuration stays (add `--remove` to drop that too). The site can be restored until its backups are purged; a site removed with `--remove` cannot. `module delete webhost` is refused while any site exists.

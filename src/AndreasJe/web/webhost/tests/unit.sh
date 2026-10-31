@@ -103,6 +103,22 @@ expect "old releases are pruned" "[[ \$(ls '${A}/root/releases' | wc -l) -le 2 ]
 printf 'SITE=t\nREPO=%s/origin\nREF=main\nSUBDIR=../..\nKEEP=2\n' "${A}" >"${A}/conf"
 commit v5; agent
 expect "subdir escaping the checkout is refused" "[[ \$(live) == v4 ]]"
+mkdir -p "${A}/origin/web/uploads" && echo seed >"${A}/origin/web/uploads/a.jpg"
+printf 'SITE=t\nREPO=%s/origin\nREF=main\nSUBDIR=web\nKEEP=2\nDATA_DIRS="uploads ../x"\n' "${A}" >"${A}/conf"
+commit v6; agent
+expect "a data folder is linked out of the release" "[[ \$(readlink '${A}/root/current/uploads') == '${A}/root/data/dirs/uploads' ]]"
+expect "and seeded from the repository" "[[ \$(cat '${A}/root/data/dirs/uploads/a.jpg') == seed ]]"
+echo user >"${A}/root/current/uploads/b.jpg"; commit v7; agent
+expect "what the app wrote survives the next release" "[[ \$(live) == v7 && \$(cat '${A}/root/current/uploads/b.jpg') == user ]]"
+expect "a data folder outside the release is ignored" "[[ ! -e '${A}/root/data/dirs/x' ]]"
+printf '#!/bin/sh\necho "$*" >> %s/systemctl\n' "${A}" >"${A}/bin/systemctl"; chmod +x "${A}/bin/systemctl"
+printf 'SITE=t\nREPO=%s/origin\nREF=main\nSUBDIR=web\nKEEP=2\nRELOAD=php*-fpm.service\n' "${A}" >"${A}/conf"
+commit v8; agent
+expect "PHP-FPM is reloaded when a release goes live" "grep -qx 'reload php\*-fpm.service' '${A}/systemctl'"
+mkdir -p "${A}/root/current/files" && echo f >"${A}/root/current/files/c.txt"
+printf 'SITE=t\nREPO=%s/origin\nREF=main\nSUBDIR=web\nKEEP=2\nDATA_DIRS=files\n' "${A}" >"${A}/conf"
+agent
+expect "a data folder added later is linked into the live release" "[[ -L '${A}/root/current/files' && \$(cat '${A}/root/data/dirs/files/c.txt') == f ]]"
 
 echo "log shipper"
 L="${WORK}/ship"
@@ -169,21 +185,93 @@ expect "fixture source accepted" "validate_declaration '$(decl 'del(.source.repo
 expect "unknown fixture refused" "! validate_declaration '$(decl 'del(.source.repo) | .source.fixture="nope"')'"
 expect "fixture name with a path refused" "! validate_declaration '$(decl 'del(.source.repo) | .source.fixture="../x"')'"
 
-echo "mirror"
+echo "mirror, inspection and uploads"
 M="${WORK}/mirror"
-mkdir -p "${M}/git/_fixture-static.git" "${M}/git/gone.git" "${M}/origin"
-git -C "${M}/origin" init -q -b main && echo m >"${M}/origin/f" && git -C "${M}/origin" add -A \
-    && git -C "${M}/origin" -c user.email=t@t -c user.name=t commit -qm m >/dev/null 2>&1
-printf 'site1 https://example.invalid/site1.git\nBad_Name https://example.invalid/x.git\nsite2 file:///etc\n' >"${M}/list"
-printf '#!/bin/sh\n:\n' >"${M}/logger"; chmod +x "${M}/logger"
+mkdir -p "${M}/git/_fixture-static.git" "${M}/git/gone.git" "${M}/priv" "${M}/inspect" "${M}/uploads/up1" "${M}/uploads/up2" "${M}/bin"
+origin() {  # origin <site> <file> <content> — a commit in that site's upstream
+    local o="${M}/origins/$1"
+    [[ -d "${o}" ]] || git init -q -b main "${o}"
+    printf '%s' "$3" >"${o}/$2"
+    git -C "${o}" add -A && git -C "${o}" -c user.email=t@t -c user.name=t commit -qm "$2" >/dev/null 2>&1
+}
+origin site1 index.html "<p>hi</p>"
+origin bad index.html "<p>hi</p>"; origin bad x.php "<?php echo 1;"
+origin okd index.html "<p>hi</p>"; origin okd x.php "<?php echo 1;"
+mkdir -p "${M}/pkg/site" && echo up >"${M}/pkg/site/index.html" && tar -C "${M}/pkg" -czf "${M}/uploads/up1/20260101T000000Z-aaaaaa.tgz" site
+python3 - "${M}/uploads/up2/20260101T000000Z-bbbbbb.tgz" <<'PY'
+import io, sys, tarfile
+with tarfile.open(sys.argv[1], "w:gz") as t:
+    i = tarfile.TarInfo("../escape.txt"); i.size = 1; t.addfile(i, io.BytesIO(b"x"))
+PY
+cat >"${M}/list" <<'EOF'
+site1 https://example.invalid/site1.git main static static -
+bad https://example.invalid/bad.git main static static -
+okd https://example.invalid/okd.git main static static server-code-in-static
+up1 upload main static static -
+up2 upload main static static -
+Bad_Name https://example.invalid/x.git main static static -
+site2 file:///etc main static static -
+EOF
+printf '#!/bin/sh\n:\n' >"${M}/bin/logger"; chmod +x "${M}/bin/logger"
+ln -s "${ROOT}/guest/webhost-inspect.py" "${M}/bin/webhost-inspect"; ln -s "${ROOT}/guest/webhost-ingest.py" "${M}/bin/webhost-ingest"
 sed -e "s#LIST=/etc/webhost/mirrors.list#LIST=${M}/list#" -e "s#GITDIR=/srv/webhost/www/git#GITDIR=${M}/git#" \
-    -e "s#protocol.https.allow=always#protocol.file.allow=always#" "${ROOT}/guest/webhost-mirror.sh" >"${M}/mirror.sh"
-sed -i "s#\"\${GIT\[@\]}\" clone --quiet --mirror -- \"\${url}\"#\"\${GIT[@]}\" clone --quiet --mirror -- \"${M}/origin\"#" "${M}/mirror.sh"
-PATH="${M}:${PATH}" bash "${M}/mirror.sh"
-expect "listed site mirrored and served" "[[ -f '${M}/git/site1.git/info/refs' ]]"
+    -e "s#PRIV=/srv/webhost/mirror#PRIV=${M}/priv#" -e "s#INSPECT=/srv/webhost/inspect#INSPECT=${M}/inspect#" \
+    -e "s#UPLOADS=/srv/webhost/portal/uploads#UPLOADS=${M}/uploads#" -e "s#/usr/local/sbin/#${M}/bin/#g" \
+    -e "s#-- \"\${source}\" \"\${repo}\"#-- \"${M}/origins/\${site}\" \"\${repo}\"#" \
+    "${ROOT}/guest/webhost-mirror.sh" >"${M}/mirror.sh"
+run_mirror() { PATH="${M}/bin:${PATH}" bash "${M}/mirror.sh" >/dev/null 2>&1; }
+served() { git -C "${M}/git/$1.git" rev-parse -q --verify refs/heads/main 2>/dev/null; }
+run_mirror
+expect "a clean site is inspected and published" "[[ -n \$(served site1) && \$(jq -r .verdict '${M}/inspect/site1.json') == pass ]]"
+expect "PHP in a static site blocks the release" "[[ -z \$(served bad) && \$(jq -r '.findings[0].rule' '${M}/inspect/bad.json') == server-code-in-static ]]"
+expect "an accepted finding lets the release through" "[[ -n \$(served okd) && \$(jq -r '.findings[0].level' '${M}/inspect/okd.json') == accepted ]]"
+expect "an uploaded package is ingested and published" "[[ -n \$(served up1) && ! -e '${M}/uploads/up1/20260101T000000Z-aaaaaa.tgz' ]]"
+expect "a hostile package is refused, nothing published" "[[ -z \$(served up2) && \$(jq -r '.findings[0].rule' '${M}/inspect/up2.json') == package-refused ]]"
 expect "invalid name or non-https URL skipped" "[[ ! -e '${M}/git/Bad_Name.git' && ! -e '${M}/git/site2.git' ]]"
 expect "unlisted mirror removed" "[[ ! -e '${M}/git/gone.git' ]]"
+mkdir -p "${M}/tokens"; echo tok123 >"${M}/tokens/priv1"; echo bob:tok456 >"${M}/tokens/priv2"
+sed -n '/^auth() {/,/^}/p' "${ROOT}/guest/webhost-mirror.sh" | sed "s#/etc/webhost/tokens/#${M}/tokens/#" >"${M}/auth.sh"
+# shellcheck source=/dev/null
+. "${M}/auth.sh"
+auth priv1 https://git.example.org/me/site.git
+expect "a deploy token becomes a header for its repository's host only" \
+    "[[ \${GIT_CONFIG_KEY_0} == http.https://git.example.org/.extraHeader && \${GIT_CONFIG_VALUE_0} == 'Authorization: Basic '\$(printf x-access-token:tok123 | base64 -w0) ]]"
+auth priv2 https://git.example.org/me/site.git
+expect "a user:token deploy token keeps its user" "[[ \${GIT_CONFIG_VALUE_0} == 'Authorization: Basic '\$(printf bob:tok456 | base64 -w0) ]]"
+auth site1 https://example.invalid/site1.git
+expect "no token, no header" "[[ -z \${GIT_CONFIG_COUNT:-} ]]"
 expect "fixture repos kept" "[[ -d '${M}/git/_fixture-static.git' ]]"
+good="$(served site1)"; origin site1 shell.php "<?php eval(base64_decode(\$_POST['x']));"; run_mirror
+expect "a later bad commit leaves the last good revision live" "[[ \$(served site1) == '${good}' && \$(jq -r .verdict '${M}/inspect/site1.json') == block ]]"
+
+echo "portal token"
+python3 - "${ROOT}/guest/webhost-portal.py" >"${WORK}/token.out" <<'PY'
+import base64, hashlib, hmac, importlib.util, json, sys, time
+spec = importlib.util.spec_from_file_location("portal", sys.argv[1]); p = importlib.util.module_from_spec(spec); spec.loader.exec_module(p)
+key = {"secret": "s3cret", "client_id": "cid", "slug": "webhost-gate"}
+def tok(body, alg="HS256", secret="s3cret"):
+    e = lambda d: base64.urlsafe_b64encode(json.dumps(d).encode()).rstrip(b"=").decode()
+    h, b = e({"alg": alg, "typ": "JWT"}), e(body)
+    s = base64.urlsafe_b64encode(hmac.new(secret.encode(), f"{h}.{b}".encode(), hashlib.sha256).digest()).rstrip(b"=").decode()
+    return f"{h}.{b}.{s}"
+now = time.time()
+good = {"aud": "cid", "iss": "https://auth.example/application/o/webhost-gate/", "exp": now + 300, "preferred_username": "ann", "groups": ["webhost"]}
+cases = {
+  "valid": tok(good),
+  "wrong-secret": tok(good, secret="nope"),
+  "alg-none": tok(good, alg="none"),
+  "other-audience": tok(dict(good, aud="x")),
+  "other-issuer": tok(dict(good, iss="https://auth.example/application/o/other/")),
+  "expired": tok(dict(good, exp=now - 3600)),
+}
+for name, t in cases.items():
+    claims, why = p.verify_token(t, key, now)
+    print(name, "ok" if claims and claims["user"] == "ann" else "refused")
+PY
+expect "a valid gate token is accepted" "grep -qx 'valid ok' '${WORK}/token.out'"
+for c in wrong-secret alg-none other-audience other-issuer expired; do
+    expect "a token with ${c} is refused" "grep -qx '${c} refused' '${WORK}/token.out'"
+done
 
 echo "custom templates"
 # shellcheck source=../lib/templates.sh

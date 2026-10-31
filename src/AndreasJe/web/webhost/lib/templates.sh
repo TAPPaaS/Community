@@ -10,7 +10,7 @@
 # shellcheck disable=SC2148
 
 readonly CUSTOM_TEMPLATE_DIR="${WEBHOST_DECL_DIR}/webhost/templates"
-readonly TEMPLATE_KEYS='["template","summary","runtime","database","requiredFields","defaults","adminPaths","egress","csp"]'
+readonly TEMPLATE_KEYS='["template","summary","runtime","database","requiredFields","defaults","adminPaths","egress","csp","group","label","guide"]'
 
 # template_check <template.json> — preset-tier rules; prints each finding.
 template_check() {

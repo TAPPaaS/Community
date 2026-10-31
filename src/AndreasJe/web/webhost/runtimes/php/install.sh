@@ -15,6 +15,7 @@ install_log_shipper "${NODE}" "${VMID}" "${SITE}"
 set_guest_notes "${NODE}" "${VMID}" "A TAPPaaS website: $(decl_get "${SITE}" .public.domain) (php, $(tpl .template))"
 
 db_setup "${NODE}" "${VMID}" "$(tpl .database)" "${DBNAME}"
+php_env
 # Caddy first: the agent checks the first release through it.
 push_caddyfile "${NODE}" "${VMID}" php "${TEMPLATE_JSON}" "$(decl_path "${SITE}")"
 php_content
