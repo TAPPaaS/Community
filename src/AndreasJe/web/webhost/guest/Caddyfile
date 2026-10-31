@@ -1,0 +1,18 @@
+# Webhost container: git mirrors, pinned artefacts and snapshot locks for the
+# sites, over plain HTTP inside the DMZ. Integrity: apt checks signatures,
+# artefacts are SHA-256 pinned, git content is what the site's repo holds.
+{
+	auto_https off
+	admin localhost:2019
+}
+
+:80 {
+	root * /srv/webhost/www
+	@hidden path /git/*/config /git/*/hooks/* /git/*/logs/*
+	respond @hidden 404
+	file_server
+	log {
+		output stderr
+		format json
+	}
+}

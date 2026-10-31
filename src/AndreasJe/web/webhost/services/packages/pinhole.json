@@ -1,0 +1,7 @@
+{
+  "_comment": "webhost:packages. A consumer outside the webhost container's zone reaches its apt cache and its HTTP server (git mirrors, artefacts).",
+  "ports": [
+    { "port": 3142, "protocol": "TCP", "description": "apt-cacher-ng (snapshot.debian.org only)" },
+    { "port": 80, "protocol": "TCP", "description": "git mirrors and pinned artefacts" }
+  ]
+}

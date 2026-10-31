@@ -1,0 +1,6 @@
+[Unit]
+Description=TAPPaaS log heartbeat
+
+[Service]
+Type=oneshot
+ExecStart=/bin/echo tappaas-log-heartbeat: alive

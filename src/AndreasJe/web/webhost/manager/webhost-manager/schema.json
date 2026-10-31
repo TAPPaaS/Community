@@ -1,0 +1,544 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "webhost-manager declaration",
+  "description": "The sites of one webhost instance and the settings they share (ADR-038).",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "siteVmidRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max"
+      ],
+      "changeClass": "manual",
+      "changeNote": "Existing sites keep their VMIDs; only new sites use a new range.",
+      "properties": {
+        "min": {
+          "type": "integer",
+          "minimum": 100
+        },
+        "max": {
+          "type": "integer",
+          "maximum": 999999999
+        }
+      }
+    },
+    "runtimes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "static",
+          "php",
+          "node",
+          "python"
+        ]
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "description": "Runtimes this instance keeps snapshots and canaries for."
+    },
+    "snapshotRefresh": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 720,
+      "default": 20,
+      "description": "Hours after which a runtime's lock is due for a new candidate."
+    },
+    "siteDefaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Merged under every site's own values.",
+      "properties": {
+        "options": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "uploadMaxFilesize": {
+              "type": "string",
+              "pattern": "^[0-9]+[KMG]?$"
+            },
+            "memoryLimit": {
+              "type": "string",
+              "pattern": "^[0-9]+[KMG]?$"
+            },
+            "phpMaxChildren": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "start": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9 ._:/=@+-]*$",
+              "description": "node, python: the app's start command (default from the template)."
+            },
+            "docroot": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._/-]*$",
+              "description": "php apps: the directory of the release that is served."
+            }
+          }
+        },
+        "public": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "domain": {
+              "type": "string",
+              "pattern": "^([a-z0-9]([a-z0-9-]*[a-z0-9])?\\.)+[a-z]{2,}$"
+            },
+            "tls": {
+              "type": "string",
+              "enum": [
+                "dns01",
+                "http01"
+              ]
+            },
+            "zones": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "uniqueItems": true,
+              "references": "zones"
+            }
+          }
+        },
+        "size": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cores": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16
+            },
+            "memory": {
+              "type": "integer",
+              "minimum": 256,
+              "maximum": 65536
+            },
+            "diskSize": {
+              "type": "string",
+              "pattern": "^[0-9]+G$",
+              "changeClass": "manual",
+              "changeNote": "A disk only grows; the platform refuses a shrink."
+            }
+          }
+        },
+        "csp": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "default-src": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+              }
+            },
+            "script-src": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+              }
+            },
+            "style-src": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+              }
+            },
+            "img-src": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+              }
+            },
+            "font-src": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+              }
+            },
+            "connect-src": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+              }
+            },
+            "media-src": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+              }
+            },
+            "frame-src": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+              }
+            },
+            "object-src": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+              }
+            },
+            "manifest-src": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+              }
+            },
+            "worker-src": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+              }
+            },
+            "child-src": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+              }
+            },
+            "form-action": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+              }
+            },
+            "frame-ancestors": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+              }
+            },
+            "base-uri": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "prune": {
+      "type": "boolean",
+      "default": false,
+      "description": "Delete (archive) deployed sites that are no longer listed. Off: they are reported as orphaned."
+    },
+    "sites": {
+      "type": "array",
+      "key": "name",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "template",
+          "runtime",
+          "public"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,30}$",
+            "changeClass": "immutable",
+            "changeNote": "The instance name, vmname and declaration path.",
+            "description": "Site name: the website instance and its hostname in the zone."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "active",
+              "quarantined"
+            ],
+            "default": "active",
+            "description": "quarantined: the site is suspended, its content mirror removed, its disk kept."
+          },
+          "template": {
+            "type": "string",
+            "changeClass": "immutable",
+            "changeNote": "A template decides what is installed; changing it means a new site.",
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "description": "A built-in template (templates/) or a custom preset from templateSources (<source>-<name>)."
+          },
+          "runtime": {
+            "type": "string",
+            "enum": [
+              "static",
+              "php",
+              "node",
+              "python"
+            ],
+            "changeClass": "immutable",
+            "changeNote": "The runtime's packages and data layout are set at install."
+          },
+          "options": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "uploadMaxFilesize": {
+                "type": "string",
+                "pattern": "^[0-9]+[KMG]?$"
+              },
+              "memoryLimit": {
+                "type": "string",
+                "pattern": "^[0-9]+[KMG]?$"
+              },
+              "phpMaxChildren": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 200
+              },
+              "start": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9 ._:/=@+-]*$",
+                "description": "node, python: the app's start command (default from the template)."
+              },
+              "docroot": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._/-]*$",
+                "description": "php apps: the directory of the release that is served."
+              }
+            }
+          },
+          "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "repo": {
+                "type": "string",
+                "pattern": "^https://[A-Za-z0-9._/:-]+\\.git$"
+              },
+              "ref": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._/-]+$",
+                "default": "main"
+              },
+              "subdir": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._/-]*$",
+                "default": "."
+              },
+              "fixture": {
+                "type": "string",
+                "pattern": "^[a-z]+$"
+              }
+            }
+          },
+          "public": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "domain"
+            ],
+            "properties": {
+              "domain": {
+                "type": "string",
+                "pattern": "^([a-z0-9]([a-z0-9-]*[a-z0-9])?\\.)+[a-z]{2,}$"
+              },
+              "tls": {
+                "type": "string",
+                "enum": [
+                  "dns01",
+                  "http01"
+                ]
+              },
+              "zones": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "uniqueItems": true,
+                "references": "zones"
+              }
+            }
+          },
+          "size": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "cores": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 16
+              },
+              "memory": {
+                "type": "integer",
+                "minimum": 256,
+                "maximum": 65536
+              },
+              "diskSize": {
+                "type": "string",
+                "pattern": "^[0-9]+G$",
+                "changeClass": "manual",
+                "changeNote": "A disk only grows; the platform refuses a shrink."
+              }
+            }
+          },
+          "csp": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "default-src": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+                }
+              },
+              "script-src": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+                }
+              },
+              "style-src": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+                }
+              },
+              "img-src": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+                }
+              },
+              "font-src": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+                }
+              },
+              "connect-src": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+                }
+              },
+              "media-src": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+                }
+              },
+              "frame-src": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+                }
+              },
+              "object-src": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+                }
+              },
+              "manifest-src": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+                }
+              },
+              "worker-src": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+                }
+              },
+              "child-src": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+                }
+              },
+              "form-action": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+                }
+              },
+              "frame-ancestors": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+                }
+              },
+              "base-uri": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^('(self|none|unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'|data:|blob:|https:|https://(\\*\\.)?[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?)$"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "templateSources": {
+      "type": "array",
+      "key": "name",
+      "description": "Git repositories of preset templates (template.json only), each pinned to a commit.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "repo",
+          "commit"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9]{0,15}$"
+          },
+          "repo": {
+            "type": "string",
+            "pattern": "^https://[A-Za-z0-9._/:-]+\\.git$"
+          },
+          "commit": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          }
+        }
+      }
+    }
+  }
+}

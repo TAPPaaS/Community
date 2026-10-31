@@ -1,0 +1,25 @@
+{
+  "template": "django",
+  "summary": "Preset: a Django application with its own PostgreSQL database; /admin is internal only.",
+  "runtime": "python",
+  "database": "postgresql",
+  "requiredFields": [
+    "public.domain",
+    "source.repo"
+  ],
+  "defaults": {
+    "options": {
+      "start": "gunicorn config.wsgi"
+    },
+    "size": {
+      "cores": 1,
+      "memory": 1024,
+      "diskSize": "10G"
+    }
+  },
+  "adminPaths": [
+    "/admin/*"
+  ],
+  "egress": [],
+  "csp": {}
+}

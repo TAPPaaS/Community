@@ -1,0 +1,39 @@
+{
+  "description": "A hosted website: one unprivileged LXC per site, runtime and settings from its declaration.",
+  "displayName": "Website",
+  "kind": "lxc",
+  "version": "0.3.0",
+  "stack": "collaboration",
+  "releaseDate": "2026-10-30",
+  "maintainer": "@AndreasJe",
+  "status": "Development",
+  "vmname": "website",
+  "vmid": 6300,
+  "vmtag": "TAPPaaS,App,Website",
+  "zone0": "dmz",
+  "dependsOn": [
+    "cluster:lxc",
+    "webhost:packages",
+    "network:proxy",
+    "network:rules",
+    "backup:vm"
+  ],
+  "integratesWith": [
+    "logging:logs"
+  ],
+  "provides": [],
+  "config": {
+    "cluster:lxc": {
+      "cores": 1,
+      "memory": 256,
+      "diskSize": "4G",
+      "storage": "tanka1",
+      "imageType": "clone",
+      "image": "debian-13-standard_13.6-1_amd64.tar.zst",
+      "bridge0": "lan"
+    },
+    "network:proxy": {
+      "proxyPort": 80
+    }
+  }
+}

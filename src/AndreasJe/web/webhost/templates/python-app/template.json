@@ -1,0 +1,23 @@
+{
+  "template": "python-app",
+  "summary": "A Python WSGI application from git, with its dependencies in vendor/, served by gunicorn behind Caddy.",
+  "runtime": "python",
+  "database": "none",
+  "requiredFields": [
+    "public.domain",
+    "source.repo"
+  ],
+  "defaults": {
+    "options": {
+      "start": "gunicorn app:app"
+    },
+    "size": {
+      "cores": 1,
+      "memory": 512,
+      "diskSize": "8G"
+    }
+  },
+  "adminPaths": [],
+  "egress": [],
+  "csp": {}
+}

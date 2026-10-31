@@ -1,0 +1,41 @@
+{
+  "rules": [
+    {
+      "name": "rollback",
+      "title": "Site release rolled back",
+      "kind": "event",
+      "unit": "tappaas-site-agent\\.service",
+      "match": "^rollback rev=",
+      "capture": { "site": "site=(?P<site>[a-z0-9-]+)" },
+      "window": 600,
+      "summary": "A new release of the site did not answer, so the site agent switched back to the previous release. The failed revision is not retried until a new commit arrives."
+    },
+    {
+      "name": "content-pull-failed",
+      "title": "Site content cannot be pulled",
+      "kind": "state",
+      "unit": "tappaas-site-agent\\.service",
+      "match": "^content-pull-failed",
+      "capture": { "site": "site=(?P<site>[a-z0-9-]+)" },
+      "window": 1800,
+      "above": 5,
+      "summary": "The site agent could not fetch the site's repository from the webhost mirror for half an hour. The site keeps serving its current release."
+    },
+    {
+      "name": "agent-failed",
+      "title": "Site agent failed",
+      "kind": "event",
+      "match": "tappaas-site-agent\\.service: Failed",
+      "window": 600,
+      "summary": "The site agent's systemd unit failed. Content changes do not go live until it runs again."
+    },
+    {
+      "name": "egress-not-applied",
+      "title": "Site egress filter not applied",
+      "kind": "state",
+      "match": "^egress-not-applied",
+      "window": 900,
+      "summary": "The site could not resolve the webhost container, so its outbound filter was not rebuilt. The previous rules stay in place."
+    }
+  ]
+}

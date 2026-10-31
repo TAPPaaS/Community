@@ -1,0 +1,8 @@
+# Percona Server for MongoDB (mern preset): not on snapshot.debian.org, so it
+# comes from Percona's repositories through the webhost cache, signed with the
+# key in keys/. Versions are in the runtime's lock (pins.list until then). The
+# telemetry agent is a hard dependency of mongos; it is installed disabled.
+REPO=http://repo.percona.com/psmdb-80/apt
+TELEMETRY_REPO=http://repo.percona.com/telemetry/apt
+SUITE=trixie
+KEY=percona-packaging.gpg

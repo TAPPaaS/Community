@@ -1,0 +1,13 @@
+[Unit]
+Description=TAPPaaS site agent (pull content, release, roll back)
+After=network-online.target caddy.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/site-agent
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=tmpfs
+ReadWritePaths=/srv/site

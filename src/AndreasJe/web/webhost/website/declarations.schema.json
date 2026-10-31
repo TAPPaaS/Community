@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "website declaration (config/declarations/<site>/website.json)",
+  "type": "object",
+  "required": [
+    "template",
+    "runtime",
+    "public"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "template": {
+      "type": "string",
+      "description": "Directory name under templates/",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "templateVersion": {
+      "type": "string"
+    },
+    "runtime": {
+      "enum": [
+        "static",
+        "php",
+        "node",
+        "python"
+      ]
+    },
+    "options": {
+      "type": "object",
+      "properties": {
+        "uploadMaxFilesize": {
+          "type": "string",
+          "pattern": "^[0-9]+[KMG]?$"
+        },
+        "memoryLimit": {
+          "type": "string",
+          "pattern": "^[0-9]+[KMG]?$"
+        },
+        "phpMaxChildren": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "start": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9 ._:/=@+-]*$",
+          "description": "node, python: the app's start command (default from the template)."
+        },
+        "docroot": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._/-]*$",
+          "description": "php apps: the directory of the release that is served."
+        }
+      },
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "repo": {
+          "type": "string",
+          "pattern": "^https://[A-Za-z0-9._/:-]+\\.git$"
+        },
+        "ref": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._/-]+$",
+          "default": "main"
+        },
+        "subdir": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._/-]*$",
+          "default": "."
+        },
+        "fixture": {
+          "type": "string",
+          "pattern": "^[a-z]+$",
+          "description": "A content fixture shipped with the module (fixtures/<name>), used by the canaries instead of a repo."
+        }
+      },
+      "additionalProperties": false
+    },
+    "public": {
+      "type": "object",
+      "required": [
+        "domain"
+      ],
+      "properties": {
+        "domain": {
+          "type": "string"
+        },
+        "tls": {
+          "enum": [
+            "http01",
+            "dns01"
+          ]
+        },
+        "zones": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "description": "proxyAllowedZones; [\"internet\"] makes the site public"
+        }
+      },
+      "additionalProperties": false
+    },
+    "size": {
+      "type": "object",
+      "properties": {
+        "cores": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "memory": {
+          "type": "integer",
+          "minimum": 256
+        },
+        "diskSize": {
+          "type": "string",
+          "pattern": "^[0-9]+G$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "csp": {
+      "type": "object",
+      "description": "Replaces whole directives of the runtime's default Content-Security-Policy",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

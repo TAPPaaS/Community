@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the TAPPaaS site agent every minute
+
+[Timer]
+OnBootSec=30s
+OnUnitInactiveSec=60s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

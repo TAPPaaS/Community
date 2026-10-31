@@ -1,0 +1,10 @@
+[Unit]
+Description=Ship the journal to Loki every 15 seconds
+
+[Timer]
+OnBootSec=20s
+OnUnitInactiveSec=15s
+AccuracySec=2s
+
+[Install]
+WantedBy=timers.target

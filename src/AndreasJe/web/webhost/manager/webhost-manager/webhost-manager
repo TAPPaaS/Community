@@ -1,0 +1,463 @@
+#!/usr/bin/env bash
+#
+# webhost-manager — the sites of a webhost instance, driven by its declaration
+# (ADR-035 manager, ADR-038 declaration). The declaration is
+# config/declarations/<instance>/webhost-manager.json; `reconcile --apply`
+# brings the deployed website instances to it. Run `webhost-manager --help`.
+
+set -euo pipefail
+
+HERE="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+WEBHOST_ROOT="$(cd "${HERE}/../.." && pwd)"
+
+# shellcheck source=/dev/null
+. /home/tappaas/bin/common-install-routines.sh webhost
+# shellcheck source=/dev/null
+. /home/tappaas/bin/cli-gate.sh
+# shellcheck source=../../lib/common.sh
+. "${WEBHOST_ROOT}/lib/common.sh"
+# shellcheck source=../../lib/validate.sh
+. "${WEBHOST_ROOT}/lib/validate.sh"
+# shellcheck source=../../lib/webhost.sh
+. "${WEBHOST_ROOT}/lib/webhost.sh"
+# shellcheck source=../../lib/csp.sh
+. "${WEBHOST_ROOT}/lib/csp.sh"
+# shellcheck source=../../lib/templates.sh
+. "${WEBHOST_ROOT}/lib/templates.sh"
+
+INSTANCE="${WEBHOST_INSTANCE:-webhost}"
+HM_DECL="${WEBHOST_DECL_DIR}/${INSTANCE}/webhost-manager.json"
+HM_SCHEMA="${HERE}/schema.json"
+# Sites have no SSH; core's pre-update readiness wait would run its full 300 s.
+export TAPPAAS_READY_WAIT="${TAPPAAS_READY_WAIT:-10}"
+
+usage() {
+    cat <<'EOF'
+webhost-manager — the sites of a webhost instance, from its declaration
+
+Usage:
+  webhost-manager site add <name> <site.json>       add a site to the declaration and create it
+  webhost-manager site list [--json]                every declared and deployed site, with its state
+  webhost-manager site show <name> [--json]         a site's declaration and its deployment
+  webhost-manager site modify <name> --set PATH=VALUE... [--unset PATH]...
+                                                    change a site's declaration, then apply it
+  webhost-manager site delete <name> [--remove]     take a site out of the declaration and archive it
+  webhost-manager site secret <name> [--key KEY]    print the site's generated secrets
+  webhost-manager site quarantine <name>            suspend the site and stop its content; keep its disk
+  webhost-manager site release <name>               undo a quarantine
+  webhost-manager media sync <name> <dir>           copy a local directory into the site's media
+  webhost-manager template list                     built-in and custom templates
+  webhost-manager template validate <template.json> check a template against the preset rules
+  webhost-manager template sync                     fetch templateSources at their commits
+  webhost-manager snapshots list [--json]           each runtime's lock, previous lock and halted wave
+  webhost-manager snapshots build [--runtime R]     test a new snapshot on the canaries now
+  webhost-manager reconcile [--apply]               compare the declaration with what is deployed
+  webhost-manager validate                          check the declaration against its schema
+
+Options:
+  --help, --help --json    this text, or the verbs as JSON
+EOF
+}
+
+CLI_SPEC='site add:
+site list: --json
+site show: --json
+site modify: --set= --unset=
+site delete: --remove
+site secret: --key=
+site quarantine:
+site release:
+media sync:
+template list:
+template validate:
+template sync:
+snapshots list: --json
+snapshots build: --runtime=
+reconcile: --apply
+validate:'
+
+# ── Declaration ──────────────────────────────────────────────────────
+
+# hm_seed — the instance's copy: the release file, plus every deployed site
+# that is not a canary, so nothing deployed is reported as orphaned.
+hm_seed() {
+    [[ -f "${HM_DECL}" ]] && return 0
+    local s list="[]" d
+    for s in $(deployed_sites); do
+        d="$(decl_path "${s}")"
+        [[ -f "${d}" ]] || continue
+        list="$(jq --arg n "${s}" --slurpfile d "${d}" '. + [{name: $n} + $d[0]]' <<<"${list}")"
+    done
+    install -d -m 0755 "$(dirname "${HM_DECL}")"
+    jq --argjson sites "${list}" '.sites = $sites' "${WEBHOST_ROOT}/webhost-manager.json" >"${HM_DECL}"
+    info "webhost-manager: declaration seeded at ${HM_DECL} ($(jq length <<<"${list}") sites adopted)"
+}
+
+# hm_merge_release — keys the release added since the copy was seeded.
+hm_merge_release() {
+    local tmp
+    tmp="$(mktemp)"
+    jq --slurpfile r "${WEBHOST_ROOT}/webhost-manager.json" '$r[0] + .' "${HM_DECL}" >"${tmp}"
+    cmp -s "${tmp}" "${HM_DECL}" || install -m 0644 "${tmp}" "${HM_DECL}"
+    rm -f "${tmp}"
+}
+
+hm_findings() { jq -r --slurpfile s "${HM_SCHEMA}" -f "${WEBHOST_ROOT}/lib/declaration.jq" "${1:-${HM_DECL}}"; }
+
+# hm_write <file> — replace the declaration unless the change adds a finding;
+# a site that was already invalid stays blocked and does not stop the write.
+hm_write() {
+    local f
+    f="$(comm -13 <(hm_findings | sort) <(hm_findings "$1" | sort))"
+    [[ -z "${f}" ]] || { printf 'invalid declaration:\n%s\n' "${f}" >&2; return 1; }
+    install -m 0644 "$1" "${HM_DECL}"
+}
+
+hm_get() { jq -r "$1" "${HM_DECL}"; }
+
+# site_entry <name> — the site's entry with siteDefaults merged under it.
+site_entry() {
+    jq --arg n "$1" '.siteDefaults as $d | .sites[] | select(.name == $n) | $d * .' "${HM_DECL}"
+}
+
+# website_decl <name> — the entry as the website module's declaration.
+website_decl() { site_entry "$1" | jq 'del(.name, .state)'; }
+
+deployed_sites() {
+    local f n
+    for f in "${WEBHOST_CONFIG_DIR}"/*.json; do
+        n="$(basename "${f}" .json)"
+        [[ "${n}" == canary-* ]] && continue
+        jq -e --argjson lo "${WEBHOST_VMID_MIN}" --argjson hi "${WEBHOST_VMID_MAX}" \
+            '(.vmid // 0) >= $lo and (.vmid // 0) <= $hi and (.status // "") != "archived"' "${f}" >/dev/null 2>&1 \
+            && echo "${n}"
+    done
+    return 0
+}
+
+declared_sites() { hm_get '.sites[].name'; }
+
+# ── Reconcile ────────────────────────────────────────────────────────
+
+# Fields the platform owns, mapped to their module-manager field.
+platform_sets() {
+    jq -r -n --slurpfile o "$1" --slurpfile n "$2" '
+        def f($p; $field; $json):
+            ($n[0] | getpath($p)) as $v
+            | select($v != ($o[0] | getpath($p)) and $v != null)
+            | "\($field)=\(if $json then ($v | tojson) else ($v | tostring) end)";
+        f(["public","domain"]; "proxyDomain"; false),
+        f(["public","tls"]; "proxyTls"; false),
+        f(["public","zones"]; "proxyAllowedZones"; true),
+        f(["size","cores"]; "cores"; false),
+        f(["size","memory"]; "memory"; false),
+        f(["size","diskSize"]; "diskSize"; false)'
+}
+
+# reconcile_site <name> <apply 0|1> — prints "<name>: <state>[: reason]".
+reconcile_site() {
+    local site="$1" apply="$2" want cur f state tmp rc
+    want="$(mktemp)"
+    website_decl "${site}" >"${want}"
+    state="$(site_entry "${site}" | jq -r '.state // "active"')"
+    f="$(hm_findings | grep "^sites\[$(jq --arg n "${site}" '.sites | map(.name) | index($n)' "${HM_DECL}")\]" || true)"
+    if [[ -n "${f}" ]]; then
+        echo "${site}: blocked: ${f//$'\n'/; }"; rm -f "${want}"; return 0
+    fi
+    if ! f="$(validate_declaration "${want}" 2>&1)"; then
+        echo "${site}: blocked: ${f//$'\n'/; }"; rm -f "${want}"; return 0
+    fi
+    if [[ ! -f "${WEBHOST_CONFIG_DIR}/${site}.json" ]]; then
+        if [[ "${state}" == quarantined ]]; then echo "${site}: quarantined (not deployed)"; rm -f "${want}"; return 0; fi
+        if [[ "${apply}" -eq 0 ]]; then echo "${site}: missing: would be created"; rm -f "${want}"; return 0; fi
+        rc=0
+        "${WEBHOST_ROOT}/lib/site-create.sh" "${site}" "${want}" </dev/null \
+            >"/home/tappaas/logs/webhost-${site}-create.log" 2>&1 || rc=$?
+        rm -f "${want}"
+        if [[ "${rc}" -eq 0 ]]; then echo "${site}: created"
+        else echo "${site}: failed: create (see /home/tappaas/logs/webhost-${site}-create.log)"; fi
+        return 0
+    fi
+    cur="$(decl_path "${site}")"
+    if [[ "${state}" == quarantined ]]; then
+        [[ "${apply}" -eq 1 ]] && quarantine_apply "${site}"
+        echo "${site}: quarantined"; rm -f "${want}"; return 0
+    fi
+    if [[ -f "${cur}" ]] && [[ "$(jq -S . "${cur}")" == "$(jq -S . "${want}")" ]]; then
+        echo "${site}: ok"; rm -f "${want}"; return 0
+    fi
+    local k
+    for k in template runtime; do
+        if [[ -f "${cur}" && "$(jq -r ".${k}" "${cur}")" != "$(jq -r ".${k}" "${want}")" ]]; then
+            echo "${site}: refused: ${k} is immutable ($(jq -r ".${k}" "${cur}") -> $(jq -r ".${k}" "${want}"))"
+            rm -f "${want}"; return 0
+        fi
+    done
+    if [[ "${apply}" -eq 0 ]]; then echo "${site}: changed: would be applied"; rm -f "${want}"; return 0; fi
+
+    local -a sets=()
+    mapfile -t sets < <([[ -f "${cur}" ]] && platform_sets "${cur}" "${want}")
+    tmp="$(mktemp)"
+    [[ -f "${cur}" ]] && cp -p "${cur}" "${tmp}"
+    install -m 0644 "${want}" "${cur}"
+    rm -f "${want}"
+    rc=0
+    if [[ ${#sets[@]} -gt 0 ]]; then
+        local -a args=()
+        for k in "${sets[@]}"; do args+=(--set "${k}"); done
+        module-manager modify "${site}" "${args[@]}" >"/home/tappaas/logs/webhost-${site}-modify.log" 2>&1 || rc=$?
+    else
+        update-module.sh "${site}" >"/home/tappaas/logs/webhost-${site}-modify.log" 2>&1 || rc=$?
+    fi
+    if [[ "${rc}" -eq 0 ]]; then
+        echo "${site}: modified${sets:+ (${sets[*]})}"
+    else
+        [[ -s "${tmp}" ]] && install -m 0644 "${tmp}" "${cur}"
+        echo "${site}: failed: modify, declaration put back (see /home/tappaas/logs/webhost-${site}-modify.log)"
+    fi
+    rm -f "${tmp}"
+}
+
+reconcile() {
+    local apply="$1" s prune
+    prune="$(hm_get '.prune // false')"
+    for s in $(declared_sites); do
+        reconcile_site "${s}" "${apply}"
+    done
+    for s in $(deployed_sites); do
+        grep -qx "${s}" <<<"$(declared_sites)" && continue
+        if [[ "${prune}" == true && "${apply}" -eq 1 ]]; then
+            if module-manager delete "${s}" --archive --yes >"/home/tappaas/logs/webhost-${s}-delete.log" 2>&1; then
+                echo "${s}: pruned (archived)"
+            else
+                echo "${s}: failed: prune (see /home/tappaas/logs/webhost-${s}-delete.log)"
+            fi
+        else
+            echo "${s}: orphaned: deployed but not declared${prune:+ (prune: ${prune})}"
+        fi
+    done
+}
+
+quarantine_apply() {
+    local site="$1"
+    mirrors_sync
+    if [[ "$(jq -r '.suspended // false' "${WEBHOST_CONFIG_DIR}/${site}.json")" != true ]]; then
+        module-manager suspend "${site}" >/dev/null
+        webhost_sh "${site}" <<'EOF'
+logger -t tappaas-webhost -p daemon.warning "site-quarantined site=$1"
+EOF
+    fi
+}
+
+# ── Verbs ────────────────────────────────────────────────────────────
+
+# set_entry <name> <jq-filter> [jq args...] — edit one site's entry and save.
+set_entry() {
+    local name="$1" filter="$2" tmp; shift 2
+    tmp="$(mktemp)"
+    jq --arg n "${name}" "$@" "(.sites[] | select(.name == \$n)) |= (${filter})" "${HM_DECL}" >"${tmp}"
+    hm_write "${tmp}" || { rm -f "${tmp}"; return 1; }
+    rm -f "${tmp}"
+}
+
+require_site() {
+    [[ -n "$(site_entry "$1")" ]] || die "no site '$1' in ${HM_DECL}"
+}
+
+cmd_site_add() {
+    local name="${1:?site add <name> <site.json>}" src="${2:?site add <name> <site.json>}" tmp f
+    validate_site_name "${name}" || exit 1
+    [[ -z "$(site_entry "${name}")" ]] || die "site '${name}' is already declared"
+    jq -e . "${src}" >/dev/null 2>&1 || die "${src} is not valid JSON"
+    tmp="$(mktemp)"
+    jq --arg n "${name}" --slurpfile s "${src}" '.sites += [{name: $n} + ($s[0] | del(.name))]' "${HM_DECL}" >"${tmp}"
+    hm_write "${tmp}" || { rm -f "${tmp}"; die "invalid site '${name}'"; }
+    rm -f "${tmp}"
+    reconcile_site "${name}" 1
+}
+
+cmd_site_list() {
+    local s state deployed json="[]"
+    for s in $( (declared_sites; deployed_sites) | sort -u); do
+        state="$(site_entry "${s}" | jq -r '.state // "active"' 2>/dev/null)"
+        [[ -n "${state}" ]] || state="orphaned"
+        deployed=false; [[ -f "${WEBHOST_CONFIG_DIR}/${s}.json" ]] && deployed=true
+        json="$(jq --arg n "${s}" --arg st "${state}" --argjson d "${deployed}" \
+            --arg dom "$(site_entry "${s}" | jq -r '.public.domain // empty' 2>/dev/null)" \
+            --arg rt "$(site_entry "${s}" | jq -r '.runtime // empty' 2>/dev/null)" \
+            --arg vmid "$(jq -r '.vmid // empty' "${WEBHOST_CONFIG_DIR}/${s}.json" 2>/dev/null)" \
+            '. + [{name: $n, state: $st, deployed: $d, domain: $dom, runtime: $rt, vmid: $vmid}]' <<<"${json}")"
+    done
+    if [[ "${OPT_JSON}" -eq 1 ]]; then jq . <<<"${json}"; return; fi
+    jq -r '(["SITE","STATE","DEPLOYED","VMID","RUNTIME","DOMAIN"] | @tsv),
+           (.[] | [.name, .state, (if .deployed then "yes" else "no" end), .vmid, .runtime, .domain] | @tsv)' <<<"${json}" \
+        | column -t -s $'\t'
+}
+
+cmd_site_show() {
+    local name="${1:?site show <name>}" vmid
+    require_site "${name}"
+    vmid="$(jq -r '.vmid // empty' "${WEBHOST_CONFIG_DIR}/${name}.json" 2>/dev/null)"
+    jq -n --argjson e "$(site_entry "${name}")" --arg vmid "${vmid}" \
+        --arg snap "$( [[ -n "${vmid}" ]] && pct_remote "$(resolve_lxc_node "${vmid}")" exec "${vmid}" -- cat /etc/tappaas-snapshot 2>/dev/null)" \
+        '{declaration: $e, vmid: $vmid, snapshot: $snap}'
+}
+
+cmd_site_modify() {
+    local name="${1:?site modify <name> --set PATH=VALUE}" p v filter=". " tmp; shift
+    require_site "${name}"
+    local -a jargs=()
+    local i=0
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --set) [[ "${2:-}" == *=* ]] || die "--set takes PATH=VALUE"
+                   p="${2%%=*}"; v="${2#*=}"
+                   [[ "${p}" =~ ^[A-Za-z][A-Za-z0-9-]*(\.[A-Za-z][A-Za-z0-9-]*)*$ ]] || die "bad path '${p}'"
+                   [[ "${p}" != name && "${p}" != state ]] || die "'${p}' is not changed with modify"
+                   if [[ "${p}" =~ ^(template|runtime)$ && -f "${WEBHOST_CONFIG_DIR}/${name}.json" ]]; then
+                       echo "${name}: refused: ${p} is immutable"; exit 1
+                   fi
+                   jq -e . >/dev/null 2>&1 <<<"${v}" || v="$(jq -Rn --arg v "${v}" '$v')"
+                   jargs+=(--argjson "v${i}" "${v}")
+                   filter+="| setpath(\"${p}\" | split(\".\"); \$v${i}) "
+                   i=$((i + 1)); shift 2 ;;
+            --unset) p="${2:-}"; [[ "${p}" =~ ^[A-Za-z][A-Za-z0-9-]*(\.[A-Za-z][A-Za-z0-9-]*)*$ ]] || die "bad path '${p}'"
+                   filter+="| delpaths([\"${p}\" | split(\".\")]) "; shift 2 ;;
+            *) die "unexpected '$1'" ;;
+        esac
+    done
+    [[ "${filter}" != ". " ]] || die "nothing to change"
+    set_entry "${name}" "${filter}" "${jargs[@]}"
+    reconcile_site "${name}" 1
+}
+
+cmd_site_delete() {
+    local name="${1:?site delete <name>}" mode="--archive" tmp
+    [[ "${OPT_REMOVE}" -eq 1 ]] && mode="--remove"
+    require_site "${name}"
+    tmp="$(mktemp)"
+    jq --arg n "${name}" '.sites |= map(select(.name != $n))' "${HM_DECL}" >"${tmp}"
+    hm_write "${tmp}"; rm -f "${tmp}"
+    if [[ -f "${WEBHOST_CONFIG_DIR}/${name}.json" ]]; then
+        module-manager delete "${name}" "${mode}" --yes
+    fi
+    mirrors_sync
+    echo "${name}: deleted (${mode#--})"
+}
+
+cmd_site_secret() {
+    local name="${1:?site secret <name>}" vmid node
+    vmid="$(jq -r '.vmid // empty' "${WEBHOST_CONFIG_DIR}/${name}.json" 2>/dev/null)"
+    [[ -n "${vmid}" ]] || die "site '${name}' is not deployed"
+    node="$(resolve_lxc_node "${vmid}")"
+    if [[ -n "${OPT_KEY}" ]]; then
+        [[ "${OPT_KEY}" =~ ^[A-Z_]+$ ]] || die "bad key '${OPT_KEY}'"
+        pct_remote "${node}" exec "${vmid}" -- sed -n "s/^${OPT_KEY}=//p" /etc/secrets/site.env
+    else
+        pct_remote "${node}" exec "${vmid}" -- cat /etc/secrets/site.env
+    fi
+}
+
+cmd_site_quarantine() {
+    local name="${1:?site quarantine <name>}"
+    require_site "${name}"
+    set_entry "${name}" '.state = "quarantined"'
+    reconcile_site "${name}" 1
+}
+
+cmd_site_release() {
+    local name="${1:?site release <name>}"
+    require_site "${name}"
+    set_entry "${name}" 'del(.state)'
+    if [[ "$(jq -r '.suspended // false' "${WEBHOST_CONFIG_DIR}/${name}.json" 2>/dev/null)" == true ]]; then
+        module-manager resume "${name}" >/dev/null
+    fi
+    mirrors_sync
+    echo "${name}: released"
+}
+
+cmd_snapshots_list() {
+    local rt json="[]"
+    for rt in $(hm_get '.runtimes[]'); do
+        json="$(jq --arg rt "${rt}" --arg l "$(snapshot_lock "${rt}")" --arg age "$(snapshot_age_hours "${rt}")" \
+            --arg prev "$(webhost_sh "${rt}" <<'EOF'
+ls -1t /srv/webhost/www/snapshots/"$1"-*.lock 2>/dev/null | sed -n '2s/.*-\([0-9TZ]*\)\.lock$/\1/p'
+EOF
+)" --arg halt "$(webhost_sh "${rt}" <<'EOF'
+cat "/srv/webhost/www/snapshots/$1.halt" 2>/dev/null || true
+EOF
+)" '. + [{runtime: $rt, lock: $l, ageHours: ($age | tonumber? // null), previous: $prev, halted: $halt}]' <<<"${json}")"
+    done
+    if [[ "${OPT_JSON}" -eq 1 ]]; then jq . <<<"${json}"; return; fi
+    jq -r '(["RUNTIME","LOCK","AGE(h)","PREVIOUS","HALTED"] | @tsv),
+           (.[] | [.runtime, .lock, (.ageHours | tostring), .previous, (if .halted == "" then "-" else .halted end)] | @tsv)' <<<"${json}" \
+        | column -t -s $'\t'
+}
+
+cmd_snapshots_build() {
+    local -a env=(WEBHOST_SNAPSHOT_FORCE=1)
+    [[ -n "${OPT_RUNTIME}" ]] && env+=(WEBHOST_SNAPSHOT_RUNTIMES="${OPT_RUNTIME}")
+    env "${env[@]}" update-module.sh "${INSTANCE}"
+}
+
+cmd_template_list() {
+    local t
+    {
+        echo "TEMPLATE	RUNTIME	DATABASE	SOURCE"
+        for t in "${WEBHOST_ROOT}"/templates/*/template.json "${CUSTOM_TEMPLATE_DIR}"/*/template.json; do
+            [[ -f "${t}" ]] || continue
+            jq -r '[.template, .runtime, (.database // "none"), (.source // "built-in")] | @tsv' "${t}"
+        done
+    } | column -t -s $'\t'
+}
+
+# ── Main ─────────────────────────────────────────────────────────────
+
+if [[ "${1:-}" == --help && "${2:-}" == --json ]]; then cat "${HERE}/help.json"; exit 0; fi
+if [[ $# -eq 0 || "$1" == --help || "$1" == -h ]]; then usage; exit 0; fi
+cli_gate usage "${CLI_SPEC}" "$@"
+
+OPT_JSON=0; OPT_REMOVE=0; OPT_APPLY=0; OPT_KEY=""; OPT_RUNTIME=""
+declare -a POS=() REST=()
+verb="$1"; shift
+[[ "${verb}" =~ ^(site|media|snapshots|template)$ && $# -gt 0 ]] && { verb+=" $1"; shift; }
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --json) OPT_JSON=1; shift ;;
+        --remove) OPT_REMOVE=1; shift ;;
+        --apply) OPT_APPLY=1; shift ;;
+        --key) OPT_KEY="${2:-}"; shift 2 ;;
+        --runtime) OPT_RUNTIME="${2:-}"; shift 2 ;;
+        --set|--unset) REST+=("$1" "${2:-}"); shift 2 ;;
+        *) POS+=("$1"); shift ;;
+    esac
+done
+
+webhost_locate >/dev/null || die "the webhost module is not installed"
+hm_seed
+hm_merge_release
+# A finding inside one site blocks that site only (reconcile reports it).
+if [[ "${verb}" != validate ]] && f="$(hm_findings | grep -v '^sites\[[0-9]*\]' || true)" && [[ -n "${f}" ]]; then
+    die "the declaration ${HM_DECL} is invalid:"$'\n'"${f}"
+fi
+
+case "${verb}" in
+    "site add")        cmd_site_add "${POS[@]}" ;;
+    "site list")       cmd_site_list ;;
+    "site show")       cmd_site_show "${POS[@]}" ;;
+    "site modify")     cmd_site_modify "${POS[@]}" "${REST[@]}" ;;
+    "site delete")     cmd_site_delete "${POS[@]}" ;;
+    "site secret")     cmd_site_secret "${POS[@]}" ;;
+    "site quarantine") cmd_site_quarantine "${POS[@]}" ;;
+    "site release")    cmd_site_release "${POS[@]}" ;;
+    "media sync")      exec "${WEBHOST_ROOT}/lib/media-sync.sh" "${POS[@]}" ;;
+    "template list")   cmd_template_list ;;
+    "template validate") f="$(template_check "${POS[0]:?template validate <template.json>}")"
+                       [[ -z "${f}" ]] && { echo "valid preset: ${POS[0]}"; exit 0; }; echo "${f}"; exit 1 ;;
+    "template sync")   templates_sync ;;
+    "snapshots list")  cmd_snapshots_list ;;
+    "snapshots build") cmd_snapshots_build ;;
+    reconcile)         reconcile "${OPT_APPLY}" ;;
+    validate)          f="$(hm_findings)"; [[ -z "${f}" ]] && { echo "valid: ${HM_DECL}"; exit 0; }; echo "${f}"; exit 1 ;;
+    *)                 usage >&2; exit 1 ;;
+esac

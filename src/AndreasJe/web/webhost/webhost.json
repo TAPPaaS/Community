@@ -1,0 +1,45 @@
+{
+  "description": "Web hosting for TAPPaaS: the shared services (package cache, snapshots, git mirrors) and the manager behind the website module.",
+  "displayName": "Webhost",
+  "kind": "lxc",
+  "version": "0.3.0",
+  "stack": "collaboration",
+  "releaseDate": "2026-10-30",
+  "maintainer": "@AndreasJe",
+  "status": "Development",
+  "vmname": "webhost",
+  "vmid": 630,
+  "vmtag": "TAPPaaS,App,Webhost",
+  "zone0": "dmz",
+  "dependsOn": [
+    "cluster:lxc",
+    "network:proxy",
+    "network:rules"
+  ],
+  "integratesWith": [
+    "logging:logs"
+  ],
+  "provides": [
+    "packages"
+  ],
+  "managers": [
+    {
+      "name": "webhost-manager",
+      "path": "manager/webhost-manager"
+    }
+  ],
+  "config": {
+    "cluster:lxc": {
+      "cores": 1,
+      "memory": 1024,
+      "diskSize": "16G",
+      "storage": "tanka1",
+      "imageType": "clone",
+      "image": "debian-13-standard_13.6-1_amd64.tar.zst",
+      "bridge0": "lan"
+    },
+    "network:proxy": {
+      "proxyPort": 80
+    }
+  }
+}

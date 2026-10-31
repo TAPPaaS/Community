@@ -1,0 +1,37 @@
+{
+  "template": "wordpress",
+  "summary": "WordPress on native PHP-FPM and MariaDB; no containers.",
+  "runtime": "php",
+  "app": "wordpress",
+  "database": "mariadb",
+  "pins": [
+    "wp-cli",
+    "wordpress"
+  ],
+  "requiredFields": [
+    "public.domain"
+  ],
+  "defaults": {
+    "options": {
+      "uploadMaxFilesize": "128M",
+      "memoryLimit": "256M",
+      "phpMaxChildren": 5
+    },
+    "size": {
+      "cores": 2,
+      "memory": 2048,
+      "diskSize": "10G"
+    }
+  },
+  "adminPaths": [
+    "/wp-admin/*",
+    "/wp-login.php",
+    "/xmlrpc.php"
+  ],
+  "egress": [
+    "api.wordpress.org",
+    "downloads.wordpress.org",
+    "wordpress.org"
+  ],
+  "csp": {}
+}

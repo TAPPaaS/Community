@@ -1,0 +1,12 @@
+[Unit]
+Description=TAPPaaS site egress filter (nftables)
+After=network-online.target
+Wants=network-online.target
+Before=tappaas-site-agent.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/site-egress
+
+[Install]
+WantedBy=multi-user.target

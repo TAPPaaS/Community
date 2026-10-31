@@ -1,0 +1,21 @@
+[Unit]
+Description=TAPPaaS site application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=site
+Group=site
+Environment=HOST=127.0.0.1 PORT=3000 NODE_ENV=production GUNICORN_CMD_ARGS=--bind=127.0.0.1:3000
+EnvironmentFile=-/etc/secrets/site.env
+ExecStart=/usr/local/sbin/site-app-start
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/srv/site/data
+
+[Install]
+WantedBy=multi-user.target

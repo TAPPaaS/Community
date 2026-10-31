@@ -1,0 +1,10 @@
+[Unit]
+Description=A journal line every 5 minutes, so a healthy site is never silent
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,14 @@
+[Unit]
+Description=TAPPaaS log shipper (journal to Loki)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/log-shipper
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=tmpfs
+ReadWritePaths=/var/lib/log-shipper
+StateDirectory=log-shipper

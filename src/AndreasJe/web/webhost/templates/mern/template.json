@@ -1,0 +1,27 @@
+{
+  "template": "mern",
+  "summary": "Preset: a Node.js application with its own MongoDB database (Percona Server for MongoDB 8.0).",
+  "runtime": "node",
+  "database": "mongodb",
+  "pins": [
+    "percona",
+    "percona-telemetry"
+  ],
+  "requiredFields": [
+    "public.domain",
+    "source.repo"
+  ],
+  "defaults": {
+    "options": {
+      "start": "npm start"
+    },
+    "size": {
+      "cores": 2,
+      "memory": 2048,
+      "diskSize": "12G"
+    }
+  },
+  "adminPaths": [],
+  "egress": [],
+  "csp": {}
+}

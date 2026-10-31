@@ -1,0 +1,23 @@
+{
+  "template": "node-app",
+  "summary": "A Node.js application from git, with node_modules in the release, run with its start command behind Caddy.",
+  "runtime": "node",
+  "database": "none",
+  "requiredFields": [
+    "public.domain",
+    "source.repo"
+  ],
+  "defaults": {
+    "options": {
+      "start": "npm start"
+    },
+    "size": {
+      "cores": 1,
+      "memory": 512,
+      "diskSize": "8G"
+    }
+  },
+  "adminPaths": [],
+  "egress": [],
+  "csp": {}
+}

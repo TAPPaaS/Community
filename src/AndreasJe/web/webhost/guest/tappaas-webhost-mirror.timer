@@ -1,0 +1,10 @@
+[Unit]
+Description=Mirror site repositories every 30 seconds
+
+[Timer]
+OnBootSec=20s
+OnUnitInactiveSec=30s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

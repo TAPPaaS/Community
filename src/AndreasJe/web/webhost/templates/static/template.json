@@ -1,0 +1,22 @@
+{
+  "template": "static",
+  "summary": "Static site: a git repository served by Caddy. No database.",
+  "runtime": "static",
+  "requiredFields": [
+    "source.repo",
+    "public.domain"
+  ],
+  "defaults": {
+    "source": {
+      "ref": "main",
+      "subdir": "."
+    },
+    "size": {
+      "cores": 1,
+      "memory": 256,
+      "diskSize": "4G"
+    }
+  },
+  "adminPaths": [],
+  "csp": {}
+}

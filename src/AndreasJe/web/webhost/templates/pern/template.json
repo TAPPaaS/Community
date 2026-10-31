@@ -1,0 +1,23 @@
+{
+  "template": "pern",
+  "summary": "Preset: a Node.js application with its own PostgreSQL database.",
+  "runtime": "node",
+  "database": "postgresql",
+  "requiredFields": [
+    "public.domain",
+    "source.repo"
+  ],
+  "defaults": {
+    "options": {
+      "start": "npm start"
+    },
+    "size": {
+      "cores": 1,
+      "memory": 1024,
+      "diskSize": "10G"
+    }
+  },
+  "adminPaths": [],
+  "egress": [],
+  "csp": {}
+}

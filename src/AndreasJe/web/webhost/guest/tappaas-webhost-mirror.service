@@ -1,0 +1,14 @@
+[Unit]
+Description=TAPPaaS webhost: mirror site repositories
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=webhost-mirror
+ExecStart=/usr/local/sbin/webhost-mirror
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=tmpfs
+ReadWritePaths=/srv/webhost/www/git

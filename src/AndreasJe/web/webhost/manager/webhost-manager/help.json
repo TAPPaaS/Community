@@ -1,0 +1,364 @@
+{
+  "manifest": 1,
+  "name": "webhost-manager",
+  "version": "0.3.0",
+  "tagline": "TAPPaaS webhost: the sites of a webhost instance, from its declaration",
+  "common": [],
+  "verbs": [
+    {
+      "verb": "site add",
+      "keys": [
+        [
+          "site",
+          "add"
+        ]
+      ],
+      "usage": "site add <name> <site.json>",
+      "note": "Add a site to the declaration and create it.",
+      "details": null,
+      "positionals": [
+        {
+          "name": "name",
+          "description": "Site name"
+        },
+        {
+          "name": "site.json",
+          "description": "The site's declaration (template, runtime, source, public, size, options, csp)"
+        }
+      ],
+      "options": []
+    },
+    {
+      "verb": "site list",
+      "keys": [
+        [
+          "site",
+          "list"
+        ]
+      ],
+      "usage": "site list [--json]",
+      "note": "Every declared and deployed site, with its state.",
+      "details": null,
+      "positionals": [],
+      "options": [
+        {
+          "flag": "--json",
+          "takesValue": false,
+          "arg": null,
+          "choices": null,
+          "repeatable": false,
+          "description": "Print JSON instead of a table."
+        }
+      ]
+    },
+    {
+      "verb": "site show",
+      "keys": [
+        [
+          "site",
+          "show"
+        ]
+      ],
+      "usage": "site show <name> [--json]",
+      "note": "A site's declaration and its deployment.",
+      "details": null,
+      "positionals": [
+        {
+          "name": "name",
+          "description": "Site name"
+        }
+      ],
+      "options": [
+        {
+          "flag": "--json",
+          "takesValue": false,
+          "arg": null,
+          "choices": null,
+          "repeatable": false,
+          "description": "Print JSON instead of a table."
+        }
+      ]
+    },
+    {
+      "verb": "site modify",
+      "keys": [
+        [
+          "site",
+          "modify"
+        ]
+      ],
+      "usage": "site modify <name> --set PATH=VALUE... [--unset PATH]...",
+      "note": "Change a site's declaration, then apply it. template, runtime and name cannot change.",
+      "details": null,
+      "positionals": [
+        {
+          "name": "name",
+          "description": "Site name"
+        }
+      ],
+      "options": [
+        {
+          "flag": "--set",
+          "takesValue": true,
+          "arg": "PATH=VALUE",
+          "choices": null,
+          "repeatable": true,
+          "description": "Dotted path in the site's entry and its value (JSON, or a plain string)."
+        },
+        {
+          "flag": "--unset",
+          "takesValue": true,
+          "arg": "PATH",
+          "choices": null,
+          "repeatable": true,
+          "description": "Dotted path to remove."
+        }
+      ]
+    },
+    {
+      "verb": "site delete",
+      "keys": [
+        [
+          "site",
+          "delete"
+        ]
+      ],
+      "usage": "site delete <name> [--remove]",
+      "note": "Take a site out of the declaration and archive it.",
+      "details": null,
+      "positionals": [
+        {
+          "name": "name",
+          "description": "Site name"
+        }
+      ],
+      "options": [
+        {
+          "flag": "--remove",
+          "takesValue": false,
+          "arg": null,
+          "choices": null,
+          "repeatable": false,
+          "description": "Remove the config too, instead of archiving."
+        }
+      ]
+    },
+    {
+      "verb": "site secret",
+      "keys": [
+        [
+          "site",
+          "secret"
+        ]
+      ],
+      "usage": "site secret <name> [--key KEY]",
+      "note": "Print the site's generated secrets.",
+      "details": null,
+      "positionals": [
+        {
+          "name": "name",
+          "description": "Site name"
+        }
+      ],
+      "options": [
+        {
+          "flag": "--key",
+          "takesValue": true,
+          "arg": "KEY",
+          "choices": null,
+          "repeatable": false,
+          "description": "Only this key."
+        }
+      ]
+    },
+    {
+      "verb": "site quarantine",
+      "keys": [
+        [
+          "site",
+          "quarantine"
+        ]
+      ],
+      "usage": "site quarantine <name>",
+      "note": "Suspend the site and stop its content; keep its disk.",
+      "details": null,
+      "positionals": [
+        {
+          "name": "name",
+          "description": "Site name"
+        }
+      ],
+      "options": []
+    },
+    {
+      "verb": "site release",
+      "keys": [
+        [
+          "site",
+          "release"
+        ]
+      ],
+      "usage": "site release <name>",
+      "note": "Undo a quarantine.",
+      "details": null,
+      "positionals": [
+        {
+          "name": "name",
+          "description": "Site name"
+        }
+      ],
+      "options": []
+    },
+    {
+      "verb": "media sync",
+      "keys": [
+        [
+          "media",
+          "sync"
+        ]
+      ],
+      "usage": "media sync <name> <dir>",
+      "note": "Copy a local directory into the site's media.",
+      "details": null,
+      "positionals": [
+        {
+          "name": "name",
+          "description": "Site name"
+        },
+        {
+          "name": "dir",
+          "description": "Local directory"
+        }
+      ],
+      "options": []
+    },
+    {
+      "verb": "template list",
+      "keys": [
+        [
+          "template",
+          "list"
+        ]
+      ],
+      "usage": "template list",
+      "note": "Built-in and custom templates.",
+      "details": null,
+      "positionals": [],
+      "options": []
+    },
+    {
+      "verb": "template validate",
+      "keys": [
+        [
+          "template",
+          "validate"
+        ]
+      ],
+      "usage": "template validate <template.json>",
+      "note": "Check a template against the preset rules.",
+      "details": null,
+      "positionals": [
+        {
+          "name": "template.json",
+          "description": "The template file"
+        }
+      ],
+      "options": []
+    },
+    {
+      "verb": "template sync",
+      "keys": [
+        [
+          "template",
+          "sync"
+        ]
+      ],
+      "usage": "template sync",
+      "note": "Fetch templateSources at their commits and install their preset templates.",
+      "details": null,
+      "positionals": [],
+      "options": []
+    },
+    {
+      "verb": "snapshots list",
+      "keys": [
+        [
+          "snapshots",
+          "list"
+        ]
+      ],
+      "usage": "snapshots list [--json]",
+      "note": "Each runtime's lock, previous lock and halted wave.",
+      "details": null,
+      "positionals": [],
+      "options": [
+        {
+          "flag": "--json",
+          "takesValue": false,
+          "arg": null,
+          "choices": null,
+          "repeatable": false,
+          "description": "Print JSON instead of a table."
+        }
+      ]
+    },
+    {
+      "verb": "snapshots build",
+      "keys": [
+        [
+          "snapshots",
+          "build"
+        ]
+      ],
+      "usage": "snapshots build [--runtime R]",
+      "note": "Test a new snapshot on the canaries now.",
+      "details": null,
+      "positionals": [],
+      "options": [
+        {
+          "flag": "--runtime",
+          "takesValue": true,
+          "arg": "R",
+          "choices": null,
+          "repeatable": false,
+          "description": "Only this runtime."
+        }
+      ]
+    },
+    {
+      "verb": "reconcile",
+      "keys": [
+        [
+          "reconcile"
+        ]
+      ],
+      "usage": "reconcile [--apply]",
+      "note": "Compare the declaration with what is deployed; --apply creates, modifies, and (with prune) archives.",
+      "details": null,
+      "positionals": [],
+      "options": [
+        {
+          "flag": "--apply",
+          "takesValue": false,
+          "arg": null,
+          "choices": null,
+          "repeatable": false,
+          "description": "Make the changes, not just report them."
+        }
+      ]
+    },
+    {
+      "verb": "validate",
+      "keys": [
+        [
+          "validate"
+        ]
+      ],
+      "usage": "validate",
+      "note": "Check the declaration against its schema.",
+      "details": null,
+      "positionals": [],
+      "options": []
+    }
+  ]
+}

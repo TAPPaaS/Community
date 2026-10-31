@@ -1,0 +1,26 @@
+{
+  "template": "lamp",
+  "summary": "Preset: a PHP application with its own MariaDB database (DATABASE_URL in the site's secrets).",
+  "runtime": "php",
+  "database": "mariadb",
+  "requiredFields": [
+    "public.domain",
+    "source.repo"
+  ],
+  "defaults": {
+    "options": {
+      "docroot": "public",
+      "uploadMaxFilesize": "32M",
+      "memoryLimit": "256M",
+      "phpMaxChildren": 5
+    },
+    "size": {
+      "cores": 1,
+      "memory": 1024,
+      "diskSize": "8G"
+    }
+  },
+  "adminPaths": [],
+  "egress": [],
+  "csp": {}
+}

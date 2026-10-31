@@ -1,0 +1,5 @@
+# Repository keys the sites trust: Debian trixie (debian-archive-keyring 2025.1) and Percona.
+# file                                         fingerprint
+debian-archive-trixie-automatic.pgp            04B54C3CDCA79751B16BC6B5225629DF75B188BD
+debian-archive-trixie-security-automatic.pgp   5E04A1E3223A19A20706E20F9904613D4CCE68C6
+percona-packaging.gpg                          4D1BB29D63D98E422B2113B19334A25F8507EFA5

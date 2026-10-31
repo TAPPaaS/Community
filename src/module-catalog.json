@@ -83,13 +83,22 @@
             "status": "beta"
         },
         {
-            "moduleName": "hosting",
+            "moduleName": "webhost",
             "repo": "community",
-            "moduleJson": "src/AndreasJe/hosting/hosting.json",
+            "moduleJson": "src/AndreasJe/web/webhost/webhost.json",
             "vmid": 630,
-            "stack": "infrastructure",
+            "stack": "collaboration",
             "category": "web-hosting",
-            "status": "incomplete"
+            "status": "beta"
+        },
+        {
+            "moduleName": "website",
+            "repo": "community",
+            "moduleJson": "src/AndreasJe/web/webhost/website/website.json",
+            "vmid": 6300,
+            "stack": "collaboration",
+            "category": "web-hosting",
+            "status": "beta"
         },
         {
             "moduleName": "hue",
@@ -179,7 +188,16 @@
             "vmid": 352,
             "stack": "home",
             "category": "media",
-            "status": "Development"
+            "status": "beta"
+        },
+        {
+            "moduleName": "amp",
+            "repo": "community",
+            "moduleJson": "src/AndreasJe/games/amp/amp.json",
+            "vmid": 354,
+            "stack": "misc",
+            "category": "games",
+            "status": "beta"
         }
     ],
     "foundationModules": [
@@ -190,7 +208,7 @@
             "vmid": null,
             "stack": "communication",
             "category": "email",
-            "status": "beta"
+            "status": "Development"
         }
     ],
     "proxmoxTemplates": [],

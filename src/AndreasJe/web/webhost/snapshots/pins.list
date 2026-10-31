@@ -1,0 +1,8 @@
+# First pins, used until a runtime has a canary-promoted lock. After that the
+# webhost container resolves the latest of each (guest/webhost-upstreams.sh)
+# and a pin changes only when the runtime's canary passes with it.
+# key               version            file                                        sha256                                                            url
+wp-cli              2.12.0             wp-cli-2.12.0.phar                          ce34ddd838f7351d6759068d09793f26755463b4a4610a5a5c0a97b68220d85c  https://github.com/wp-cli/wp-cli/releases/download/v2.12.0/wp-cli-2.12.0.phar
+wordpress           7.1.4              wordpress-7.1.4.tar.gz                      881e53a4681ff2cd911651b11cccdede5ae477ddf0765af5d6a1a8b219a1d835  https://wordpress.org/wordpress-7.1.4.tar.gz
+percona             8.0.34-15.trixie   -                                           -                                                                 -
+percona-telemetry   1.0.17-1.trixie    -                                           -                                                                 -

@@ -1,0 +1,16 @@
+{
+  "siteVmidRange": {
+    "min": 6300,
+    "max": 6499
+  },
+  "runtimes": [
+    "static",
+    "php",
+    "node",
+    "python"
+  ],
+  "snapshotRefresh": 20,
+  "siteDefaults": {},
+  "prune": false,
+  "sites": []
+}

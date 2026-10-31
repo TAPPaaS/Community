@@ -1,0 +1,26 @@
+{
+  "template": "php-app",
+  "summary": "A PHP application from git, served from its docroot by PHP-FPM; MariaDB installed, no database created.",
+  "runtime": "php",
+  "database": "none",
+  "requiredFields": [
+    "public.domain",
+    "source.repo"
+  ],
+  "defaults": {
+    "options": {
+      "docroot": "public",
+      "uploadMaxFilesize": "32M",
+      "memoryLimit": "256M",
+      "phpMaxChildren": 5
+    },
+    "size": {
+      "cores": 1,
+      "memory": 512,
+      "diskSize": "8G"
+    }
+  },
+  "adminPaths": [],
+  "egress": [],
+  "csp": {}
+}

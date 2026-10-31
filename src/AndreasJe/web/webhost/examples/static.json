@@ -1,0 +1,7 @@
+{
+  "template": "static",
+  "runtime": "static",
+  "source": { "repo": "https://codeberg.org/example/site.git", "ref": "main", "subdir": "." },
+  "public": { "domain": "www.example.com" },
+  "size": { "cores": 1, "memory": 512, "diskSize": "4G" }
+}

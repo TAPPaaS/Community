@@ -1,0 +1,1 @@
+caddy git rsync curl jq ca-certificates openssl nftables mariadb-server php-fpm php-cli php-mysql php-curl php-gd php-mbstring php-xml php-zip php-intl sudo

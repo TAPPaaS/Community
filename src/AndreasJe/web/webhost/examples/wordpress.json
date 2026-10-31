@@ -1,0 +1,7 @@
+{
+  "template": "wordpress",
+  "runtime": "php",
+  "options": { "uploadMaxFilesize": "128M", "memoryLimit": "256M", "phpMaxChildren": 5 },
+  "public": { "domain": "blog.example.com" },
+  "size": { "cores": 2, "memory": 2048, "diskSize": "10G" }
+}
