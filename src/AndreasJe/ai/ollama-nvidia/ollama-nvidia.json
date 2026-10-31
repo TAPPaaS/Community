@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "releaseDate": "2026-07-14",
   "maintainer": "@AndreasJe",
-  "status": "Development",
+  "status": "Testing",
   "tier": "app",
   "vmname": "ollama-nvidia",
   "vmid": 313,

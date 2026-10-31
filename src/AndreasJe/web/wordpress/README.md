@@ -1,6 +1,9 @@
 # WordPress on TAPPaaS
 
-**Version:** 0.4.0 | **Status:** Development | **VMID:** 620 | **Zone:** dmz
+> [!WARNING]
+> **DEPRECATED.** Replaced by [webhost](../webhost/README.md), which runs WordPress as a site template. Not maintained.
+
+**Version:** 0.4.0 | **Status:** Deprecated | **VMID:** 620 | **Zone:** dmz
 
 Self-hosted WordPress CMS on NixOS — MariaDB, Redis, PHP-FPM, Nginx, Podman.
 

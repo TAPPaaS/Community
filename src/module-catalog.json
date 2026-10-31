@@ -31,11 +31,11 @@
         {
             "moduleName": "wordpress",
             "repo": "community",
-            "moduleJson": "src/AndreasJe/wordpress/wordpress.json",
+            "moduleJson": "src/AndreasJe/web/wordpress/wordpress.json",
             "vmid": 620,
             "stack": "productivity",
             "category": "cms",
-            "status": "beta"
+            "status": "deprecated"
         },
         {
             "moduleName": "alfen",
@@ -76,7 +76,7 @@
         {
             "moduleName": "ollama-nvidia",
             "repo": "community",
-            "moduleJson": "src/AndreasJe/ollama-nvidia/ollama-nvidia.json",
+            "moduleJson": "src/AndreasJe/ai/ollama-nvidia/ollama-nvidia.json",
             "vmid": 313,
             "stack": "ai",
             "category": "inference",
@@ -184,7 +184,7 @@
         {
             "moduleName": "mediamanager",
             "repo": "community",
-            "moduleJson": "src/AndreasJe/mediamanager/mediamanager.json",
+            "moduleJson": "src/AndreasJe/media/mediamanager/mediamanager.json",
             "vmid": 352,
             "stack": "home",
             "category": "media",
@@ -204,7 +204,7 @@
         {
             "moduleName": "mailserver",
             "repo": "community",
-            "moduleJson": "src/AndreasJe/mailserver-hub/mailserver/mailserver.json",
+            "moduleJson": "src/AndreasJe/mail/mailserver/mailserver.json",
             "vmid": null,
             "stack": "communication",
             "category": "email",

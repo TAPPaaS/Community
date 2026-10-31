@@ -1,7 +1,10 @@
 # ollama-nvidia
 
 Primary audience: developers and services needing a local, OpenAI-compatible LLM endpoint
-on NVIDIA hardware.
+on older NVIDIA hardware.
+
+Status: tested and working. Meant for older cards (compute capability 5.0–6.x) that vLLM
+cannot run; on compute capability ≥7.0 use a vLLM-based module instead.
 
 Local LLM inference on any NVIDIA GPU (compute capability ≥5.0) via Ollama — an
 OpenAI-compatible API for LiteLLM or direct clients, with no data leaving your network.
