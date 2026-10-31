@@ -3,7 +3,7 @@
 # TAPPaaS Module: amp — Verification Tests
 #
 # Checks the install (CubeCoders repo, ampinstmgr, the management instance), the TAPPaaS
-# settings update.sh applies, the LAN rule, and that port-sync.sh can read AMP.
+# settings update.sh applies, the LAN rule, the panel's identity gate, and that port-sync.sh can read AMP.
 # Run from tappaas-cicd as tappaas.
 #
 # Usage: ./test.sh [vmname]
@@ -65,6 +65,8 @@ else
     pass "ADS instance found: ${ADS} on ${ADS_IP}:${ADS_PORT}"
     check "Bound to 0.0.0.0:${PROXY_PORT}, where Caddy forwards" "[[ '${ADS_IP}:${ADS_PORT}' == '0.0.0.0:${PROXY_PORT}' ]]" "update.sh rebinds it"
     check "Panel answers HTTP" "remote 'curl -s -o /dev/null -w %{http_code} --max-time 10 http://127.0.0.1:${PROXY_PORT}/ | grep -qE \"^(200|30[0-9])$\"'"
+    PANEL_DOMAIN="$(module_public_domain "${_VMNAME}" "" "${JSON:-}" 2>/dev/null || true)"
+    check "Panel behind the identity gate (signed out → Authentik)" "[[ -n '${PANEL_DOMAIN}' ]] && curl -sk -o /dev/null -w '%{redirect_url}' --max-time 10 'https://${PANEL_DOMAIN}/' | grep -q '/application/o/authorize'" "identity:accessControl applied? module-manager module update amp"
 fi
 
 # ── Test 3: TAPPaaS settings (applied by update.sh) ───────────────────────────
