@@ -9,6 +9,7 @@ Primary audience: TAPPaaS operator. Steps the scripts cannot automate.
   [Sizing](./README.md#sizing).
 - `tappaas@tappaas-cicd` with the usual cluster access. The dependencies are pulled in
   automatically.
+- The `identity` module (Authentik) is installed. Panel users must be in the gate group (`users` by default).
 - The `dmz` zone accepts pinholes from your client LAN zone. Without it the install stops at the
   LAN rule with a pinhole policy error.
 
@@ -35,7 +36,7 @@ This automatically:
    ```bash
    ssh tappaas@amp.dmz.internal sudo cat /etc/secrets/amp-admin.env
    ```
-2. **Licence** — open `https://amp.<domain>`, log in, enter the licence key. When asked for an
+2. **Licence** — open `https://amp.<domain>`. The browser first goes through the Authentik sign-in, then AMP's login. Enter the licence key. When asked for an
    operation mode, choose **Standalone**.
 3. **First server** — create a game server and start it. LAN players reach it at once on
    `amp.dmz.internal:<port>`; internet players on your public hostname within a minute.
@@ -53,6 +54,7 @@ Manual checks:
 | Check | Expected |
 |-------|----------|
 | `https://amp.<domain>` from an allowed zone | AMP login page |
+| `https://amp.<domain>` while signed out of Authentik | Redirect to the Authentik sign-in |
 | Same URL from another zone | "Access to this service is limited to approved networks" |
 | `./port-sync.sh amp --dry-run` | Each running server's game ports, marked `forward` |
 | `nat-manager list-rules` | One `AMP: amp/<server> ...` rule per forwarded port |

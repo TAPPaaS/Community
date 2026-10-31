@@ -2,13 +2,13 @@
 
 | | |
 |---|---|
-| **Status** | **Proposed** — D1–D11 built and running; D12–D13 not built. |
-| **Version** | 0.1 |
-| **Date** | 2026-10-30 |
+| **Status** | **Proposed** — D1–D12 built and running; D13–D15 not built. |
+| **Version** | 0.2 |
+| **Date** | 2026-10-31 |
 | **Authors** | see [AUTHORS.md](AUTHORS.md) |
 | **Scope** | Community module `src/AndreasJe/games/amp`: CubeCoders AMP and its port sync. |
-| **Depends on** | ADR-007b (Apps), ADR-015 (community contribution files), ADR-020 (declared-field change model), ADR-021 (split-horizon DNS), ADR-023 (proxy access rules), ADR-032 (service exposure). |
-| **Changelog** | v0.1 (2026-10-30) — D1–D11 built. |
+| **Depends on** | ADR-006 (identity), ADR-007b (Apps), ADR-015 (community contribution files), ADR-020 (declared-field change model), ADR-021 (split-horizon DNS), ADR-023 (proxy access rules), ADR-032 (service exposure). |
+| **Changelog** | v0.2 (2026-10-31) — D12 identity gate on the panel; D15 AMP OIDC (not built). v0.1 (2026-10-30) — D1–D11 built. |
 
 This is a living document: a decision is changed in place, its status updated and the change noted in the changelog. How each decision is used is in [README.md](README.md).
 
@@ -24,7 +24,7 @@ Game traffic is not HTTP: it cannot pass Caddy, so each game server needs its ow
 
 AMP runs on a Debian 13 VM (`kind: vm`) in the `dmz` zone. `getamp.sh` runs unattended (`USE_ANSWERS=1`) and adds CubeCoders' apt repository; updates come from there. All instances are upgraded only when `ampinstmgr` changes version, because that restarts every running game server.
 
-AMP runs in Standalone mode. Its multi-system mode (D13) is not used.
+AMP runs in Standalone mode. Its multi-system mode (D14) is not used.
 
 ### D2 — Game servers run in rootless Podman with host networking
 
@@ -74,13 +74,25 @@ The panel's admin password is generated on the VM at first install, never regene
 
 The module documents only what AMP needs (1 core, 1 GB, 8 GB, plus 0.15 GB RAM and 0.2 GB disk per game server); each game server's needs are its developer's. The default (2 cores, 4 GB, 32 GB) is AMP with room for one small game server. The licence edition caps the number of game servers, not their size, so it does not set the VM size.
 
-### D12 — Webhooks instead of polling (not built)
+### D12 — The panel sits behind the identity gate
+
+The module depends on `identity:accessControl`: Authentik forward-auth in Caddy in front of `https://amp.<domain>`. It works with every AMP edition.
+
+- **Two logins:** users sign in to Authentik, then to AMP's own login.
+- **Who passes:** members of the Authentik group `users` by default; `config."identity:accessControl".gateGroups` (e.g. `["gamers"]`) sets the exact groups.
+- **Panel only:** game traffic does not pass Caddy, and port-sync reads AMP's API on the VM at 127.0.0.1, so neither is affected.
+
+### D13 — Webhooks instead of polling (not built)
 
 AMP Professional and up can call a webhook when an instance changes. The reconciler could run on that call instead of every 60 s. Starter has no webhooks, so polling stays as the baseline.
 
-### D13 — Several VMs from one panel (not built)
+### D14 — Several VMs from one panel (not built)
 
 AMP's Controller/Target mode (Professional and up) manages game servers on several systems. This module installs one VM; targets would each need their own port sync.
+
+### D15 — Single sign-on into AMP (not built)
+
+AMP's OIDC login needs the Advanced licence. With it, the module would depend on `identity:identity` and register AMP as an OIDC client. The gate (D12) stays for other editions.
 
 ## Fallbacks for core gaps
 
@@ -96,6 +108,6 @@ Each row is retired when core covers it.
 
 - Game servers are reachable from the internet within a minute of starting, and closed within a minute of stopping, without an operator.
 - Every game port above 1024 that AMP opens is on the internet unless the server is excluded. Each game server's own security is the game's.
-- The panel is reachable only from internal zones; a friend who should manage servers needs `internet` added to `proxyAllowedZones` or access through NetBird.
+- The panel is reachable only from internal zones, and only after the identity gate; a friend who should manage servers needs `internet` added to `proxyAllowedZones`, which exposes the panel only behind the identity gate, or access through NetBird.
 - tappaas-cicd polls the VM every minute. If tappaas-cicd is down, existing forwards stay, but new servers are not forwarded until it is back.
 - A port forwarded by another module is never taken over; AMP's server on that port stays LAN-only until the conflict is resolved.

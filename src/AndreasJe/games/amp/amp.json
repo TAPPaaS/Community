@@ -16,7 +16,8 @@
     "templates:debian",
     "backup:vm",
     "network:proxy",
-    "network:rules"
+    "network:rules",
+    "identity:accessControl"
   ],
   "provides": [],
   "config": {

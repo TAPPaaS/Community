@@ -15,7 +15,7 @@ unattended) and updates it from their apt repository.
 
 | Capability | Access from | How |
 |------------|-------------|-----|
-| AMP panel | `home`, `netbird`, `mgmt` zones | `https://amp.<domain>` |
+| AMP panel | `home`, `netbird`, `mgmt` zones, behind the identity gate | `https://amp.<domain>` |
 | Game servers, internet players | Internet | `<your public hostname>:<game port>`, forwarded automatically |
 | Game servers, LAN players | `home` zone | `amp.dmz.internal:<game port>` |
 | Containerised game servers | — | Rootless Podman, AMP's default on Debian 13 |
@@ -26,6 +26,7 @@ unattended) and updates it from their apt repository.
 - **No DNS SRV records.** Players add the port when a game's default port was already taken.
 - **One VM.** AMP's multi-system mode (Professional and Advanced licences) is not set up.
 - **No panel from the internet** by default; see [Configuration](#configuration).
+- **No single sign-on into AMP.** AMP's own OIDC login needs the Advanced licence and is not implemented; the panel uses the identity gate plus AMP's login.
 
 ## Requirements
 
@@ -38,12 +39,13 @@ unattended) and updates it from their apt repository.
 
 ```
                         OPNsense                                   amp VM (dmz)
-Panel    https://amp.<domain> ─► Caddy (network:proxy) ───────────► ADS (panel) :8080
+Panel    https://amp.<domain> ─► Caddy ─► Authentik gate ────────────► ADS (panel) :8080
 Players  <WAN IP>:<game port> ─► forward per game port (port-sync) ─► game servers, default ports
 LAN      amp.dmz.internal:<game port> ─► ingress from home, 1024-65535 ┘
 Egress   ◄── CubeCoders licence server, game and mod downloads
 ```
 
+- **Panel gate.** Caddy (`network:proxy`) sends every panel request through Authentik forward-auth (`identity:accessControl`) first. Users sign in to Authentik, then to AMP's own login. The gate covers only the panel: game traffic does not pass Caddy, and port-sync reads AMP's API on the VM at 127.0.0.1. It works with every AMP edition.
 - **Game ports follow AMP.** AMP gives each game server the game's usual ports, or the next free
   ones. `port-sync.sh` runs every minute on tappaas-cicd (a
   `tappaas` user timer), reads them from AMP's API and keeps one WAN forward per port, described
@@ -66,7 +68,8 @@ Egress   ◄── CubeCoders licence server, game and mod downloads
 | Field | Default | |
 |---|---|---|
 | `portSync` | `on` | `on`: forward running servers' game ports. `dry-run`: forward nothing; `./port-sync.sh amp --dry-run` reports what it would do. `off`: remove every AMP forward (LAN-only). |
-| `config."network:proxy".proxyAllowedZones` | `home`, `netbird`, `mgmt` | Who reaches the panel. Add `internet` to let friends manage their own servers. |
+| `config."network:proxy".proxyAllowedZones` | `home`, `netbird`, `mgmt` | Who reaches the panel. Add `internet` to let friends reach the panel through the gate and manage their own servers. |
+| `config."identity:accessControl".gateGroups` | `users` | Authentik groups that pass the panel gate, e.g. `["gamers"]`. |
 
 Change a field later with `module-manager module modify amp --set <field>=<value>`.
 
@@ -119,6 +122,7 @@ This module installs one VM. The panel shows your edition once the key is entere
 | `templates:debian` | OS prep (apt update/upgrade + qemu-guest-agent) |
 | `backup:vm` | Scheduled VM backup to PBS |
 | `network:proxy` | `https://amp.<domain>` for the panel, limited to `proxyAllowedZones` |
+| `identity:accessControl` | Authentik gate in front of the panel |
 | `network:rules` | The LAN rule (ingress from `home`, 1024-65535) |
 
 The WAN forwards are managed by `port-sync.sh` with `nat-manager`, under their own `AMP:` prefix.
