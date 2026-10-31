@@ -36,6 +36,7 @@ REPO_RE = re.compile(r"^https://[A-Za-z0-9._/:-]+\.git$")
 REF_RE = re.compile(r"^[A-Za-z0-9._/-]+$")
 PACKAGE_RE = re.compile(r"\.(zip|tgz|tar\.gz)$", re.I)
 TOKEN_RE = re.compile(r"[\x21-\x7e]{1,512}")
+RID_RE = re.compile(r"[0-9TZ]+-[0-9a-f]{6}")
 
 
 def load(path, default):
@@ -86,29 +87,103 @@ def verify_token(token, key, now):
 
 # ── pages ────────────────────────────────────────────────────────────
 
+# The CSP allows inline styles and nothing else: no scripts, no web fonts. What
+# changes on a form changes through :has(). Named fonts apply only if installed.
 STYLE = """
-:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2330;--mute:#5b6475;--line:#dde1e8;--acc:#1f6feb;--ok:#1a7f37;--bad:#cf222e;--warn:#9a6700}
-@media (prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#171a21;--ink:#e6e9ef;--mute:#9aa3b2;--line:#2a2f3a;--acc:#4c8dff;--ok:#3fb950;--bad:#f85149;--warn:#d29922}}
-*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--ink)}
-header{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--card)}
-header a{color:var(--ink);text-decoration:none;font-weight:600}main{max-width:960px;margin:0 auto;padding:20px 16px}
-a{color:var(--acc)}h1{font-size:22px;margin:0 0 16px}h2{font-size:17px;margin:24px 0 10px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
-table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--mute);font-weight:500}
-.btn{display:inline-block;background:var(--acc);color:#fff;border:0;border-radius:8px;padding:9px 16px;font:inherit;cursor:pointer;text-decoration:none}
-.btn.danger{background:var(--bad)}.mute{color:var(--mute)}
-.tpls{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
-.tpl{display:block;border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;background:var(--card)}
-.tpl input{margin-right:6px}.tpl small{display:block;color:var(--mute);margin-top:4px}
-label.f{display:block;margin:12px 0 4px;font-weight:500}input[type=text],input[type=file]{width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
-.pill{display:inline-block;border-radius:99px;padding:1px 9px;font-size:13px;border:1px solid var(--line)}
-.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}.err{border-color:var(--bad)}
-pre.log{max-height:420px;overflow:auto;font-size:12px;line-height:1.45;padding:10px;border:1px solid var(--line);border-radius:8px;white-space:pre-wrap;word-break:break-word}
-details summary{cursor:pointer;margin:8px 0}.failed{font-weight:600;color:var(--bad)}
+:root{--bg:#f4f0e6;--soft:#fbf9f4;--card:#fff;--ink:#1e1f1b;--mute:#5f5e55;--line:#e6dfd0;--div:#efe9db;--field:#d8cfbc;
+--acc:#1f6b4f;--acc2:#134a36;--ok:#16573f;--okbg:#ddeee3;--calm:#ddebe2;--bad:#8e2518;--badbg:#fbe0dc;--red:#b23a2b;--note:#f5ebcb;--notetx:#4c4023;--warn:#7a4a00;--warnbg:#f8e8c4;
+--mono:"DM Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 "Instrument Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+a{color:var(--acc)}a:hover{color:var(--acc2)}code,.mono{font-family:var(--mono)}
+code{font-size:.92em;padding:0 4px;border-radius:4px;background:var(--bg);overflow-wrap:anywhere}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.shell{display:flex;flex-wrap:wrap;min-height:100vh}
+.side{flex:1 1 240px;background:var(--soft);border-right:1px solid var(--line);padding:18px 12px;display:flex;flex-direction:column;gap:20px}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px;color:var(--ink);text-decoration:none}.brand b{font:500 15px/18px var(--mono);display:block}.brand small{font-size:12px;color:var(--mute)}
+.navh{font-size:12px;color:var(--mute);padding:0 10px 4px}.side nav a{display:block;padding:8px 10px;border-radius:10px;color:var(--ink);text-decoration:none}
+.side nav a.on{background:var(--acc);color:#fff;font-weight:600}
+.who{display:flex;align-items:center;gap:10px;font-weight:600;font-size:13px;color:var(--ink);overflow-wrap:anywhere}.who span{flex:0 0 30px;height:30px;border-radius:99px;background:var(--note);display:flex;align-items:center;justify-content:center}
+.body{flex:999 1 560px;min-width:0}.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 16px;padding:10px 24px;border-bottom:1px solid var(--line);background:var(--soft);font-size:13px;color:var(--mute)}.top a{color:var(--mute)}.top b{color:var(--ink);font-weight:600}
+main{max-width:1200px;padding:28px 24px 48px;display:flex;flex-direction:column;gap:20px}
+h1{margin:0;font-size:26px;line-height:1.25;font-weight:500}h1 b{font-weight:700}h1 .mono{font-weight:500}
+h2{margin:0;font-size:16px;font-weight:600}h3{margin:0;font-size:14px;font-weight:600}p{margin:0}
+.sub{margin-top:6px;font-size:13px;color:var(--mute)}.mute{color:var(--mute)}.small{font-size:13px}.tiny{font-size:12px}
+.row{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:flex-start}.row>.grow{flex:1 1 420px;min-width:0}
+.cols{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}.cols>.wide{flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:16px}.cols>.aside{flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.card.flush{padding:0;gap:0}.card.flush>h2{padding:16px 20px 8px}.card.flush>p{padding:12px 20px 16px;border-top:1px solid var(--div)}
+.card.dangerzone{border-color:#ebc7c1}.inset{padding:14px 16px;border-radius:12px;background:var(--soft);display:flex;flex-direction:column;gap:6px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.tile{padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--card);font-size:13px;color:var(--mute)}
+.tile b{display:block;font-size:22px;font-weight:600;color:var(--ink)}.tile small{font-size:12px}
+.call{padding:20px 24px;border-radius:16px;display:flex;flex-direction:column;gap:10px}.call.note{background:var(--note);color:var(--notetx)}.call.calm{background:var(--calm);color:var(--acc2)}.call h2{font-size:20px;line-height:1.3;color:var(--ink)}.call.calm h2{color:inherit;font-size:16px}
+.acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.scroll{overflow-x:auto}table{width:100%;min-width:880px;border-collapse:collapse}th{text-align:left;padding:8px 12px;font-size:12px;font-weight:500;color:var(--mute)}td{padding:12px;border-top:1px solid var(--div);vertical-align:top}th:first-child,td:first-child{padding-left:20px}th:last-child,td:last-child{padding-right:20px}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border:1px solid var(--acc);border-radius:10px;background:var(--acc);color:#fff;font:inherit;font-weight:600;cursor:pointer;text-decoration:none}.btn:hover{background:var(--acc2);color:#fff}
+.btn.ghost{background:var(--card);border-color:var(--line);color:var(--ink)}.btn.ghost:hover{background:var(--soft);color:var(--ink)}.btn.danger{background:var(--red);border-color:var(--red)}.btn.danger:hover{background:var(--bad)}
+form:has(input:invalid) .guarded,form:has(input:invalid) .guarded:hover{background:var(--div);border-color:var(--div);color:#6b6a5f;cursor:not-allowed}
+.pill{display:inline-block;padding:2px 8px;border-radius:6px;background:var(--div);font:12px/1.4 var(--mono);color:#4f4e45}.pill.ok{background:var(--okbg);color:var(--ok)}.pill.bad{background:var(--badbg);color:var(--bad)}.pill.warn{background:var(--warnbg);color:var(--warn)}
+.bar{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px}.bar i{height:4px;border-radius:2px;background:var(--line)}.bar i.g{background:var(--acc)}.bar i.r{background:var(--red)}
+ol.steps{margin:0;padding:0;list-style:none}.steps li{display:flex;gap:12px;padding-bottom:14px}.steps li:last-child{padding-bottom:0}.steps .dot{flex:0 0 26px;height:26px;border-radius:99px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:var(--div);color:var(--mute)}
+.steps .done .dot{background:var(--acc);color:#fff}.steps .now .dot{background:#fff;border:2px solid var(--acc);color:var(--acc)}.steps .stop .dot{background:var(--red);color:#fff}.steps li>div:last-child{flex:1;min-width:0}.step{display:flex;flex-wrap:wrap;gap:4px 10px;justify-content:space-between;align-items:baseline}.step b{font-weight:600}
+dl{margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;font-size:13px}dt{color:var(--mute)}dd{margin:0;text-align:right;overflow-wrap:anywhere}
+.tpls{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}.tpl{display:block;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);cursor:pointer}.tpl:has(input:checked){outline:2px solid var(--acc);outline-offset:-1px}
+.tpl input{accent-color:var(--acc);margin:0 6px 0 0}.tpl small{display:block;font-size:13px;color:var(--mute);margin-top:4px}.tpl small.mono{font-size:12px;margin-top:0}.tpl small.good{color:var(--ok);margin-top:6px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.fields .all{grid-column:1/-1}
+label.f{display:flex;flex-direction:column;gap:4px;font-weight:600}label.f small{font-weight:400;font-size:12px;color:var(--mute)}
+input[type=text],input[type=password]{width:100%;min-height:44px;padding:0 12px;border:1px solid var(--field);border-radius:10px;background:var(--soft);color:var(--ink);font:400 14px var(--mono)}
+input[type=file]{font:inherit;font-weight:400}.tick{display:flex;gap:10px;align-items:flex-start;cursor:pointer}.tick input{width:18px;height:18px;margin:1px 0 0;accent-color:var(--acc);flex:none}.box{padding:12px;border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;gap:8px}
+.tabs{display:inline-flex;align-self:flex-start;padding:3px;border-radius:10px;background:var(--div)}.tabs label{min-height:38px;padding:0 14px;border-radius:8px;display:flex;align-items:center;font-weight:600;cursor:pointer}.tabs input{position:absolute;opacity:0}.tabs label:has(input:checked){background:var(--card)}.tabs label:has(input:focus-visible){outline:2px solid var(--acc)}
+.pane-src,.pane-git{display:flex;flex-direction:column;gap:12px}.pane-pkg,.pane-wp{display:none}form:has(#mode-package:checked) .pane-pkg{display:flex}form:has(#mode-package:checked) .pane-git{display:none}form:has(input[data-wp]:checked) .pane-wp{display:block}form:has(input[data-wp]:checked) .pane-src{display:none}
+.drop{padding:20px;border:1px dashed #bdb29a;border-radius:10px;background:var(--soft);flex-direction:column;gap:4px;font-weight:600}.drop small{font-weight:400;font-size:13px;color:var(--mute)}
+.guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;font-size:13px}.guide>div{padding:14px;border:1px solid var(--div);border-radius:12px}.guide h3{margin-bottom:6px}.guide ul{margin:0;padding-left:16px;display:flex;flex-direction:column;gap:5px}
+ul.files{margin:0;padding:0;list-style:none;border:1px solid var(--div);border-radius:10px;font:13px var(--mono)}.files li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;padding:8px 12px;border-top:1px solid var(--div);overflow-wrap:anywhere}.files li:first-child{border-top:0}.files span{color:var(--mute);font-family:inherit}
+ol.next{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:13px}ul.plain{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+pre.log{margin:6px 0 0;max-height:420px;overflow:auto;padding:12px;border-radius:10px;background:#13261f;color:var(--calm);font:12px/1.45 var(--mono);white-space:pre-wrap;word-break:break-word}
+.path{padding:10px 12px;border-radius:10px;background:#13261f;color:var(--calm);font:12px var(--mono);overflow-wrap:anywhere}details summary{cursor:pointer;font-weight:600;min-height:24px}
 """
 
-STATE_CLASS = {"live": "ok", "active": "ok", "pass": "ok", "passed": "ok", "blocked": "bad", "rejected": "bad", "failed": "bad", "block": "bad",
+STATE_CLASS = {"live": "ok", "active": "ok", "pass": "ok", "passed": "ok", "done": "ok", "blocked": "bad", "rejected": "bad", "failed": "bad", "block": "bad",
                "quarantined": "warn", "warn": "warn"}
+LIVE_STATES = ("live", "active")
+
+# What a blocking rule means to the person who has to fix it.
+RULES = {
+    "server-code-in-static": ("Server code in a static site",
+                              "A static site only serves finished files. Code meant to run on a server would be served as source.",
+                              "Remove the server code, or ship only the built output (e.g. <code>dist/</code>). If the site needs that code, create a new site with a stack template."),
+    "executable-in-static": ("A program in a static site", "A static site only serves files, and programs have no place in it.",
+                             "Remove the executable from the release."),
+    "symlink-outside": ("A link that points outside the release", "A symbolic link leads out of your content, which could expose other files.",
+                        "Remove the link, or copy the file it points to into the release."),
+    "file-too-large": ("A file is too large", "One file may be at most 100 MB.", "Remove the file or make it smaller."),
+    "release-too-large": ("The release is too large", "A release may be at most 2 GB in total.", "Leave out what the site does not need."),
+    "web-shell": ("A possible web shell", "This code would let someone run commands on the server through a web request.",
+                  "Remove the code. If you did not put it there, find out how it got into your content."),
+    "secret": ("A leaked key", "A private key or token is in your content, where others could read it.",
+               "Remove it and replace the key where it was issued: treat the old one as exposed."),
+    "package-refused": ("The package could not be read", "webhost could not unpack this package safely.", "Check the file and upload the package again."),
+    "vulnerable-dependency": ("A dependency with a known critical vulnerability", "A package your app uses has a published critical security flaw.",
+                              "Update the package to a fixed version and ship the new lockfile."),
+}
+
+MARK = ('<svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><rect x="3" y="5" width="24" height="20" rx="5" fill="#1f6b4f"/>'
+        '<rect x="3" y="11" width="24" height="2" fill="#ddebe2"/><circle cx="7.5" cy="8" r="1.2" fill="#ddebe2"/><circle cx="11.5" cy="8" r="1.2" fill="#ddebe2"/></svg>')
+
+STEPS = {
+    "create": [("new", "New", "Your request is saved. webhost picks it up within a minute."),
+               ("checking", "Checking", "webhost checks the name, the address and the template."),
+               ("inspecting", "Inspecting", "Your content is fetched and searched for server code in static sites, web shells, leaked keys and known critical vulnerabilities."),
+               ("creating", "Creating", "Your site gets its own container and, if the template has one, its database. This takes two to three minutes."),
+               ("live", "Live", "The address answers and your site is running.")],
+    "restore": [("new", "New", "Your request is saved. webhost picks it up within a minute."),
+                ("restoring", "Restoring", "The site is put back as it was at the backup. This takes a few minutes."),
+                ("live", "Live", "The site is running again.")],
+    "delete": [("new", "New", "Your request is saved. webhost picks it up within a minute."),
+               ("deleting", "Deleting", "The container is removed. The backup stays."),
+               ("done", "Done", "The site is gone. It can come back from its backup.")],
+    "token": [("new", "New", "Your request is saved. webhost picks it up within a minute."),
+              ("done", "Done", "The next fetch uses the new token.")],
+}
 
 
 def esc(v):
@@ -119,12 +194,33 @@ def pill(state):
     return f'<span class="pill {STATE_CLASS.get(state, "")}">{esc(state)}</span>'
 
 
-def page(title, who, body, refresh=False):
+def page(title, who, body, refresh=False, crumb="", nav="sites"):
     meta = '<meta http-equiv="refresh" content="8">' if refresh else ""
+    me = f'<div class="who"><span aria-hidden="true">{esc(who[:1].upper())}</span>{esc(who)}</div>' if who else ""
+    trail = f' / <b>{esc(crumb)}</b>' if crumb else ""
+    on = {k: ' class="on" aria-current="page"' if k == nav else "" for k in ("sites", "new")}
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">{meta}<title>{esc(title)} · Sites</title>
-<style>{STYLE}</style></head><body><header><a href="/">Sites</a><span class="mute">{esc(who)}</span></header>
-<main>{body}</main></body></html>"""
+<meta name="viewport" content="width=device-width,initial-scale=1">{meta}<title>{esc(title)} · webhost</title>
+<style>{STYLE}</style></head><body><div class="shell"><div class="side"><a class="brand" href="/">{MARK}<span><b>webhost</b><small>Self-hosted websites</small></span></a>
+<nav aria-label="webhost"><div class="navh">Websites</div><a href="/"{on['sites']}>Sites</a><a href="/new"{on['new']}>New site</a></nav></div>
+<div class="body"><div class="top"><div><a href="/">Sites</a>{trail}</div>{me}</div><main>{body}</main></div></div></body></html>"""
+
+
+def plural(n, word):
+    return f"{n} {word}" + ("" if n == 1 else "s")
+
+
+def blocked_rules(insp):
+    """{rule: [findings]} of what stopped a release, in a stable order."""
+    out = {}
+    for f in (insp or {}).get("findings", []):
+        if f.get("level") == "block":
+            out.setdefault(f.get("rule", "?"), []).append(f)
+    return dict(sorted(out.items()))
+
+
+def rule_title(rule):
+    return RULES.get(rule, (rule,))[0]
 
 
 def release_cell(site, insp):
@@ -132,9 +228,11 @@ def release_cell(site, insp):
         return "<span class='mute'>not applicable</span>"
     v = insp.get("verdict")
     if v == "block":
-        rules = sorted({f["rule"] for f in insp.get("findings", []) if f.get("level") == "block"})
-        n = sum(1 for f in insp.get("findings", []) if f.get("level") == "block")
-        return f"{pill('blocked')} <a href='/sites/{esc(site['name'])}'>{esc(', '.join(rules))} ({n})</a>"
+        found = blocked_rules(insp)
+        n = sum(len(fs) for fs in found.values())
+        keep = "<span class='small' style='display:block;color:var(--ok)'>Last passed release still running</span>" if site.get("state") in LIVE_STATES else ""
+        return (f"{pill('blocked')}<span class='small mute' style='display:block;margin-top:4px'>"
+                f"{esc(', '.join(rule_title(r) for r in found))} · {plural(n, 'finding')}</span>{keep}")
     return {"pass": pill("passed")}.get(v, "<span class='mute'>not inspected yet</span>")
 
 
@@ -147,16 +245,27 @@ def when(ts):
 
 
 def restore_form(who, action, volid, label):
-    return (f"<form method='post' action='{action}' enctype='multipart/form-data' style='margin:6px 0'>"
+    return (f"<form class='box' method='post' action='{action}' enctype='multipart/form-data'>"
             f"<input type='hidden' name='csrf' value='{who['csrf']}'><input type='hidden' name='backup' value='{esc(volid)}'>"
-            f"<label><input type='checkbox' name='confirm' value='1' required> {label}</label> "
-            "<button class='btn' type='submit'>Restore</button></form>")
+            f"<label class='tick small'><input type='checkbox' name='confirm' value='1' required><span>{label}</span></label>"
+            "<button class='btn guarded' type='submit'>Restore this backup</button></form>")
+
+
+def guide_text(text):
+    return re.sub(r"`([^`]+)`", r"<code>\1</code>", esc(text))
 
 
 def guide_block(conf, template):
     t = {t["name"]: t for t in conf.get("templates", [])}.get(template) or {}
-    items = "".join(f"<li>{esc(g)}</li>" for g in t.get("guide", []))
-    return f"<h2>What your site gets</h2><div class='card'><ul>{items}</ul></div>" if items else ""
+    # Built-in templates group their guide; a custom template's may be a flat list.
+    flat = [g for g in t.get("guide", []) if isinstance(g, str)]
+    groups = [g for g in t.get("guide", []) if isinstance(g, dict)] + ([{"group": "", "items": flat}] if flat else [])
+    cards = "".join((f"<h3>{esc(g.get('group', ''))}</h3>" if g.get("group") else "").join(("<div>", ""))
+                    + "<ul>" + "".join(f"<li>{guide_text(i)}</li>" for i in g.get("items", [])) + "</ul></div>" for g in groups)
+    if not cards:
+        return ""
+    return ("<section class='card'><div><h2>What your site gets</h2><p class='small mute'>What this template gives you, and what it expects from you.</p></div>"
+            f"<div class='guide'>{cards}</div></section>")
 
 
 def read_log(rid):
@@ -173,18 +282,83 @@ def log_block(rid, status):
         return ""
     if status in ("creating", "deleting", "restoring"):
         tail = "\n".join(text.rstrip().splitlines()[-15:])
-        return f"<h2>Progress</h2><pre class='log'>{esc(tail)}</pre>"
-    return f"<details><summary>Show the log</summary><pre class='log'>{esc(text)}</pre></details>"
+        return f"<section class='card'><h2>Progress</h2><pre class='log'>{esc(tail)}</pre></section>"
+    return f"<section class='card'><details><summary>Show the log</summary><pre class='log'>{esc(text)}</pre></details></section>"
 
 
-def findings_table(result):
+def inspection_line(result):
     if not result:
-        return '<p class="mute">Not inspected yet.</p>'
-    rows = "".join(f"<tr><td>{pill(f['level'])}</td><td>{esc(f['rule'])}</td><td><code>{esc(f['file'])}</code></td><td>{esc(f['detail'])}</td></tr>"
-                   for f in result.get("findings", []))
-    head = f"<p>Inspection {pill(result.get('verdict', '?'))} <span class='mute'>{esc(result.get('checked', ''))}"
-    head += f" · revision {esc((result.get('rev') or '')[:12])}</span></p>"
-    return head + (f"<table><tr><th></th><th>Rule</th><th>File</th><th>Detail</th></tr>{rows}</table>" if rows else "<p class='mute'>No findings.</p>")
+        return '<p class="small mute">Not inspected yet.</p>'
+    return (f"<p class='mono tiny mute'>{esc(result.get('checked', ''))}<br>revision {esc((result.get('rev') or '')[:12])}</p>")
+
+
+def inspection_card(result, title="Last inspection"):
+    badge = pill(result.get("verdict", "?")) if result else ""
+    warns = [f for f in (result or {}).get("findings", []) if f.get("level") != "block"]
+    extra = "" if warns or (result or {}).get("verdict") != "pass" else "<p class='small'>No findings.</p>"
+    if warns:
+        extra = "<ul class='files'>" + "".join(f"<li>{esc(f.get('file'))}<span>{esc(f.get('rule'))}: {esc(f.get('detail'))}</span></li>" for f in warns) + "</ul>"
+    return f"<section class='card'><div class='row' style='align-items:center'><h2>{esc(title)}</h2>{badge}</div>{extra}{inspection_line(result)}</section>"
+
+
+def findings_block(result, after):
+    """What stopped a release, and how to fix it. `after` is the last fix step."""
+    out = ""
+    for rule, found in blocked_rules(result).items():
+        title, why, fix = RULES.get(rule, (rule, "Inspection stopped this release.", "Fix what the findings name."))
+        rows = "".join(f"<li>{esc(f.get('file'))}<span>{esc(f.get('detail'))}</span></li>" for f in found[:5])
+        more = ("<details><summary>" + f"Show all {len(found)} findings</summary><ul class='files'>"
+                + "".join(f"<li>{esc(f.get('file'))}<span>{esc(f.get('detail'))}</span></li>" for f in found) + "</ul></details>") if len(found) > 5 else ""
+        out += (f"<section class='card'><div class='acts'>{pill('blocked')}<h2 style='font-size:18px'>{esc(title)}</h2><span class='small mute'>{plural(len(found), 'finding')} · <span class='mono'>{esc(rule)}</span></span></div>"
+                f"<p>{why}</p><ul class='files'>{rows}</ul>{more}"
+                f"<div class='inset'><h3>How to fix it</h3><ol class='next'><li>{fix}</li><li>{after}</li></ol></div></section>")
+    return out
+
+
+def pull_log(site):
+    """The newest revisions the mirror fetched, and when it last looked."""
+    base = os.path.join(INSPECT, site)
+    try:
+        with open(f"{base}.history.jsonl", encoding="utf-8") as fh:
+            rows = [json.loads(line) for line in fh if line.strip()]
+    except (OSError, ValueError):
+        rows = []
+    try:
+        looked = when(os.path.getmtime(f"{base}.fetched"))
+    except OSError:
+        looked = ""
+    items = "".join(f"<li>{esc(r.get('checked', ''))} <span>{esc((r.get('rev') or '')[:12])}</span> "
+                    f"{pill('passed' if r.get('verdict') == 'pass' else 'blocked')}</li>" for r in reversed(rows))
+    log = f"<ul class='files' style='font-size:12px'>{items}</ul>" if items else "<p class='small mute'>Nothing yet. The next new revision shows up here.</p>"
+    last = f"<p class='tiny mute'>Last looked for changes: {esc(looked)}</p>" if looked else ""
+    return ("<section class='card'><div><h2>Recent pulls</h2><p class='small mute'>Each new revision webhost fetched. Passed ones go live; blocked ones do not.</p></div>"
+            f"{log}{last}</section>")
+
+
+def stepper(r, status, stopped_at=None):
+    """The pipeline; `stopped_at` is the step that failed or was blocked."""
+    steps = STEPS.get(r.get("kind"), STEPS["create"])
+    if r.get("kind") == "create" and not r.get("source"):
+        steps = [s for s in steps if s[0] != "inspecting"]
+    keys = [s[0] for s in steps]
+    finished = status in ("live", "done")
+    at = keys.index(stopped_at) if stopped_at in keys else (keys.index(status) if status in keys else 0)
+    bar, items = "", ""
+    for i, (key, label, what) in enumerate(steps):
+        if finished or i < at:
+            cls, note, mark, seg = "done", "Done", "✓", "g"
+        elif i == at and stopped_at:
+            blocked = status == "rejected"
+            cls, note, mark, seg = "stop", "Blocked here" if blocked else "Failed here", "!", "r"
+        elif i == at:
+            cls, note, mark, seg = "now", "Now", str(i + 1), "g"
+        else:
+            cls, note, mark, seg = "", "Did not run" if stopped_at else "", str(i + 1), ""
+        current = ' aria-current="step"' if cls in ("now", "stop") else ""
+        bar += f"<i class='{seg}'></i>"
+        items += (f"<li class='{cls}'{current}><div class='dot' aria-hidden='true'>{mark}</div><div><div class='step'><b>{label}</b>"
+                  f"<span class='tiny mute'>{note}</span></div><div class='small mute'>{what}</div></div></li>")
+    return f"<section class='card' aria-label='Progress'><div class='bar' aria-hidden='true'>{bar}</div><ol class='steps'>{items}</ol></section>"
 
 
 class Portal(BaseHTTPRequestHandler):
@@ -212,7 +386,7 @@ class Portal(BaseHTTPRequestHandler):
         self.send(303, "", headers={"Location": to})
 
     def fail(self, code, msg):
-        self.send(code, page("Error", "", f'<div class="card err"><h1>{code}</h1><p>{esc(msg)}</p><p><a href="/">Back</a></p></div>'))
+        self.send(code, page("Error", "", f'<div class="card"><h1><b>{code}</b></h1><p>{esc(msg)}</p><p><a href="/">Back</a></p></div>'))
 
     def identify(self):
         conf = self.server.conf
@@ -308,7 +482,8 @@ class Portal(BaseHTTPRequestHandler):
 
     # ── routes ──
     def do_GET(self):
-        path = urlparse(self.path).path
+        url = urlparse(self.path)
+        path = url.path
         if path == "/healthz" and self.client_address[0] in ("127.0.0.1", "::1"):
             return self.send(200, "ok\n", "text/plain")
         who = self.identify()
@@ -317,7 +492,7 @@ class Portal(BaseHTTPRequestHandler):
         if path == "/":
             return self.home(who)
         if path == "/new":
-            return self.new(who)
+            return self.new(who, query=parse_qs(url.query))
         m = re.fullmatch(r"/sites/([a-z][a-z0-9-]{0,30})", path)
         if m:
             return self.detail(who, m.group(1))
@@ -341,69 +516,118 @@ class Portal(BaseHTTPRequestHandler):
         if m:
             return {"upload": self.upload, "delete": self.delete, "token": self.token,
                     "restore": self.restore}[m.group(2)](who, m.group(1), fields, files)
+        m = re.fullmatch(r"/requests/([0-9TZ]+-[0-9a-f]{6})/retry", path)
+        if m:
+            return self.retry(who, m.group(1))
         m = re.fullmatch(r"/deleted/([a-z][a-z0-9-]{0,30})/restore", path)
         if m:
             return self.restore(who, m.group(1), fields, files, deleted=True)
         self.fail(404, "No such page.")
 
     def home(self, who):
-        rows = ""
-        for s in self.sites(who):
+        sites = self.sites(who)
+        rows, calls, passed, blocked = "", "", 0, 0
+        for s in sites:
             insp = load(os.path.join(INSPECT, f"{s['name']}.json"), {})
-            owner = f"<td>{esc(s.get('owner', ''))}</td>" if who["admin"] else ""
-            rows += (f"<tr><td><a href='/sites/{esc(s['name'])}'>{esc(s['name'])}</a></td>"
-                     f"<td><a href='https://{esc(s['domain'])}'>{esc(s['domain'])}</a></td><td>{esc(s['template'])}</td>"
-                     f"<td>{pill(s.get('state', '?'))}</td><td>{release_cell(s, insp)}</td>{owner}</tr>")
+            stopped = bool(s.get("source")) and insp.get("verdict") == "block"
+            passed += bool(s.get("source")) and insp.get("verdict") == "pass"
+            blocked += stopped
+            owner = f"<td>{esc(s.get('owner') or 'None')}</td>" if who["admin"] else ""
+            link = f"/sites/{esc(s['name'])}"
+            action = (f"<a class='btn ghost' href='{link}' style='background:var(--div);border-color:var(--div)'>See what to fix</a>" if stopped
+                      else f"<a class='btn ghost' href='{link}'>Open</a>")
+            rows += (f"<tr><td><a class='mono' style='color:inherit' href='{link}'>{esc(s['name'])}</a></td>"
+                     f"<td><a href='https://{esc(s['domain'])}'>{esc(s['domain'])}</a></td><td class='mono small'>{esc(s['template'])}</td>"
+                     f"<td>{pill(s.get('state', '?'))}</td><td>{release_cell(s, insp)}</td>{owner}<td style='text-align:right;white-space:nowrap'>{action}</td></tr>")
+            if stopped:
+                found = blocked_rules(insp)
+                n = sum(len(fs) for fs in found.values())
+                calls += (f"<section class='call note'><div class='small'>Needs a person</div><h2><span class='mono'>{esc(s['name'])}</span>: the newest release stopped at inspection.</h2>"
+                          f"<p>Visitors still see the last release that passed. Inspection found {esc(', '.join(rule_title(r).lower() for r in found))}, {plural(n, 'finding')} in all. Nothing goes live until that is fixed.</p>"
+                          f"<div class='acts'><a class='btn' href='{link}'>See what to fix</a></div></section>")
+        live = sum(1 for s in sites if s.get("state") in LIVE_STATES)
         owner_h = "<th>Owner</th>" if who["admin"] else ""
-        table = (f"<table><tr><th>Site</th><th>Address</th><th>Template</th><th>State</th><th>Latest release</th>{owner_h}</tr>{rows}</table>"
-                 "<p class='mute'>Latest release: the security check of your newest content. A blocked release never goes live; "
-                 "the last passed one keeps running. Open the site for the findings.</p>"
-                 if rows else '<p class="mute">No sites yet.</p>')
+        table = (f"<section class='card flush'><h2>Your sites</h2><div class='scroll'><table><tr><th>Site</th><th>Address</th><th>Template</th><th>State</th><th>Latest release</th>{owner_h}<th><span class='mute'>Action</span></th></tr>{rows}</table></div>"
+                 "<p class='small mute'>Latest release is the security check of your newest content. A blocked release never goes live; the last passed one keeps running. Open a site for its findings.</p></section>"
+                 if rows else "<section class='card'><h2>No sites yet</h2><p class='mute'>Create your first site: pick a template, then bring finished files or an app.</p><div class='acts'><a class='btn' href='/new'>New site</a></div></section>")
+        if not sites:
+            head = "<b>No sites yet.</b>"
+        else:
+            lead = f"Your {plural(len(sites), 'site')} {'is' if len(sites) == 1 else 'are'} live." if live == len(sites) else f"{live} of {plural(len(sites), 'site')} {'is' if live == 1 else 'are'} live."
+            rest = (f"{plural(blocked, 'new release')} {'was' if blocked == 1 else 'were'} stopped before reaching visitors." if blocked else "Nothing needs you right now.")
+            head = f"<b>{lead}</b> {rest}"
+        tiles = ""
+        if sites:
+            tiles = (f"<div class='tiles'><div class='tile'>Sites<b>{live} live</b><small>{plural(len(sites) - live, 'other')}</small></div>"
+                     f"<div class='tile'>Latest releases<b>{passed} · {blocked}</b><small>passed · blocked</small></div>"
+                     f"<div class='tile'>Needs a person<b>{plural(blocked, 'site')}</b><small>{'live version not affected' if blocked else 'all clear'}</small></div></div>")
         pending = [r for r in self.requests(who) if r.get("status") not in ("live", "rejected", "failed", "done")]
         preq = "".join(f"<li><a href='/requests/{esc(r['id'])}'>{esc(r.get('kind'))} {esc(r.get('site'))}</a> {pill(r.get('status'))}</li>" for r in pending[:10])
-        gone = "".join(f"<li><b>{esc(d['name'])}</b> <span class='mute'>{esc(d.get('domain', ''))} · {esc(d.get('template', ''))} · deleted {esc(d.get('deleted', ''))}</span>"
+        gone = "".join(f"<li><b class='mono'>{esc(d['name'])}</b> <span class='small mute'>{esc(d.get('domain', ''))} · {esc(d.get('template', ''))} · deleted {esc(d.get('deleted', ''))}</span>"
                        f"{restore_form(who, f'/deleted/{esc(d['name'])}/restore', d['backups'][0]['volid'], 'Bring it back from ' + when(d['backups'][0]['time']))}</li>"
                        for d in self.deleted(who))
-        body = (f'<h1>Your sites</h1><div class="card">{table}</div><p><a class="btn" href="/new">New site</a></p>'
-                + (f"<h2>In progress</h2><div class='card'><ul>{preq}</ul></div>" if preq else "")
-                + (f"<h2>Deleted sites</h2><div class='card'><p class='mute'>Their backups are kept; a restored site comes back as it was at that backup.</p><ul>{gone}</ul></div>" if gone else ""))
+        body = (f"<div class='row'><div class='grow'><h1>{head}</h1><p class='sub'>Each site runs in its own container. webhost inspects every release before it goes live.</p></div>"
+                f"<a class='btn' href='/new'>New site</a></div>{tiles}{calls}{table}"
+                + (f"<section class='card'><h2>In progress</h2><ul class='plain'>{preq}</ul></section>" if preq else "")
+                + (f"<section class='card'><h2>Deleted sites</h2><p class='small mute'>Their backups are kept; a restored site comes back as it was at that backup.</p><ul class='plain'>{gone}</ul></section>" if gone else ""))
         self.send(200, page("Sites", who["user"], body))
 
-    def new(self, who, error="", values=None):
+    def new(self, who, error="", values=None, query=None):
         v = values or {}
+        if not values and query and query.get("from"):
+            # Back from a failed or refused request: its settings, without secrets.
+            rid = query["from"][0]
+            r = load(os.path.join(DATA, "requests", f"{rid}.json"), None) if RID_RE.fullmatch(rid) else None
+            if r and r.get("kind") == "create" and (who["admin"] or r.get("user") == who["user"]):
+                src = r.get("source") or {}
+                v = {"template": r.get("template"), "name": r.get("site"), "domain": r.get("domain"), "public": r.get("public"),
+                     "repo": src.get("repo", ""), "ref": src.get("ref", "main"), "mode": "package" if src.get("upload") else "git"}
+
         def card(t):
             checked = " checked" if v.get("template") == t["name"] else ""
             db = f" · {esc(t['database'])}" if t.get("database") not in (None, "", "none") else ""
-            return (f'<label class="tpl"><input type="radio" name="template" value="{esc(t["name"])}"{checked} required>'
-                    f'<b>{esc(t.get("label") or t["name"])}</b><small>{esc(t["name"])} · {esc(t["runtime"])}{db}</small><small>{esc(t["summary"])}</small></label>')
+            wp = " data-wp" if t.get("app") == "wordpress" else ""
+            good = f'<small class="good">Good for: {esc(t["hint"])}</small>' if t.get("hint") else ""
+            return (f'<label class="tpl"><input type="radio" id="t-{esc(t["name"])}" name="template" value="{esc(t["name"])}"{checked}{wp} required>'
+                    f'<b>{esc(t.get("label") or t["name"])}</b><small class="mono">{esc(t["name"])} · {esc(t["runtime"])}{db}</small>{good}<small>{esc(t["summary"])}</small></label>')
         tpls = self.server.conf.get("templates", [])
         cards = ""
-        for grp, head in (("sites", "Sites — nothing of yours runs on the server"), ("stacks", "Stacks — your code runs on the server")):
+        for grp, head, sub in (("sites", "Sites", "Nothing of yours runs on the server."), ("stacks", "Stacks", "Your code runs on the server.")):
             items = [t for t in tpls if (t.get("group") if t.get("group") in ("sites", "stacks") else "stacks") == grp]
             if items:
-                cards += f'<h2>{esc(head)}</h2><div class="tpls">{"".join(card(t) for t in items)}</div>'
+                cards += f'<div><h3>{esc(head)}</h3><p class="small mute" style="margin-bottom:8px">{esc(sub)}</p><div class="tpls">{"".join(card(t) for t in items)}</div></div>'
         base = self.server.conf.get("base_domain", "")
-        err = f'<div class="card err">{esc(error)}</div>' if error else ""
+        err = f'<section class="call note" role="alert"><h2 style="font-size:16px">That did not work</h2><p>{esc(error)}</p></section>' if error else ""
         public = " checked" if v.get("public") else ""
-        body = f"""<h1>New site</h1>{err}
-<form method="post" action="/new" enctype="multipart/form-data" class="card">
+        package = v.get("mode") == "package"
+        again = ("<p class='small mute'>Secrets and packages are not kept: give the access token or the package again.</p>" if v.get("name") and not error else "")
+        body = f"""<div><h1><b>New site.</b> Bring finished files or an app with its dependencies.</h1>
+<p class="sub">webhost is where you deploy, not where you develop. Nothing is built here.</p></div>{err}
+<form method="post" action="/new" enctype="multipart/form-data" class="cols">
 <input type="hidden" name="csrf" value="{who['csrf']}">
-<p class="mute">webhost is where you deploy, not where you develop: bring finished files or an app with its dependencies; nothing is built here.</p>
-<label class="f">1. Template</label>{cards}
-<label class="f" for="name">2. Name</label><input type="text" id="name" name="name" value="{esc(v.get('name', ''))}" required pattern="[a-z][a-z0-9-]{{0,30}}" placeholder="my-site">
-<label class="f" for="domain">3. Address</label><input type="text" id="domain" name="domain" value="{esc(v.get('domain', ''))}" placeholder="my-site.{esc(base)}">
-<p class="mute">Leave empty for <code>&lt;name&gt;.{esc(base)}</code>.</p>
-<label><input type="checkbox" name="public" value="1"{public}> Public on the internet (otherwise only from your own networks)</label>
-<label class="f">4. Content</label>
-<p class="mute">A repository with the finished files (nothing is built here), or a package (.zip / .tar.gz). WordPress needs neither.</p>
-<input type="text" name="repo" value="{esc(v.get('repo', ''))}" placeholder="https://codeberg.org/you/site.git">
-<input type="text" name="ref" value="{esc(v.get('ref', 'main'))}" placeholder="branch, e.g. main or release" style="margin-top:6px">
-<input type="password" name="token" autocomplete="off" placeholder="access token, for a private repository (optional)" style="margin-top:6px">
-<p class="mute">or</p><input type="file" name="package" accept=".zip,.tgz,.tar.gz">
-<p style="margin-top:16px"><button class="btn" type="submit">Create site</button></p>
-<p class="mute">Every release is inspected before it goes live: server code in static sites, web shells, leaked keys and known critical vulnerabilities in dependencies stop it.</p>
-</form>"""
-        self.send(200 if not error else 400, page("New site", who["user"], body))
+<div class="wide">
+<section class="card"><h2>1. Template</h2>{cards}</section>
+<section class="card"><h2>2. Name and address</h2><div class="fields">
+<label class="f">Name<input type="text" name="name" value="{esc(v.get('name', ''))}" required pattern="[a-z][a-z0-9-]{{0,30}}" placeholder="my-site"></label>
+<label class="f">Address<input type="text" name="domain" value="{esc(v.get('domain', ''))}" placeholder="my-site.{esc(base)}"></label></div>
+<p class="small mute">Leave the address empty to use <code>&lt;name&gt;.{esc(base)}</code>.</p>
+<label class="tick box" style="flex-direction:row"><input type="checkbox" name="public" value="1"{public}><span><b>Public on the internet</b><span class="small mute" style="display:block">Anyone on the internet can reach the site. Leave it off to allow only your own networks.</span></span></label></section>
+<section class="card"><h2>3. Content</h2>
+<p class="pane-wp small" style="padding:12px;border-radius:10px;background:var(--calm);color:var(--acc2)">WordPress needs neither a repository nor a package. You add content in WordPress itself.</p>
+<div class="pane-src">
+<div class="tabs" role="radiogroup" aria-label="Where the content comes from"><label><input type="radio" id="mode-git" name="mode" value="git"{'' if package else ' checked'}>Git repository</label><label><input type="radio" id="mode-package" name="mode" value="package"{' checked' if package else ''}>Uploaded package</label></div>
+<div class="pane-git"><p class="small mute">A repository with the finished files. Nothing is built here.</p><div class="fields">
+<label class="f all">Repository<input type="text" name="repo" value="{esc(v.get('repo', ''))}" placeholder="https://codeberg.org/you/site.git"></label>
+<label class="f">Branch<input type="text" name="ref" value="{esc(v.get('ref', 'main'))}" placeholder="main"></label>
+<label class="f">Access token <small>Only for a private repository</small><input type="password" name="token" autocomplete="off"></label></div>
+<p class="small mute">Use a read-only deploy token. It is stored and never shown again.</p></div>
+<label class="pane-pkg drop">Choose a package<small>A .zip, .tgz or .tar.gz with the finished files.</small><input type="file" name="package" accept=".zip,.tgz,.tar.gz"></label>
+</div>{again}</section></div>
+<aside class="aside"><section class="card"><div class="small mute">Before you create</div>
+<div class="small" style="padding:12px;border-radius:10px;background:var(--calm);color:var(--acc2)"><b>Every release is inspected before it goes live.</b> Server code in static sites, web shells, leaked keys and known critical vulnerabilities in dependencies stop it.</div>
+<button class="btn" type="submit">Create site</button>
+<p class="tiny mute">Creating takes about two to three minutes. You can follow each step on the next page.</p></section></aside></form>"""
+        self.send(200 if not error else 400, page("New site", who["user"], body, crumb="New site", nav="new"))
 
     def create(self, who, fields, files):
         conf = self.server.conf
@@ -413,6 +637,11 @@ class Portal(BaseHTTPRequestHandler):
         repo, ref = fields.get("repo", ""), fields.get("ref") or "main"
         pkg = files.get("package")
         has_pkg = bool(pkg and pkg[0] and pkg[1])
+        # The form hides the source not chosen; what stayed in it does not count.
+        if fields.get("mode") == "package":
+            repo, fields["token"] = "", ""
+        elif fields.get("mode") == "git":
+            has_pkg = False
         mine = [s for s in self.sites(who) if s.get("owner") == who["user"]]
         taken = {s.get("name") for s in load(os.path.join(DATA, "sites.json"), [])}
         taken |= {r.get("site") for r in self.requests({"admin": True}) if r.get("status") not in ("rejected", "failed")}
@@ -454,24 +683,97 @@ class Portal(BaseHTTPRequestHandler):
         r = load(os.path.join(DATA, "requests", f"{rid}.json"), None)
         if not r or not (who["admin"] or r.get("user") == who["user"]):
             return self.fail(404, "No such request.")
-        status = r.get("status", "new")
-        steps = ["new", "checking", "inspecting", "creating", "live"]
-        trail = " → ".join(f"<b>{s}</b>" if s == status else s for s in steps)
-        insp = load(os.path.join(INSPECT, f"{r.get('site')}.json"), None) if status in ("inspecting", "rejected", "creating", "live") else None
-        if status == "failed":
-            msg = f"<p class='failed'>FAILED – {esc(r.get('message', ''))}</p>"
-        else:
-            msg = f"<p>{esc(r.get('message', ''))}</p>" if r.get("message") else ""
+        status, kind, site = r.get("status", "new"), r.get("kind"), r.get("site")
         done = status in ("live", "rejected", "failed", "done")
-        if r.get("kind") == "restore":
-            steps = ["new", "restoring", "live"]
-            trail = " → ".join(f"<b>{s}</b>" if s == status else s for s in steps)
-        link = f"<p><a class='btn' href='/sites/{esc(r['site'])}'>Open {esc(r['site'])}</a></p>" if status == "live" else ""
-        body = (f"<h1>{esc(r.get('kind'))} {esc(r.get('site'))}</h1><div class='card'><p>{pill(status)} <span class='mute'>{trail}</span></p>{msg}"
-                f"{findings_table(insp) if insp else ''}{log_block(rid, status)}</div>{link}"
-                + (guide_block(self.server.conf, r.get("template")) if status == "live" else "")
-                + ("" if done else "<p class='mute'>This page updates by itself.</p>"))
-        self.send(200, page(f"Request {rid}", who["user"], body, refresh=not done))
+        insp = load(os.path.join(INSPECT, f"{site}.json"), None) if status in ("inspecting", "rejected", "creating", "live") else None
+        stopped = bool(insp) and insp.get("verdict") == "block" and str(r.get("message", "")).startswith("The inspection blocked")
+        msg = esc(r.get("message", ""))
+        name = f"<span class='mono'>{esc(site)}</span>"
+        if status == "failed":
+            at = {"restore": "restoring", "delete": "deleting"}.get(kind, "creating")
+        elif status == "rejected":
+            at = "inspecting" if stopped else ("checking" if kind == "create" else "new")
+        else:
+            at = None
+        top, side = "", ""
+        verb = {"create": "Creating", "restore": "Restoring", "delete": "Deleting", "token": "Saving the token of"}.get(kind, "Working on")
+        if status == "failed" and kind == "create":
+            head = f"{name} <b>was not created.</b> Setting up the site is what stopped."
+            acts = (f"<form method='post' action='/requests/{esc(rid)}/retry' style='display:contents'><input type='hidden' name='csrf' value='{who['csrf']}'>"
+                    f"<button class='btn' type='submit'>Try creating {esc(site)} again</button></form>") if self.retryable(r) else f"<a class='btn' href='/new?from={esc(rid)}'>Try creating {esc(site)} again</a>"
+            same = ("Trying again uses the same name, address, template and content." if self.retryable(r)
+                    else "This opens the form with your settings. Give the access token or package again: they are not kept.")
+            top = (f"<section class='call note'><div class='acts'><span class='pill bad'>FAIL</span><h2>The site’s container could not be set up.</h2></div><p>{msg}</p>"
+                   f"<p>Nothing went live, and visitors see nothing at this address yet.</p><div class='acts'>{acts}<a class='btn ghost' href='/new?from={esc(rid)}'>Change the settings</a></div><p class='small'>{same}</p></section>")
+            side = ("<section class='card'><h2>What to do next</h2><ol class='next'><li>Try again. It takes two to three minutes.</li><li>If it stops at the same step, ask an administrator and give them the log.</li></ol></section>"
+                    f"<section class='card'><h3>For an administrator</h3><p class='small mute'>Log on the mothership</p><div class='path'>/home/tappaas/logs/webhost-{esc(site)}-create.log</div></section>")
+        elif status == "failed":
+            head = f"{name} <b>did not finish.</b>"
+            top = f"<section class='call note'><div class='acts'><span class='pill bad'>FAIL</span><h2>{esc(kind)} failed.</h2></div><p>{msg}</p><div class='acts'><a class='btn' href='/'>Back to your sites</a></div></section>"
+        elif status == "rejected" and stopped:
+            head = f"{name} <b>is not live yet.</b> Its first release was blocked at inspection."
+            top = ("<section class='call note'><h2 style='font-size:16px'>Nothing is running at this address yet.</h2><p>The site goes live with the first release that passes inspection.</p>"
+                   f"<div class='acts'><a class='btn' href='/new?from={esc(rid)}'>Fix it and create the site again</a></div></section>"
+                   + findings_block(insp, "Then create the site again. The new release is inspected by itself."))
+            insp = None
+        elif status == "rejected":
+            head = f"{name} <b>could not be accepted.</b>"
+            again = f"<a class='btn' href='/new?from={esc(rid)}'>Change the settings</a>" if kind == "create" else "<a class='btn' href='/'>Back to your sites</a>"
+            top = f"<section class='call note'><h2 style='font-size:16px'>The request was refused.</h2><p>{msg}</p><div class='acts'>{again}</div></section>"
+        elif status == "live" and kind == "create":
+            head = f"{name} <b>is live.</b> It passed inspection." if r.get("source") else f"{name} <b>is live.</b>"
+            domain = esc(r.get("domain", ""))
+            reach = "Anyone on the internet can reach this address." if r.get("public") else "Only your own networks can reach this address."
+            top = (f"<section class='call calm'><div class='row' style='align-items:center'><div class='grow'><div class='mono' style='font-size:18px;overflow-wrap:anywhere'>{domain}</div><p>{reach}</p></div>"
+                   f"<div class='acts'><a class='btn' href='https://{domain}'>Open {esc(site)}</a><a class='btn ghost' href='/sites/{esc(site)}'>Go to site page</a></div></div></section>")
+        elif done:
+            head = f"{name} <b>is done.</b> {msg}"
+            top = f"<div class='acts'><a class='btn' href='{'/' if kind == 'delete' else f'/sites/{esc(site)}'}'>{'Back to your sites' if kind == 'delete' else f'Open {esc(site)}'}</a></div>"
+        else:
+            head = f"<b>{verb}</b> {name}. <span>{msg}</span>"
+        summary = ""
+        if kind == "create":
+            src = r.get("source") or {}
+            content = f"{esc(src.get('ref', 'main'))} of {esc(src['repo'])}" if src.get("repo") else ("Uploaded package" if src.get("upload") else "None needed")
+            summary = (f"<section class='card'><div><div class='tiny mute'>New site</div><div class='mono' style='font-size:20px;font-weight:500'>{esc(site)}</div></div>"
+                       f"<dl><dt>Template</dt><dd class='mono'>{esc(r.get('template', ''))}</dd><dt>Address</dt><dd class='mono'>{esc(r.get('domain', ''))}</dd>"
+                       f"<dt>Reachable from</dt><dd>{'The internet' if r.get('public') else 'Your networks only'}</dd><dt>Content</dt><dd class='mono'>{content}</dd></dl></section>")
+        guide = guide_block(self.server.conf, r.get("template")) if status == "live" else ""
+        wide = f"{stepper(r, status, at)}{log_block(rid, status)}{guide}"
+        aside = side + (inspection_card(insp, "Inspection") if insp else "") + summary
+        wait = "" if done else "<p role='status' class='sub'>This page updates by itself.</p>"
+        body = f"<div><h1>{head}</h1>{wait}</div>{top}<div class='cols'><div class='wide'>{wide}</div><aside class='aside'>{aside}</aside></div>"
+        self.send(200, page(f"Request {rid}", who["user"], body, refresh=not done, crumb=f"{kind} {site}"))
+
+    @staticmethod
+    def retryable(r):
+        # The sync takes tokens and packages away, so those need giving again.
+        return not r.get("token") and not (r.get("source") or {}).get("upload")
+
+    def retry(self, who, rid):
+        r = load(os.path.join(DATA, "requests", f"{rid}.json"), None)
+        if not r or not (who["admin"] or r.get("user") == who["user"]):
+            return self.fail(404, "No such request.")
+        if r.get("kind") != "create" or r.get("status") != "failed":
+            return self.fail(409, "Only a failed create can be tried again.")
+        if not self.retryable(r):
+            return self.redirect(f"/new?from={rid}")
+        conf = self.server.conf
+        tpl = {t["name"]: t for t in conf.get("templates", [])}.get(r.get("template", ""))
+        site = r.get("site", "")
+        taken = {s.get("name") for s in load(os.path.join(DATA, "sites.json"), [])}
+        taken |= {q.get("site") for q in self.requests({"admin": True}) if q.get("status") not in ("rejected", "failed")}
+        mine = [s for s in self.sites(who) if s.get("owner") == who["user"]]
+        if not tpl:
+            return self.fail(409, "That template is no longer offered.")
+        if site in taken:
+            return self.fail(409, f"A site named {site} exists or is being created.")
+        if not who["admin"] and len(mine) >= int(conf.get("site_limit", 10)):
+            return self.fail(409, f"You have reached the limit of {conf.get('site_limit', 10)} sites.")
+        # An administrator retrying someone's site must not become its owner.
+        new = self.write_request({"kind": "create", "user": r.get("user"), "groups": r.get("groups", []), "site": site, "template": tpl["name"],
+                                  "runtime": tpl["runtime"], "domain": r.get("domain"), "public": bool(r.get("public")), "source": r.get("source") or {}})
+        self.redirect(f"/requests/{new}")
 
     def detail(self, who, name):
         s = self.site(who, name)
@@ -479,37 +781,50 @@ class Portal(BaseHTTPRequestHandler):
             return self.fail(404, "No such site, or not yours.")
         insp = load(os.path.join(INSPECT, f"{name}.json"), None)
         src = s.get("source", {})
+        state = s.get("state", "?")
+        running = state in LIVE_STATES
+        stopped = bool(src) and bool(insp) and insp.get("verdict") == "block"
         if src.get("upload"):
-            content = (f"<form method='post' action='/sites/{esc(name)}/upload' enctype='multipart/form-data'>"
-                       f"<input type='hidden' name='csrf' value='{who['csrf']}'><input type='file' name='package' accept='.zip,.tgz,.tar.gz' required>"
-                       "<p><button class='btn' type='submit'>Upload a new version</button></p></form>")
+            content = ("<h2>How to update this site</h2>"
+                       f"<form class='box' method='post' action='/sites/{esc(name)}/upload' enctype='multipart/form-data'>"
+                       f"<input type='hidden' name='csrf' value='{who['csrf']}'><p class='small mute'>A new package is inspected, and goes live only if it passes.</p>"
+                       "<input type='file' name='package' accept='.zip,.tgz,.tar.gz' required><div class='acts'><button class='btn' type='submit'>Upload a new version</button></div></form>")
         elif src.get("repo"):
-            content = (f"<p>Push to <code>{esc(src.get('ref', 'main'))}</code> of <code>{esc(src['repo'])}</code>; a passing revision is live within about two minutes.</p>"
-                       f"<form method='post' action='/sites/{esc(name)}/token' enctype='multipart/form-data'>"
+            content = (f"<h2>How to update this site</h2><p>Push to <code>{esc(src.get('ref', 'main'))}</code> of <code>{esc(src['repo'])}</code>. A passing revision is live within about two minutes.</p>"
+                       "<div class='inset'><details><summary>Replace access token</summary>"
+                       f"<form method='post' action='/sites/{esc(name)}/token' enctype='multipart/form-data' style='display:flex;flex-direction:column;gap:8px;margin-top:8px'>"
                        f"<input type='hidden' name='csrf' value='{who['csrf']}'>"
-                       "<input type='password' name='token' autocomplete='off' placeholder='new access token (empty removes it)'>"
-                       "<p><button class='btn' type='submit'>Set access token</button></p>"
-                       "<p class='mute'>For a private repository: a read-only deploy token. It is never shown again.</p></form>")
+                       "<label class='f small'>New access token<input type='password' name='token' autocomplete='off'></label>"
+                       "<p class='small mute'>This replaces the current token. Leave it empty to remove the token: a private repository can then no longer be read, and pushes stop going live.</p>"
+                       "<div class='acts'><button class='btn' type='submit'>Set access token</button></div></form></details>"
+                       "<p class='small mute'>For a private repository: a read-only deploy token. It is never shown again.</p></div>")
         else:
-            content = "<p>WordPress: manage content in its own admin, reachable from your own networks.</p>"
-        body = (f"<h1>{esc(name)}</h1><div class='card'><p><a href='https://{esc(s['domain'])}'>{esc(s['domain'])}</a> · {esc(s['template'])} · {pill(s.get('state', '?'))}"
-                f"{' · public' if s.get('public') else ' · your networks only'}</p>{content}</div>"
-                f"{guide_block(self.server.conf, s['template'])}"
-                f"<h2>Last inspection</h2><div class='card'>{findings_table(insp)}</div>"
-                f"<h2>Backups</h2><div class='card'>{self.backup_list(who, name)}</div>"
-                f"<h2>Delete</h2><div class='card'><form method='post' action='/sites/{esc(name)}/delete'>"
-                f"<input type='hidden' name='csrf' value='{who['csrf']}'><p>Type <b>{esc(name)}</b> to remove the site. Its container goes; its backup stays.</p>"
-                f"<input type='text' name='confirm' required><p><button class='btn danger' type='submit'>Delete {esc(name)}</button></p></form></div>")
-        self.send(200, page(name, who["user"], body))
+            content = "<h2>How to update this site</h2><p>WordPress: manage content in its own admin, reachable from your own networks.</p>"
+        rest = "Its newest release was blocked, so visitors see no change." if stopped and running else ("Its newest release passed inspection." if running and src and insp else "")
+        reach = "Public" if s.get("public") else "Your networks only"
+        blocked = ""
+        if stopped:
+            safe = ("<section class='call calm'><h2>Your live site is not affected.</h2><p>A blocked release never goes live. The last release that passed keeps running.</p></section>" if running else "")
+            blocked = safe + findings_block(insp, "Then push to your branch or upload a new package. The new release is inspected by itself.")
+        delete = (f"<form class='card dangerzone' method='post' action='/sites/{esc(name)}/delete'><input type='hidden' name='csrf' value='{who['csrf']}'>"
+                  "<h2>Delete this site</h2><p>The container goes and the site stops answering. Its backup stays, and the site can come back from it under Deleted sites.</p>"
+                  f"<label class='f small' style='max-width:420px'>Type {esc(name)} to confirm<input type='text' name='confirm' required pattern='{esc(name)}' autocomplete='off'></label>"
+                  f"<div class='acts'><button class='btn danger guarded' type='submit'>Delete {esc(name)}</button></div></form>")
+        body = (f"<div class='row'><div class='grow'><h1><span class='mono'>{esc(name)}</span> <b>is {esc(state)}.</b> {rest}</h1>"
+                f"<div class='acts small mute' style='margin-top:8px'><a class='mono' href='https://{esc(s['domain'])}'>{esc(s['domain'])}</a>{pill(state)}<span class='pill'>{esc(s['template'])}</span><span>{reach}</span></div></div>"
+                f"<a class='btn' href='https://{esc(s['domain'])}'>Open {esc(name)}</a></div>{blocked}"
+                f"<div class='cols'><div class='wide'><section class='card'>{content}</section>{guide_block(self.server.conf, s['template'])}{delete}</div>"
+                f"<aside class='aside'>{inspection_card(insp)}{pull_log(name) if src else ''}<section class='card'><div><h2>Backups</h2><p class='small mute'>Taken nightly. Restoring puts the site back as it was at that moment.</p></div>{self.backup_list(who, name)}</section></aside></div>")
+        self.send(200, page(name, who["user"], body, crumb=name))
 
     def backup_list(self, who, name):
         pts = backups().get("sites", {}).get(name, [])
         if not pts:
-            return "<p class='mute'>No backups yet; they are taken nightly.</p>"
-        rows = "".join(f"<li>{esc(when(b['time']))}"
-                       f"{restore_form(who, f'/sites/{esc(name)}/restore', b['volid'], 'Put this back; changes since then are lost')}</li>"
+            return "<p class='small mute'>No backups yet; they are taken nightly.</p>"
+        rows = "".join(f"<li><div class='mono small' style='font-weight:500;margin-bottom:6px'>{esc(when(b['time']))}</div>"
+                       f"{restore_form(who, f'/sites/{esc(name)}/restore', b['volid'], 'Put this back. I understand that changes since then are lost.')}</li>"
                        for b in pts)
-        return f"<ul>{rows}</ul>"
+        return f"<ul class='plain'>{rows}</ul>"
 
     def deleted(self, who):
         return [d for d in backups().get("deleted", []) if d.get("backups") and (who["admin"] or d.get("owner") == who["user"])]

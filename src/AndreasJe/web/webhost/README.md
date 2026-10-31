@@ -24,10 +24,12 @@ Websites on TAPPaaS: each site in its own locked-down container, published by pu
 People who are not administrators can create their own sites at `https://webhost.<domain>`.
 
 - They log in, pick a template, name the site and give a git repository and branch, or upload a package (`.zip`, `.tgz`, `.tar.gz`, up to 100 MB).
-- A status page follows the request: checking, inspecting, creating, live, or rejected with the reasons.
+- A status page follows the request as a stepper: new, checking, inspecting, creating, live. It says in plain words what stopped a request and what to do next. A failed create can be tried again.
 - While a site is created or restored, the request page shows the last lines of the progress log and, on failure, the error; "Show the log" opens the whole log (colour codes stripped, values after password, secret, token and api_key hidden).
 - When a site goes live, the page lists "What your site gets": what the template provides and how to use it. The site page shows it too.
-- "My sites" lists each site, its state and its last inspection. An upload site takes a new version there; a site can be deleted.
+- "Your sites" lists each site, its state and its latest release. A blocked release shows what was found and how to fix it. An upload site takes a new version on its site page; a site can be deleted there.
+- The site page has a Recent pulls card: the last 20 revisions webhost fetched, each passed or blocked, and when it last looked for changes.
+- Replacing a repository's access token sits behind its own step; saving it empty removes the token.
 - The site page has a Backups card: nightly backups, each restorable in place after a confirm. "Deleted sites" on the home page lists sites that can be brought back.
 - Members of the `webhost` group see only their own sites, at most 10. Members of `installer` see and manage all.
 - The portal is reached only from your own zones and the admin VPN, behind the Authentik login. It is not on the internet, and it can only ask for sites: every request is checked and every release inspected.

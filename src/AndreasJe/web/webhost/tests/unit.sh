@@ -244,6 +244,8 @@ expect "fixture repos kept" "[[ -d '${M}/git/_fixture-static.git' ]]"
 good="$(served site1)"; origin site1 shell.php "<?php eval(base64_decode(\$_POST['x']));"; run_mirror
 expect "a later bad commit leaves the last good revision live" "[[ \$(served site1) == '${good}' && \$(jq -r .verdict '${M}/inspect/site1.json') == block ]]"
 
+expect "the mirror logs each inspected revision" "[[ \$(wc -l <'${M}/inspect/site1.history.jsonl') -ge 2 && -f '${M}/inspect/site1.fetched' ]]"
+
 echo "portal token"
 python3 - "${ROOT}/guest/webhost-portal.py" >"${WORK}/token.out" <<'PY'
 import base64, hashlib, hmac, importlib.util, json, sys, time
@@ -271,6 +273,54 @@ PY
 expect "a valid gate token is accepted" "grep -qx 'valid ok' '${WORK}/token.out'"
 for c in wrong-secret alg-none other-audience other-issuer expired; do
     expect "a token with ${c} is refused" "grep -qx '${c} refused' '${WORK}/token.out'"
+done
+
+echo "portal pages"
+python3 - "${ROOT}/guest/webhost-portal.py" "${WORK}/portal" >"${WORK}/pages.out" <<'PY'
+import importlib.util, json, os, sys
+root = sys.argv[2]
+os.makedirs(f"{root}/portal/requests"); os.makedirs(f"{root}/portal/tokens"); os.makedirs(f"{root}/inspect")
+os.environ.update(WEBHOST_PORTAL_DATA=f"{root}/portal", WEBHOST_INSPECT=f"{root}/inspect")
+spec = importlib.util.spec_from_file_location("portal", sys.argv[1]); p = importlib.util.module_from_spec(spec); spec.loader.exec_module(p)
+class Srv: conf = {"base_domain": "x.dk", "templates": [{"name": "lamp", "runtime": "php", "summary": "s", "guide": [{"group": "Database", "items": ["`DB_HOST`"]}, "flat <b>"]}]}
+got = {}
+h = p.Portal.__new__(p.Portal); h.server = Srv
+h.send = lambda code, body, *a, **k: got.update(code=code, body=body, headers=k.get("headers", {}))
+ann = {"user": "ann", "groups": ["webhost"], "admin": False, "csrf": "c"}
+bob = dict(ann, user="bob")
+root_admin = {"user": "root", "groups": ["installer"], "admin": True, "csrf": "c"}
+def req(rid, **kw):
+    r = dict({"id": rid, "kind": "create", "user": "ann", "groups": ["webhost"], "site": "demo", "template": "lamp", "runtime": "php", "domain": "demo.x.dk",
+              "status": "failed", "message": "<script>boom", "source": {"repo": "https://x.example/a.git", "ref": "main"}}, **kw)
+    json.dump(r, open(f"{root}/portal/requests/{rid}.json", "w"))
+def check(name, ok): print(name, "ok" if ok else "bad")
+A, B, C = "20260101T000000Z-aaaaaa", "20260101T000000Z-bbbbbb", "20260101T000000Z-cccccc"
+req(A); req(B, site="tok", token=True); req(C, site="live", status="live")
+h.request_page(ann, A)
+check("failed-escapes-message", "<script>boom" not in got["body"] and "&lt;script&gt;boom" in got["body"])
+check("failed-shows-log-path", "webhost-demo-create.log" in got["body"])
+check("failed-offers-post-retry", f"/requests/{A}/retry" in got["body"])
+h.request_page(ann, B)
+check("token-retry-goes-to-form", f"/new?from={B}" in got["body"] and f"/requests/{B}/retry" not in got["body"])
+h.retry(bob, A); check("retry-needs-owner", got["code"] == 404)
+h.retry(ann, C); check("retry-only-when-failed", got["code"] == 409)
+h.redirect = lambda to: got.update(code=303, to=to)
+h.retry(ann, B); check("retry-with-token-keeps-no-secret", got["to"] == f"/new?from={B}")
+h.retry(root_admin, A); new = got["to"].rsplit("/", 1)[1]
+check("retry-keeps-owner", json.load(open(f"{root}/portal/requests/{new}.json"))["user"] == "ann")
+h.retry(root_admin, A); check("retry-refuses-while-running", got["code"] == 409)
+h.send = lambda code, body, *a, **k: got.update(code=code, body=body)
+h.new(ann, query={"from": [A]}); check("form-prefills-from-request", 'value="demo"' in got["body"])
+h.new(bob, query={"from": [A]}); check("form-prefill-needs-owner", 'value="demo"' not in got["body"])
+h.new(ann, query={"from": ["../x"]}); check("form-prefill-checks-id", got["code"] == 200)
+rows = [{"rev": "abcdef1234567890", "checked": "2026-01-01T00:00:00Z", "verdict": "block"}, {"rev": "<i>", "checked": "2026-01-02T00:00:00Z", "verdict": "pass"}]
+open(f"{root}/inspect/demo.history.jsonl", "w").writelines(json.dumps(x) + chr(10) for x in rows)
+pl = p.pull_log("demo"); check("pulls-newest-first-escaped", pl.index("2026-01-02") < pl.index("2026-01-01") and "abcdef123456" in pl and "<i>" not in pl)
+check("pulls-empty-is-fine", "Nothing yet" in p.pull_log("none"))
+g = p.guide_block(Srv.conf, "lamp"); check("guide-grouped-and-flat", "<h3>Database</h3>" in g and "<code>DB_HOST</code>" in g and "flat &lt;b&gt;" in g)
+PY
+for c in pulls-newest-first-escaped pulls-empty-is-fine failed-escapes-message failed-shows-log-path failed-offers-post-retry token-retry-goes-to-form retry-needs-owner retry-only-when-failed retry-with-token-keeps-no-secret retry-keeps-owner retry-refuses-while-running form-prefills-from-request form-prefill-needs-owner form-prefill-checks-id guide-grouped-and-flat; do
+    expect "portal: ${c}" "grep -qx '${c} ok' '${WORK}/pages.out'"
 done
 
 echo "custom templates"

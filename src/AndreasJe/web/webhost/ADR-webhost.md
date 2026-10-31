@@ -3,12 +3,12 @@
 | | |
 |---|---|
 | **Status** | **Proposed** — every decision is built and tested on a TAPPaaS cluster. |
-| **Version** | 0.3 |
+| **Version** | 0.4 |
 | **Date** | 2026-10-31 |
 | **Authors** | see [AUTHORS.md](AUTHORS.md) |
 | **Scope** | Community module `src/AndreasJe/web/webhost`: the `webhost` module and the `website` module it ships. |
 | **Depends on** | ADR-007b (Apps), ADR-007f (Manager → Controller → Service), ADR-020 (declared-field change model), ADR-023 (proxy access rules), ADR-035 (module managers), ADR-038 (declarations; under review), ADR-039 (alert rules). |
-| **Changelog** | v0.3 (2026-10-31) — D21 data folders, D22 PHP-FPM reload, D23 deploy target; D19 and D7 checked against the code. v0.2 (2026-10-31) — D17 site portal, D18 release inspection; webhost-manager registered by the platform. v0.1 (2026-10-31) — first published version. |
+| **Changelog** | v0.4 (2026-10-31) — D24 a portal people can read on their own; D20 extended with the pull log. v0.3 (2026-10-31) — D21 data folders, D22 PHP-FPM reload, D23 deploy target; D19 and D7 checked against the code. v0.2 (2026-10-31) — D17 site portal, D18 release inspection; webhost-manager registered by the platform. v0.1 (2026-10-31) — first published version. |
 
 This is a living document: a decision is changed in place, its status updated and the change noted in the changelog. How each decision is built is in [DESIGN.md](DESIGN.md).
 
@@ -148,7 +148,7 @@ A delete keeps the site's declaration as a record (`~/config/webhost-deleted/<na
 
 ### D20 — Owners see what happened
 
-While a request creates or restores a site, the sync pushes its log to the portal every 10 s. The request page shows the error, the progress tail and the full log on demand. The log is sanitized first: colour codes are stripped and values after `password`, `secret`, `token` and `api_key` are hidden. Each template's `guide` tells the owner what the site gets once it is live.
+While a request creates or restores a site, the sync pushes its log to the portal every 10 s. The request page shows the error, the progress tail and the full log on demand. The log is sanitized first: colour codes are stripped and values after `password`, `secret`, `token` and `api_key` are hidden. Each template's `guide` tells the owner what the site gets once it is live. The mirror keeps the last 20 inspected revisions per site and the time of its last successful fetch; the site page shows them as Recent pulls.
 
 ### D21 — Data folders outlive releases
 
@@ -161,6 +161,14 @@ PHP-FPM caches the resolved paths of scripts, so after the `current` link moves 
 ### D23 — A deploy target, not a development environment
 
 The intent in Context stands: no build step, no editor, no shell in the site. Templates are grouped as Sites (served files) and Stacks (code that runs), each with a label an owner recognises and a short guide of what the site gets (D15). The portal and the README show the label, not the template name.
+
+### D24 — A portal people can read on their own
+
+The portal is redesigned for people who are not experts. It shares the look of the TAPPaaS console but stays a standalone app: it does not join the console's navigation. Every page opens with a sentence that states the situation. The pipeline is a stepper with a line on what each step does. A failed or blocked request says in plain words what happened, what to do next and that a live site is unaffected, with the log as a secondary detail. The portal holds a plain explanation and fix for each inspection rule.
+
+The portal's CSP stays as it was: no scripts, no web fonts. Forms change through CSS `:has()`, and restore and delete rely on browser validation plus the checks on the server.
+
+A failed create can be tried again (`POST /requests/<id>/retry`). The new request keeps the original owner and goes through the same sync checks. The sync does not keep tokens or packages, so a request that had one goes back to the prefilled form, which asks for it again. Replacing an access token is a step of its own, and saving it empty removes the token.
 
 ## Fallbacks for core gaps
 

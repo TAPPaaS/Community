@@ -81,6 +81,13 @@ publish() {
     git -C "${served}" update-server-info
 }
 
+# history <site> — one line per inspected revision, the last 20, for the portal.
+history() {
+    local f="${INSPECT}/$1.history.jsonl"
+    jq -c '{rev, checked, verdict, rules: ([.findings[]? | select(.level == "block") | .rule] | unique)}' "${INSPECT}/$1.json" >> "${f}"
+    tail -n 20 "${f}" > "${f}.new" && mv "${f}.new" "${f}"
+}
+
 [[ -f "${LIST}" ]] || exit 0
 mkdir -p "${PRIV}" "${INSPECT}"
 declare -A keep=()
@@ -118,6 +125,7 @@ while read -r site source ref template runtime accepted; do
     fi
 
     auth "" ""
+    touch "${INSPECT}/${site}.fetched"
     rev="$(git -C "${repo}" rev-parse -q --verify "${ref}^{commit}" 2>/dev/null)" || continue
     state="${INSPECT}/${site}.json"
     if [[ -f "${state}" ]] && jq -e --arg r "${rev}" --arg a "${accepted}" '.rev == $r and .accepted == $a' "${state}" >/dev/null 2>&1; then
@@ -135,6 +143,7 @@ while read -r site source ref template runtime accepted; do
     rm -rf "${tree}"
     jq --arg r "${rev}" --arg a "${accepted}" --arg t "$(date -u +%FT%TZ)" \
         '{rev: $r, checked: $t, accepted: $a} + .' <<<"${result}" > "${state}.new" && mv "${state}.new" "${state}"
+    history "${site}"
     if [[ "$(jq -r .verdict "${state}")" == pass ]]; then
         publish "${site}" "${ref}" "${rev}"
         log "inspection-passed site=${site} rev=${rev:0:12}"
@@ -148,7 +157,7 @@ for d in "${GITDIR}"/*.git "${PRIV}"/*.git; do
     [[ -d "${d}" ]] || continue
     b="$(basename "${d}" .git)"
     [[ "${b}" == _fixture-* || -n "${keep[${b}]:-}" ]] && continue
-    rm -rf "${d}" "${INSPECT:?}/${b}.json"
+    rm -rf "${d}" "${INSPECT:?}/${b}".json "${INSPECT:?}/${b}".history.jsonl "${INSPECT:?}/${b}".fetched
     log "mirror-removed site=${b}"
 done
 exit 0

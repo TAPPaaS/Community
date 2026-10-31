@@ -22,9 +22,20 @@
   "adminPaths": [],
   "csp": {},
   "guide": [
-    "Your content is a git branch or an uploaded package. It is inspected, then goes live within about 2 minutes.",
-    "If a new release fails inspection or does not answer, the last good release stays live.",
-    "Files are served as they are by Caddy from the repository (or the configured subdirectory). No database, nothing runs on the server.",
-    "Build any frontend beforehand and ship its output (for example dist/) in the branch or package."
-  ]
+    {
+      "group": "Deploying",
+      "items": [
+        "Your content is a git branch or an uploaded package. It is inspected, then goes live within about 2 minutes.",
+        "If a new release fails inspection or does not answer, the last good release stays live.",
+        "Build any frontend beforehand and ship its output (for example `dist/`) in the branch or package."
+      ]
+    },
+    {
+      "group": "Routing",
+      "items": [
+        "Files are served as they are by Caddy from the repository (or the configured subdirectory). No database, nothing runs on the server."
+      ]
+    }
+  ],
+  "hint": "portfolios, docs, landing pages"
 }

@@ -37,10 +37,26 @@
   ],
   "csp": {},
   "guide": [
-    "WordPress and its MariaDB database are installed for you; you give no repository. Themes and plugins are managed in WordPress itself.",
-    "The database runs on the same container on loopback; wp-config.php is already set up with its credentials.",
-    "/wp-admin, /wp-login.php and /xmlrpc.php are only reachable from your own networks.",
-    "Outgoing connections are limited to wordpress.org, api.wordpress.org and downloads.wordpress.org.",
-    "The database is dumped daily at 02:00 and the last 14 dumps are kept on the container."
-  ]
+    {
+      "group": "Deploying",
+      "items": [
+        "WordPress and its MariaDB database are installed for you; you give no repository. Themes and plugins are managed in WordPress itself."
+      ]
+    },
+    {
+      "group": "Database",
+      "items": [
+        "The database runs on the same container on loopback; `wp-config.php` is already set up with its credentials.",
+        "The database is dumped daily at 02:00 and the last 14 dumps are kept on the container."
+      ]
+    },
+    {
+      "group": "Routing",
+      "items": [
+        "`/wp-admin`, `/wp-login.php` and `/xmlrpc.php` are only reachable from your own networks.",
+        "Outgoing connections are limited to wordpress.org, api.wordpress.org and downloads.wordpress.org."
+      ]
+    }
+  ],
+  "hint": "a blog or pages you edit in the browser"
 }

@@ -47,7 +47,7 @@ portal_settings() {
     fw="$(jq -r '.dmz.ip // empty' "${WEBHOST_CONFIG_DIR}/zones.json" | sed 's#\.[0-9]*/.*#.1#')"
     base="$(jq -r '.tappaas.domain // empty' "${WEBHOST_CONFIG_DIR}/configuration.json")"
     for tj in "${WEBHOST_ROOT}"/templates/*/template.json "${CUSTOM_TEMPLATE_DIR}"/*/template.json; do
-        [[ -f "${tj}" ]] || continue; jq -c '{name: .template, runtime, summary, group, label, guide: (.guide // []), database: (.database // "none"), app: (.app // null)}' "${tj}"
+        [[ -f "${tj}" ]] || continue; jq -c '{name: .template, runtime, summary, group, label, guide: (.guide // []), hint: (.hint // null), database: (.database // "none"), app: (.app // null)}' "${tj}"
     done | jq -sc --arg fw "${fw}" --arg base "${base}" --argjson g "${PORTAL_GROUPS}" --argjson a "${PORTAL_ADMIN_GROUPS}" \
         --argjson lim "${PORTAL_SITE_LIMIT}" --argjson mb "${PORTAL_MAX_UPLOAD_MB}" \
         '{listen: "0.0.0.0:8080", firewall: $fw, base_domain: $base, groups: $g, admin_groups: $a,

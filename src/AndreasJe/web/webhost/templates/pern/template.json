@@ -23,12 +23,33 @@
   "egress": [],
   "csp": {},
   "guide": [
-    "Your content is a git branch or an uploaded package. It is inspected, then goes live within about 2 minutes.",
-    "If a new release fails inspection or does not answer, the last good release stays live.",
-    "The app listens on 127.0.0.1:3000 behind Caddy: your start command (default npm start) must listen on $HOST and $PORT.",
-    "Nothing is built on the server: ship everything the app needs in the release. Include node_modules and the built frontend (for example dist/).",
-    "PostgreSQL runs on this container on loopback. process.env has DB_HOST (127.0.0.1), DB_NAME, DB_USER, DB_PASSWORD and DATABASE_URL.",
-    "Load your schema yourself: ask an administrator, or create the tables from your app on first start.",
-    "Files your app writes (uploads) must go in folders listed in options.dataDirs: kept across releases and backed up. Every push replaces the release itself."
-  ]
+    {
+      "group": "Deploying",
+      "items": [
+        "Your content is a git branch or an uploaded package. It is inspected, then goes live within about 2 minutes.",
+        "If a new release fails inspection or does not answer, the last good release stays live.",
+        "Nothing is built on the server: ship everything the app needs in the release. Include `node_modules` and the built frontend (for example `dist/`)."
+      ]
+    },
+    {
+      "group": "Database",
+      "items": [
+        "PostgreSQL runs on this container on loopback. `process.env` has `DB_HOST` (`127.0.0.1`), `DB_NAME`, `DB_USER`, `DB_PASSWORD` and `DATABASE_URL`.",
+        "Load your schema yourself: ask an administrator, or create the tables from your app on first start."
+      ]
+    },
+    {
+      "group": "Files and uploads",
+      "items": [
+        "Files your app writes (uploads) must go in folders listed in `options.dataDirs`: kept across releases and backed up. Every push replaces the release itself."
+      ]
+    },
+    {
+      "group": "Routing",
+      "items": [
+        "The app listens on `127.0.0.1:3000` behind Caddy: your start command (default `npm start`) must listen on `$HOST` and `$PORT`."
+      ]
+    }
+  ],
+  "hint": "a Node.js app built on PostgreSQL"
 }

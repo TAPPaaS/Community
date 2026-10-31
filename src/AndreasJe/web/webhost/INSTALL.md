@@ -54,7 +54,7 @@ Add each person:
 - The mothership picks up requests every minute (`webhost-portal-sync.timer`, a user timer). Check it with `systemctl --user status webhost-portal-sync.timer`; run it by hand with `webhost-manager portal sync`.
 
 - The site page has a Backups card and the home page lists deleted sites; restoring needs a confirm checkbox. Both use `webhost-manager site backups` and `site restore`.
-- The request page shows progress, the error of a failed request and the full log.
+- The request page shows progress, the error of a failed request and the full log. A failed create can be tried again from there; if it used an access token or a package, the form opens instead and asks for them again.
 
 ## Deploy an app
 
@@ -136,7 +136,7 @@ Its entry in the declaration is invalid; the message names the field. Fix it wit
 A site failed to upgrade. The other sites of that runtime wait until a new snapshot is promoted, normally the next night. The failing site's update log says why.
 
 **A release is blocked (`inspection-blocked`).**
-Every release is inspected before a site can serve it, for portal and operator-created sites alike. A blocked release never goes live; the site keeps its last good release. See the findings on the site's page in the portal, in `/srv/webhost/inspect/<site>.json` on the webhost container, or with `journalctl -t tappaas-webhost` (line `inspection-blocked site=… rules=…`). Push a fixed revision to try again.
+Every release is inspected before a site can serve it, for portal and operator-created sites alike. A blocked release never goes live; the site keeps its last good release. See the findings and how to fix them on the site's page in the portal, in `/srv/webhost/inspect/<site>.json` on the webhost container (`<site>.history.jsonl` holds the last 20 inspected revisions), or with `journalctl -t tappaas-webhost` (line `inspection-blocked site=… rules=…`). Push a fixed revision to try again.
 
 What blocks:
 

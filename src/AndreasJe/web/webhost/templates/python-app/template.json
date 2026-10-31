@@ -23,11 +23,33 @@
   "egress": [],
   "csp": {},
   "guide": [
-    "Your content is a git branch or an uploaded package. It is inspected, then goes live within about 2 minutes.",
-    "If a new release fails inspection or does not answer, the last good release stays live.",
-    "The app listens on 127.0.0.1:3000 behind Caddy: set options.start (default gunicorn app:app); gunicorn is bound to $PORT for you.",
-    "Nothing is built on the server: ship everything the app needs in the release. Put dependencies in vendor/ (pip install --target vendor); it is on PYTHONPATH.",
-    "Read settings with os.environ. Persistent files go in /srv/site/data (the rest is read-only).",
-    "Files your app writes (uploads) must go in folders listed in options.dataDirs: kept across releases and backed up. Every push replaces the release itself."
-  ]
+    {
+      "group": "Deploying",
+      "items": [
+        "Your content is a git branch or an uploaded package. It is inspected, then goes live within about 2 minutes.",
+        "If a new release fails inspection or does not answer, the last good release stays live.",
+        "Nothing is built on the server: ship everything the app needs in the release. Put dependencies in `vendor/` (`pip install --target vendor`); it is on `PYTHONPATH`."
+      ]
+    },
+    {
+      "group": "Database",
+      "items": [
+        "Read settings with `os.environ`."
+      ]
+    },
+    {
+      "group": "Files and uploads",
+      "items": [
+        "Persistent files go in `/srv/site/data` (the rest is read-only).",
+        "Files your app writes (uploads) must go in folders listed in `options.dataDirs`: kept across releases and backed up. Every push replaces the release itself."
+      ]
+    },
+    {
+      "group": "Routing",
+      "items": [
+        "The app listens on `127.0.0.1:3000` behind Caddy: set `options.start` (default `gunicorn app:app`); gunicorn is bound to `$PORT` for you."
+      ]
+    }
+  ],
+  "hint": "a Flask or other WSGI app"
 }
