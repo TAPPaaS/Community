@@ -33,7 +33,7 @@
             "repo": "community",
             "moduleJson": "src/AndreasJe/web/wordpress/wordpress.json",
             "vmid": 620,
-            "stack": "productivity",
+            "stack": "web-hosting",
             "category": "cms",
             "status": "deprecated"
         },
@@ -87,7 +87,7 @@
             "repo": "community",
             "moduleJson": "src/AndreasJe/web/webhost/webhost.json",
             "vmid": 630,
-            "stack": "collaboration",
+            "stack": "web-hosting",
             "category": "web-hosting",
             "status": "beta"
         },
@@ -96,7 +96,7 @@
             "repo": "community",
             "moduleJson": "src/AndreasJe/web/webhost/website/website.json",
             "vmid": 6300,
-            "stack": "collaboration",
+            "stack": "web-hosting",
             "category": "web-hosting",
             "status": "beta"
         },

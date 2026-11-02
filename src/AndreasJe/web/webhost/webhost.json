@@ -3,7 +3,7 @@
   "displayName": "Webhost",
   "kind": "lxc",
   "version": "0.3.0",
-  "stack": "collaboration",
+  "stack": "web-hosting",
   "releaseDate": "2026-10-30",
   "maintainer": "@AndreasJe",
   "status": "Development",
