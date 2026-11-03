@@ -56,6 +56,14 @@ Add each person:
 - The site page has a Backups card and the home page lists deleted sites; restoring needs a confirm checkbox. Both use `webhost-manager site backups` and `site restore`.
 - The request page shows progress, the error of a failed request and the full log. A failed create can be tried again from there; if it used an access token or a package, the form opens instead and asks for them again.
 
+## Visitor analytics
+
+- An owner turns analytics on from the site page in the portal, or you set `options.analytics: true` in the declaration (`webhost-manager site modify <site> --set options.analytics=true`). The change reloads only the site's web server; no site update or restart. Static and PHP sites get the script line from webhost; Node and Python owners add it themselves (the site page says how). Numbers are under Analytics in the portal.
+- The first site that turns it on builds Umami from nixpkgs on the mothership (needs `nix`) and copies it into the webhost container, which takes a few minutes. When the last site turns it off the service stops; the data stays. `webhost-manager analytics sync` applies the current state by hand; install and update run it too.
+- Umami listens on `127.0.0.1:3000` inside the webhost container only. For its admin pages, open a tunnel from inside that container; the admin login is in `/etc/webhost/umami-admin.json`.
+- Files in the container: `/etc/webhost/umami.env`, `/etc/webhost/umami-admin.json` (both 0600), `/etc/webhost/portal-umami.json` (the portal's view-only account, 0640), `/etc/webhost/analytics-sites.json` (site to Umami website). Service: `webhost-analytics.service`.
+- A nightly dump (01:30) goes to `/srv/webhost/analytics/backup`, the last 14 kept, so the container's backup holds a consistent copy.
+
 ## Deploy an app
 
 Templates come in two groups: Sites (`wordpress`, `static`; nothing of yours runs on the server) and Stacks (`php-app`, `lamp`, `node-app`, `pern`, `mern`, `python-app`, `django`; your code runs on the server).
@@ -135,6 +143,9 @@ Its entry in the declaration is invalid; the message names the field. Fix it wit
 **Updates stopped (`snapshots list` shows a halted wave).**
 A site failed to upgrade. The other sites of that runtime wait until a new snapshot is promoted, normally the next night. The failing site's update log says why.
 
+**Analytics show "not available".**
+The numbers come from Umami in the webhost container. `systemctl status webhost-analytics` there shows whether it runs; it is stopped when no site has `options.analytics: true`. Turn analytics on for a site, or run `webhost-manager analytics sync`; `journalctl -u webhost-analytics` shows why a start failed.
+
 **A release is blocked (`inspection-blocked`).**
 Every release is inspected before a site can serve it, for portal and operator-created sites alike. A blocked release never goes live; the site keeps its last good release. See the findings and how to fix them on the site's page in the portal, in `/srv/webhost/inspect/<site>.json` on the webhost container (`<site>.history.jsonl` holds the last 20 inspected revisions), or with `journalctl -t tappaas-webhost` (line `inspection-blocked site=… rules=…`). Push a fixed revision to try again.
 
@@ -160,7 +171,7 @@ Accepted findings are shown as "accepted". Uploaded packages are also refused if
 A static site: `migrations/0001-sites-to-website.sh <old-site> [new-site] [media-dir]`, one site at a time. It creates the new site under a staging name and leaves the old one untouched; switch the domain over once the new site is checked. A WordPress site is moved by hand: create a `wordpress` site, then `wp db export` / `wp db import` and copy `wp-content`.
 
 **A portal request fails with "<tool> not found on PATH".**
-The sync service needs `~/bin` on its `PATH`; `install.sh` sets it. Re-run the webhost install or update, then `systemctl --user daemon-reload` and `systemctl --user restart webhost-portal-sync.timer`.
+The sync service needs `~/bin` on its `PATH`; `install.sh` sets it. The service runs the manager through `bash`, so a checkout without executable bits does not stop it. Re-run the webhost install or update, then `systemctl --user daemon-reload` and `systemctl --user restart webhost-portal-sync.timer`.
 
 **Restore a site.**
 `webhost-manager site backups <site>` lists restore points; `webhost-manager site restore <site> [--backup ID]` restores it, also after a delete. Changes after the backup are lost. `tests/e2e-restore.sh` exercises it.

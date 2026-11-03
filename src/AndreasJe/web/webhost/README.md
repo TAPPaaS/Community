@@ -17,6 +17,7 @@ Websites on TAPPaaS: each site in its own locked-down container, published by pu
 | Every release inspected | — | a release with server code in a static site, a web shell, a leaked secret or a critical known vulnerability never goes live; the site keeps its last good release |
 | One place to manage every site | the TAPPaaS mothership | `webhost-manager site add / list / modify / quarantine / delete` |
 | Restore | the TAPPaaS mothership | `webhost-manager site backups <site>`, `site restore <site> [--backup ID]`; also for a deleted site |
+| Visitor analytics | the site portal | cookie-free counts per site, off until the owner turns them on; see Analytics below |
 | Media outside git | the TAPPaaS mothership | `webhost-manager media sync <site> <dir>`, served at `/media/` |
 
 ## Site portal
@@ -31,6 +32,8 @@ People who are not administrators can create their own sites at `https://webhost
 - The site page has a Recent pulls card: the last 20 revisions webhost fetched, each passed or blocked, and when it last looked for changes.
 - Replacing a repository's access token sits behind its own step; saving it empty removes the token.
 - The site page has a Backups card: nightly backups, each restorable in place after a confirm. "Deleted sites" on the home page lists sites that can be brought back.
+- The Analytics page lists the user's sites with analytics on, with 7-day visitors and the change on the week before. Each site has its own analytics page (see Analytics). The site page has a card that turns analytics on or off, behind a confirm checkbox.
+- The site page has a Database card for templates with a database (not WordPress): the schema file to load (`options.dbInit`). The New site form has the same optional field.
 - Members of the `webhost` group see only their own sites, at most 10. Members of `installer` see and manage all.
 - The portal is reached only from your own zones and the admin VPN, behind the Authentik login. It is not on the internet, and it can only ask for sites: every request is checked and every release inspected.
 
@@ -65,7 +68,33 @@ In the site's declaration:
 - `options.dataDirs` lists folders of the repository that hold data the app writes (uploads), for example `"options": {"dataDirs": ["uploads", "img/user"]}`. A release is replaced on every push, so such files must live there: each folder is linked to a persistent location, filled once from what the repository ships, owned by the app user, and included in the nightly backup. Relative folders inside the release, at most 20; not for `static`.
 - `csp` (top level, not in `options`) overrides CSP directives per site. The default blocks third-party scripts; allow a CDN with, for example, `"csp": {"script-src": ["'self'", "https://cdn.example.org"]}`.
 
+- `options.analytics: true` counts the site's visitors (see Analytics). Default off.
+- `options.dbInit` names a `.sql` file of the release (for MongoDB a `.js` file) that creates the first schema (see Database schema).
+
 `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` and `DATABASE_URL` reach PHP as environment variables (`getenv()`). A new release reloads PHP-FPM, so the new code is served at once.
+
+## Analytics
+
+- Visitors are counted with Umami: no cookies, one instance for every site, inside the webhost container. Numbers are read in the portal's Analytics page; owners never log in to Umami.
+- A site with `options.analytics: true` proxies `/_a/` to the webhost container, so the tracker is first-party and the site's CSP stays `'self'`. Only `/_a/script.js` and `/_a/api/send` are served; everything else under `/_a/` is 404.
+- Turn it on in the portal (site page, confirm checkbox) or with `webhost-manager site modify <site> --set options.analytics=true`. The change is instant: only the site's web server is reloaded gracefully with or without the `/_a/` route. No site update, no restart; if it fails, the previous setting is put back.
+- How the script line (`<script defer src="/_a/script.js" data-website-id="…"></script>`) reaches the pages depends on the template:
+
+| Template | Line added by |
+|---|---|
+| `static` | webhost: the site agent inserts it before `</head>` in every `.html`/`.htm` of each release, marked `<!-- webhost-analytics -->`; removed when off |
+| `wordpress`, `php-app`, `lamp` | webhost: PHP-FPM prepends a file that inserts it in HTML responses (other content types are skipped); removed when off, kept across updates |
+| `node-app`, `mern`, `pern`, `python-app`, `django` | the owner: the site page shows how (turn on, add the line, release) |
+
+- The site's analytics page (`/sites/<name>/analytics`) shows 24 hours, 7, 30 or 90 days: five tiles with the change on the previous period, a visitors and pageviews chart, top pages, referrers, countries, devices, browsers and events. Until the first visit it shows the setup (automatic sites: nothing to do; apps: the line to add). Numbers are cached for one hour. Umami's own UI is not exposed.
+- Nothing runs until a site turns analytics on. When the last one turns it off the service stops; the data is kept.
+- The webhost container's memory limit is 2 GB (a limit, not a reservation).
+
+## Database schema
+
+- `options.dbInit` names a `.sql` file of the release (MongoDB: `.js`). It is loaded once, only while the database has no tables, by the site's own database user (MariaDB with `mysql`, PostgreSQL with `psql -1` and `ON_ERROR_STOP`, MongoDB with `mongosh`).
+- The outcome is kept in `/srv/site/data/.db-init`: `loaded`, `not-empty`, `missing`, `refused` (file outside the release) or `failed`. It is not retried for the same file and release.
+- Set it in the portal (Database card, or the New site form) or in the declaration.
 
 ## Backup and restore
 
@@ -82,6 +111,7 @@ Only what your sites need. Everything else is added when the first site that nee
 |---|---|
 | Only static sites | the webhost container (package cache, git mirror) and one small Caddy container per site; one stopped test site |
 | …plus WordPress | those sites also have PHP and MariaDB; WordPress and wp-cli are fetched once and kept up to date |
+| …plus visitor analytics | the webhost container also runs Umami and PostgreSQL, while a site has analytics on |
 | …plus a Node.js or Python app | that site has Node.js or Python, and its database if its preset has one |
 
 PHP, Node.js, Python, databases and WordPress exist only inside the sites that use them. The webhost container never runs them.

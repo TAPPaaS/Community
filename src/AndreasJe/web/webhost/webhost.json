@@ -32,7 +32,7 @@
   "config": {
     "cluster:lxc": {
       "cores": 1,
-      "memory": 1024,
+      "memory": 2048,
       "diskSize": "16G",
       "storage": "tanka1",
       "imageType": "clone",

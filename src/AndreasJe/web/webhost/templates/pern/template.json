@@ -35,7 +35,7 @@
       "group": "Database",
       "items": [
         "PostgreSQL runs on this container on loopback. `process.env` has `DB_HOST` (`127.0.0.1`), `DB_NAME`, `DB_USER`, `DB_PASSWORD` and `DATABASE_URL`.",
-        "Load your schema yourself: ask an administrator, or create the tables from your app on first start."
+        "Your first schema: name a .sql file of your release under Database on the site page (options.dbInit). It is loaded once, while the database is empty."
       ]
     },
     {

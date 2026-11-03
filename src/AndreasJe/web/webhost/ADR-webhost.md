@@ -3,12 +3,12 @@
 | | |
 |---|---|
 | **Status** | **Proposed** — every decision is built and tested on a TAPPaaS cluster. |
-| **Version** | 0.4 |
-| **Date** | 2026-10-31 |
+| **Version** | 0.6 |
+| **Date** | 2026-11-03 |
 | **Authors** | see [AUTHORS.md](AUTHORS.md) |
 | **Scope** | Community module `src/AndreasJe/web/webhost`: the `webhost` module and the `website` module it ships. |
 | **Depends on** | ADR-007b (Apps), ADR-007f (Manager → Controller → Service), ADR-020 (declared-field change model), ADR-023 (proxy access rules), ADR-035 (module managers), ADR-038 (declarations; under review), ADR-039 (alert rules). |
-| **Changelog** | v0.4 (2026-10-31) — D24 a portal people can read on their own; D20 extended with the pull log. v0.3 (2026-10-31) — D21 data folders, D22 PHP-FPM reload, D23 deploy target; D19 and D7 checked against the code. v0.2 (2026-10-31) — D17 site portal, D18 release inspection; webhost-manager registered by the platform. v0.1 (2026-10-31) — first published version. |
+| **Changelog** | v0.6 (2026-11-03) — D25 states how the line reaches pages and that toggling only reloads the site's web server; D26 a site's first schema comes from its release. v0.5 (2026-11-02) — D25 visitor analytics, bundled and off until a site asks. v0.4 (2026-10-31) — D24 a portal people can read on their own; D20 extended with the pull log. v0.3 (2026-10-31) — D21 data folders, D22 PHP-FPM reload, D23 deploy target; D19 and D7 checked against the code. v0.2 (2026-10-31) — D17 site portal, D18 release inspection; webhost-manager registered by the platform. v0.1 (2026-10-31) — first published version. |
 
 This is a living document: a decision is changed in place, its status updated and the change noted in the changelog. How each decision is built is in [DESIGN.md](DESIGN.md).
 
@@ -34,7 +34,7 @@ Sites take VMIDs from 6300–6499 until core offers VMID ranges (#895/#294).
 
 ### D3 — A declaration per site
 
-A site's settings are one file, `config/declarations/<site>/website.json` (the ADR-038 path), with the shape `{template, runtime, options, source, public, size, csp}`. Fields the platform owns (domain, size, TLS, proxy zones) are passed to the install as overrides; everything else stays in the declaration. A site's size defaults to its template's, which is deliberately small (256 MB for a static site, 2 GB for WordPress); the declaration's own `size` raises it.
+A site's settings are one file, `config/declarations/<site>/website.json` (the ADR-038 path), with the shape `{template, runtime, options, source, public, size, csp}`. Fields the platform owns (domain, size, TLS, proxy zones) are passed to the install as overrides; everything else stays in the declaration. A site's size defaults to its template's, which is deliberately small (512 MB for a static site, 2 GB for WordPress; 512 MB is also the module's default and the platform minimum); the declaration's own `size` raises it.
 
 The module validates declarations itself (`lib/validate.sh`, schema `website/declarations.schema.json`) until `module-manager declaration validate` exists. An invalid declaration fails before anything is created and names the path at fault. Nothing prompts.
 
@@ -170,6 +170,18 @@ The portal's CSP stays as it was: no scripts, no web fonts. Forms change through
 
 A failed create can be tried again (`POST /requests/<id>/retry`). The new request keeps the original owner and goes through the same sync checks. The sync does not keep tokens or packages, so a request that had one goes back to the prefilled form, which asks for it again. Replacing an access token is a step of its own, and saving it empty removes the token.
 
+### D25 — Visitor analytics are part of webhost, off until a site asks
+
+Webhost counts visitors for the sites it hosts with Umami: cookie-free, and one instance for every site. It is bundled in the webhost container, not a module of its own, so the hosting package stays one thing to install and one owner. Umami comes from nixpkgs, built on the mothership and copied into the container as a closure, the same way pinned components arrive (D6); PostgreSQL is Debian's. Nothing runs until the first site turns analytics on, and it stops when the last one turns it off; the data stays.
+
+A site's own web server proxies `/_a/` to the webhost container, so the tracker is first-party: the site's CSP stays `'self'`, and no visitor talks to a third party. Owners switch analytics per site in the portal; the switch only reloads that site's web server, with no update or restart. The script line reaches the pages by runtime: the site agent inserts it into the HTML of each release for static sites, a PHP-FPM prepend hook inserts it into HTML responses for PHP sites, and owners of Node and Python apps add it themselves. The portal shows the numbers from Umami's API under its own Analytics page, through a read-only Umami account; owners never log in to Umami, and the portal never holds its admin account. Visit data is dumped nightly inside the container, so the container's backup holds a consistent copy.
+
+The container's memory limit is 2 GB, which is a limit, not a reservation. It is sized for a few dozen sites and around a million page views a month in total; a busier cluster gives the container more cores first.
+
+### D26 — A site's first schema comes from its release
+
+A site with a database can name a file of its release in `options.dbInit` (`.sql`, or `.js` for MongoDB). The site agent loads it once, only into a database that has no tables, using the site's own database user, so the file can do nothing the site could not. A database with data is never touched. The outcome is recorded on the site and shown in the portal; a failed or refused file is not retried for the same release.
+
 ## Fallbacks for core gaps
 
 Each row is retired when its issue lands.
@@ -195,4 +207,5 @@ Each row is retired when its issue lands.
 - Package updates arrive at most once a day, after a canary, and never on a site that has not passed through the canary's snapshot.
 - The webhost container is a dependency of every site. If it is down, sites keep serving but cannot install, update or publish new content.
 - One suspended canary per runtime in use costs its disk at all times and its CPU and memory during the nightly snapshot run. A cluster with only static sites has one.
+- With analytics on, the webhost container holds data that cannot be rebuilt from git and config: its backup and a restore of it now matter, and a restore rolls the visit data back with it.
 - The portal is the first web face for people who are not administrators. It can only request sites, and every release still passes inspection.

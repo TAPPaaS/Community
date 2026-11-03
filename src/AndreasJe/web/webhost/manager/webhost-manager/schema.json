@@ -92,6 +92,15 @@
                 "type": "string",
                 "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$"
               }
+            },
+            "analytics": {
+              "type": "boolean",
+              "description": "Count this site's visitors with webhost's analytics (Umami, cookie-free, first-party under /_a/)."
+            },
+            "dbInit": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._/-]+\\.(sql|js)$",
+              "description": "Sites with a database: a file of the release that creates the first schema; loaded once, while the database has no tables."
             }
           }
         },
@@ -348,6 +357,15 @@
                   "type": "string",
                   "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$"
                 }
+              },
+              "analytics": {
+                "type": "boolean",
+                "description": "Count this site's visitors with webhost's analytics (Umami, cookie-free, first-party under /_a/)."
+              },
+              "dbInit": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._/-]+\\.(sql|js)$",
+                "description": "Sites with a database: a file of the release that creates the first schema; loaded once, while the database has no tables."
               }
             }
           },

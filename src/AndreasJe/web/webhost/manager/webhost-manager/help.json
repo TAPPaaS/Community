@@ -355,6 +355,20 @@
       "options": []
     },
     {
+      "verb": "analytics sync",
+      "keys": [
+        [
+          "analytics",
+          "sync"
+        ]
+      ],
+      "usage": "analytics sync",
+      "note": "Run visitor analytics while a site has options.analytics on, and register those sites; stop it when none has.",
+      "details": "Umami from nixpkgs in the webhost container (ADR D25). The data is kept when it stops.",
+      "positionals": [],
+      "options": []
+    },
+    {
       "verb": "portal sync",
       "keys": [
         [

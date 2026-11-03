@@ -20,8 +20,12 @@ WEBHOST_ROOT="$(cd "${HERE}/../.." && pwd)"
 . "${WEBHOST_ROOT}/lib/validate.sh"
 # shellcheck source=../../lib/webhost.sh
 . "${WEBHOST_ROOT}/lib/webhost.sh"
+# shellcheck source=../../lib/analytics.sh
+. "${WEBHOST_ROOT}/lib/analytics.sh"
 # shellcheck source=../../lib/csp.sh
 . "${WEBHOST_ROOT}/lib/csp.sh"
+# shellcheck source=../../runtimes/_common.sh
+. "${WEBHOST_ROOT}/runtimes/_common.sh"
 # shellcheck source=../../lib/portal.sh
 . "${WEBHOST_ROOT}/lib/portal.sh"
 # shellcheck source=../../lib/templates.sh
@@ -54,6 +58,7 @@ Usage:
   webhost-manager template list                     built-in and custom templates
   webhost-manager template validate <template.json> check a template against the preset rules
   webhost-manager template sync                     fetch templateSources at their commits
+  webhost-manager analytics sync                    start visitor analytics while a site has it on, register those sites; stop it otherwise
   webhost-manager portal sync                       take the site portal's requests (the timer runs it every minute)
   webhost-manager snapshots list [--json]           each runtime's lock, previous lock and halted wave
   webhost-manager snapshots build [--runtime R]     test a new snapshot on the canaries now
@@ -81,6 +86,7 @@ template list:
 template validate:
 template sync:
 portal sync:
+analytics sync:
 snapshots list: --json
 snapshots build: --runtime=
 reconcile: --apply
@@ -568,6 +574,7 @@ case "${verb}" in
                        [[ -z "${f}" ]] && { echo "valid preset: ${POS[0]}"; exit 0; }; echo "${f}"; exit 1 ;;
     "template sync")   templates_sync ;;
     "portal sync")     portal_sync ;;
+    "analytics sync")  analytics_sync ;;
     "snapshots list")  cmd_snapshots_list ;;
     "snapshots build") cmd_snapshots_build ;;
     reconcile)         reconcile "${OPT_APPLY}" ;;

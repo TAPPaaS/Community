@@ -43,6 +43,8 @@ expect "subdir with .. refused" "! validate_declaration '$(decl '.source.subdir=
 expect "missing domain refused" "! validate_declaration '$(decl 'del(.public.domain)')'"
 expect "unknown runtime refused" "! validate_declaration '$(decl '.runtime="node"')'"
 expect "csp source with ; refused" "! validate_declaration '$(decl '.csp={"script-src":["https://a.b; script-src *"]}')'"
+expect "analytics on is valid" "validate_declaration '$(decl '.options.analytics=true')'"
+expect "analytics must be true or false" "! validate_declaration '$(decl '.options.analytics="yes"')'"
 expect "unknown csp directive refused" "! validate_declaration '$(decl '.csp={"evil-src":["https:"]}')'"
 expect "valid csp accepted" "validate_declaration '$(decl '.csp={"script-src":["'"'"'self'"'"'","https://*.example.org"]}')'"
 expect "bad zone name refused" "! validate_declaration '$(decl '.public.zones=["Bad Zone"]')'"
@@ -64,6 +66,9 @@ expect "HSTS without includeSubDomains" "grep -q 'max-age=31536000\"' '${WORK}/C
 expect "query strings dropped from the log" "grep -q 'request>uri regexp' '${WORK}/Caddyfile'"
 render_caddyfile static "${TJ}" "default-src 'self'" >"${WORK}/Caddyfile.static"
 expect "static has no admin block" "! grep -q admin_external '${WORK}/Caddyfile.static'"
+expect "no analytics route unless asked" "! grep -q '/_a/' '${WORK}/Caddyfile.static'"
+render_caddyfile static "${TJ}" "default-src 'self'" . false webhost.dmz.internal >"${WORK}/Caddyfile.analytics"
+expect "analytics proxied first-party to the webhost container" "grep -q 'handle /_a/\*' '${WORK}/Caddyfile.analytics' && grep -q 'reverse_proxy http://webhost.dmz.internal' '${WORK}/Caddyfile.analytics'"
 
 echo "certificate rule"
 expect "apex uses the wildcard" "! needs_own_cert example.org example.org"
@@ -79,7 +84,7 @@ git -C "${A}/origin" init -q -b main
 mkdir -p "${A}/origin/web"
 commit() { echo "$1" >"${A}/origin/web/index.html"; git -C "${A}/origin" add -A; git -C "${A}/origin" -c user.email=t@t -c user.name=t commit -qm "$1" >/dev/null 2>&1; }
 commit v1
-sed -e "s#CONF=/etc/site-agent.conf#CONF=${A}/conf#" -e "s#ROOT=/srv/site#ROOT=${A}/root#" \
+sed -e "s#CONF=/etc/site-agent.conf#CONF=${A}/conf#" -e "s#ROOT=/srv/site#ROOT=${A}/root#" -e "s#/etc/secrets/site.env#${A}/site.env#" \
     -e 's#protocol.http.allow=always#protocol.file.allow=always#' -e 's#protocol.allow=never#protocol.allow=user#' \
     "${ROOT}/runtimes/_guest/site-agent.sh" >"${A}/agent.sh"
 printf '#!/bin/sh\necho "$*" >> %s/log\n' "${A}" >"${A}/bin/logger"
@@ -119,6 +124,26 @@ mkdir -p "${A}/root/current/files" && echo f >"${A}/root/current/files/c.txt"
 printf 'SITE=t\nREPO=%s/origin\nREF=main\nSUBDIR=web\nKEEP=2\nDATA_DIRS=files\n' "${A}" >"${A}/conf"
 agent
 expect "a data folder added later is linked into the live release" "[[ -L '${A}/root/current/files' && \$(cat '${A}/root/data/dirs/files/c.txt') == f ]]"
+printf '<html><head><title>t</title></head><body>v</body></html>' >"${A}/origin/web/index.html"; git -C "${A}/origin" add -A; git -C "${A}/origin" -c user.email=t@t -c user.name=t commit -qm tag >/dev/null
+printf 'SITE=t\nREPO=%s/origin\nREF=main\nSUBDIR=web\nKEEP=2\nANALYTICS_TAG=%q\n' "${A}" '<script defer src="/_a/script.js" data-website-id="w1"></script>' >"${A}/conf"
+agent
+expect "the analytics line is added before </head>" "grep -q 'data-website-id=\"w1\"></script><!-- webhost-analytics -->' '${A}/root/current/index.html' && [[ \$(grep -c webhost-analytics '${A}/root/current/index.html') -eq 1 ]]"
+agent; expect "and only once" "[[ \$(grep -c webhost-analytics '${A}/root/current/index.html') -eq 1 ]]"
+printf 'SITE=t\nREPO=%s/origin\nREF=main\nSUBDIR=web\nKEEP=2\nANALYTICS_TAG=\n' "${A}" >"${A}/conf"
+agent; expect "turning analytics off takes it out again" "! grep -q webhost-analytics '${A}/root/current/index.html' && grep -q '</head>' '${A}/root/current/index.html'"
+printf 'DB_USER=u\nDB_PASSWORD=p\nDB_NAME=d\n' >"${A}/site.env"
+printf '#!/bin/sh\ncase "$*" in *-e*) cat %s/tables ;; *) cat > %s/loaded.sql ;; esac\n' "${A}" "${A}" >"${A}/bin/mysql"; chmod +x "${A}/bin/mysql"
+echo 0 >"${A}/tables"; echo "CREATE TABLE t (id int);" >"${A}/origin/web/schema.sql"
+git -C "${A}/origin" add -A; git -C "${A}/origin" -c user.email=t@t -c user.name=t commit -qm schema >/dev/null
+printf 'SITE=t\nREPO=%s/origin\nREF=main\nSUBDIR=web\nKEEP=2\nDB_INIT=schema.sql\nDB_ENGINE=mariadb\n' "${A}" >"${A}/conf"
+agent
+expect "the first schema is loaded into an empty database" "grep -q 'CREATE TABLE t' '${A}/loaded.sql' && jq -e '.result == \"loaded\"' '${A}/root/data/.db-init'"
+rm -f "${A}/loaded.sql"; agent
+expect "and only once" "[[ ! -e '${A}/loaded.sql' ]]"
+rm -f "${A}/root/data/.db-init"; echo 3 >"${A}/tables"; agent
+expect "a database with tables is left alone" "[[ ! -e '${A}/loaded.sql' ]] && jq -e '.result == \"not-empty\"' '${A}/root/data/.db-init'"
+rm -f "${A}/root/data/.db-init"; sed -i 's#^DB_INIT=.*#DB_INIT=../../x.sql#' "${A}/conf"; agent
+expect "a schema file outside the release is refused" "jq -e '.result == \"refused\"' '${A}/root/data/.db-init'"
 
 echo "log shipper"
 L="${WORK}/ship"

@@ -22,6 +22,8 @@ SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 . "${SCRIPT_DIR}/runtimes/_common.sh"
 # shellcheck source=lib/webhost.sh
 . "${SCRIPT_DIR}/lib/webhost.sh"
+# shellcheck source=lib/analytics.sh
+. "${SCRIPT_DIR}/lib/analytics.sh"
 
 NAME="${1:-webhost}"
 SNAPSHOT_REFRESH_HOURS="$(jq -r '.snapshotRefresh // 20' "${WEBHOST_MANAGER_DECL}" 2>/dev/null || echo 20)"
@@ -114,7 +116,8 @@ Description=TAPPaaS webhost: take the site portal's requests
 Type=oneshot
 # The TAPPaaS toolbox (module-manager, backup-manager, …) lives in ~/bin.
 Environment=PATH=${TAPPAAS_BIN:-/home/tappaas/bin}:/run/wrappers/bin:/etc/profiles/per-user/tappaas/bin:/run/current-system/sw/bin
-ExecStart=${SCRIPT_DIR}/manager/webhost-manager/webhost-manager portal sync
+# Through bash, so a checkout that drops the executable bit cannot stop the portal.
+ExecStart=$(command -v bash) ${SCRIPT_DIR}/manager/webhost-manager/webhost-manager portal sync
 UNIT
 cat > "${UNIT_DIR}/webhost-portal-sync.timer" <<UNIT
 [Unit]
@@ -157,6 +160,10 @@ done
 
 info "webhost: site mirrors"
 mirrors_sync
+
+# Visitor analytics run only while a site has them on (D25).
+if analytics_wanted; then info "webhost: visitor analytics"; fi
+analytics_sync || warn "visitor analytics could not be set up; sites keep serving without them"
 
 install_log_shipper "${NODE}" "${VMID}" "${NAME}"
 set_guest_notes "${NODE}" "${VMID}" "A TAPPaaS configured container: package snapshots, git mirrors and artefacts for website instances"

@@ -68,7 +68,7 @@ portal_sites() {
         out="$(jq --argjson e "$(site_entry "${s}")" --arg st "${state}" \
             '. + [{name: $e.name, owner: ($e.owner // null), template: $e.template, runtime: $e.runtime,
                    domain: $e.public.domain, public: (($e.public.zones // []) | index("internet") != null),
-                   source: ($e.source // {}), state: $st}]' <<<"${out}")"
+                   source: ($e.source // {}), analytics: ($e.options.analytics // false), dbInit: ($e.options.dbInit // null), state: $st}]' <<<"${out}")"
     done
     printf '%s\n' "${out}"
 }
@@ -123,6 +123,109 @@ f="/srv/webhost/portal/tokens/$1"; cat "${f}" 2>/dev/null; rm -f "${f}"
 EOF
 }
 
+# portal_analytics — turn a site's visitor analytics on or off; the service
+# starts with the first site and stops with the last (D25).
+portal_analytics() {
+    local id="$1" req="$2" site user owner want before log ok=1
+    site="$(jq -r .site <<<"${req}")"; user="$(jq -r .user <<<"${req}")"; want="$(jq -r '.enabled == true' <<<"${req}")"
+    owner="$(site_entry "${site}" | jq -r '.owner // empty')"
+    if [[ -z "$(site_entry "${site}")" ]] || { [[ "${owner}" != "${user}" ]] && ! jq -e '.groups | index("installer")' <<<"${req}" >/dev/null; }; then
+        req_set "${id}" rejected "${site} is not yours."; return
+    fi
+    [[ -f "${WEBHOST_CONFIG_DIR}/${site}.json" ]] || { req_set "${id}" rejected "${site} is not running yet."; return; }
+    before="$(site_entry "${site}" | jq -r '.options.analytics // false')"
+    req_set "${id}" applying "$([[ "${want}" == true ]] && echo "Turning analytics on" || echo "Turning analytics off") for ${site}."
+    log="/home/tappaas/logs/webhost-${site}-analytics.log"
+    : >"${log}"
+    # Only the site's web server changes: its Caddyfile is rendered again and
+    # reloaded gracefully. No update, no restart, no visitor interrupted.
+    if set_entry "${site}" ".options.analytics = ${want}" >>"${log}" 2>&1 \
+        && website_decl "${site}" >"$(decl_path "${site}")" \
+        && site_caddy "${site}" >>"${log}" 2>&1 \
+        && analytics_sync >>"${log}" 2>&1 \
+        && site_analytics_pages "${site}" >>"${log}" 2>&1; then ok=0; fi
+    portal_log "${id}" "${log}"
+    if [[ "${ok}" -eq 0 ]]; then
+        if [[ "${want}" == true && "$(decl_get "${site}" .runtime)" =~ ^(static|php)$ ]]; then req_set "${id}" "done" "Analytics are on. webhost adds the analytics line to your pages."
+        elif [[ "${want}" == true ]]; then req_set "${id}" "done" "Analytics are on. Open the site's analytics page for the one line to add to your app."
+        else req_set "${id}" "done" "Analytics are off. The numbers collected so far are kept."; fi
+        return
+    fi
+    set_entry "${site}" ".options.analytics = ${before}" >/dev/null 2>&1 || true
+    website_decl "${site}" >"$(decl_path "${site}")" || true
+    site_caddy "${site}" >/dev/null 2>&1 || true
+    site_analytics_pages "${site}" >/dev/null 2>&1 || true
+    req_set "${id}" failed "$(log_error "${log}" "Changing analytics for ${site} failed; nothing was changed.")"
+}
+
+# site_analytics_pages <site> — the line in the site's pages: a static site's
+# agent adds it to every page (ANALYTICS_TAG), PHP sites through PHP-FPM;
+# Node and Python apps take it from their owner.
+site_analytics_pages() {
+    local vmid node
+    vmid="$(jq -r .vmid "${WEBHOST_CONFIG_DIR}/$1.json")"
+    node="$(resolve_lxc_node "${vmid}")" || return 1
+    case "$(decl_get "$1" .runtime)" in
+        php) php_analytics "${node}" "${vmid}" "$(analytics_line "$1")" ;;
+        static)
+            pct_exec_script "${node}" "${vmid}" "$(analytics_tag "$1")" <<'EOF'
+set -euo pipefail
+[[ -f /etc/site-agent.conf ]] || exit 0
+sed -i '/^ANALYTICS_TAG=/d' /etc/site-agent.conf
+printf 'ANALYTICS_TAG=%q\n' "$1" >>/etc/site-agent.conf
+systemctl start tappaas-site-agent.service || true
+EOF
+            ;;
+    esac
+}
+
+# portal_dbinit — set the file a site's first schema is loaded from, and load
+# it now when the database is still empty.
+portal_dbinit() {
+    local id="$1" req="$2" site user owner file vmid node st msg
+    site="$(jq -r .site <<<"${req}")"; user="$(jq -r .user <<<"${req}")"; file="$(jq -r '.file // ""' <<<"${req}")"
+    owner="$(site_entry "${site}" | jq -r '.owner // empty')"
+    if [[ -z "$(site_entry "${site}")" ]] || { [[ "${owner}" != "${user}" ]] && ! jq -e '.groups | index("installer")' <<<"${req}" >/dev/null; }; then
+        req_set "${id}" rejected "${site} is not yours."; return
+    fi
+    [[ -f "${WEBHOST_CONFIG_DIR}/${site}.json" ]] || { req_set "${id}" rejected "${site} is not running yet."; return; }
+    if [[ -n "${file}" ]] && ! { validate_subdir "${file}" 2>/dev/null && [[ "${file}" =~ \.(sql|js)$ ]]; }; then
+        req_set "${id}" rejected "Give a .sql file of your site, such as schema.sql or db/schema.sql."; return
+    fi
+    req_set "${id}" applying "Loading the database of ${site}."
+    if [[ -n "${file}" ]]; then set_entry "${site}" '.options.dbInit = $f' --arg f "${file}" >/dev/null
+    else set_entry "${site}" 'del(.options.dbInit)' >/dev/null; fi
+    website_decl "${site}" >"$(decl_path "${site}")"
+    vmid="$(jq -r .vmid "${WEBHOST_CONFIG_DIR}/${site}.json")"
+    node="$(resolve_lxc_node "${vmid}")" || { req_set "${id}" failed "The site's container cannot be reached."; return; }
+    st="$(pct_exec_script "${node}" "${vmid}" "${file}" "$(jq -r '.database // "none"' "$(resolve_template "${site}")")" <<'EOF'
+set -euo pipefail
+[[ -f /etc/site-agent.conf ]] || exit 0
+sed -i '/^DB_INIT=/d; /^DB_ENGINE=/d' /etc/site-agent.conf
+printf 'DB_INIT=%q\nDB_ENGINE=%q\n' "$1" "$2" >>/etc/site-agent.conf
+systemctl start tappaas-site-agent.service || true
+cat /srv/site/data/.db-init 2>/dev/null || echo '{}'
+EOF
+)" || st='{}'
+    [[ -n "${file}" ]] || { req_set "${id}" "done" "No schema file is set any more."; return; }
+    case "$(jq -r '.result // ""' <<<"${st}")" in
+        loaded)    req_set "${id}" "done" "Loaded ${file} into the empty database." ;;
+        not-empty) req_set "${id}" "done" "The database already has tables, so ${file} was not loaded. Nothing was changed." ;;
+        missing)   req_set "${id}" failed "There is no ${file} in the live release. Push or upload it, then set it again." ;;
+        refused)   req_set "${id}" rejected "The file must be inside your site." ;;
+        failed)    msg="$(jq -r '.error' <<<"${st}" | head -n 3 | tr '\n' ' ')"; req_set "${id}" failed "The database refused ${file}: ${msg}" ;;
+        *)         req_set "${id}" "done" "Saved. ${file} is loaded with the next release while the database is empty." ;;
+    esac
+}
+
+# site_caddy <site> — render the site's Caddyfile again and reload Caddy.
+site_caddy() {
+    local vmid node
+    vmid="$(jq -r .vmid "${WEBHOST_CONFIG_DIR}/$1.json")"
+    node="$(resolve_lxc_node "${vmid}")" || { echo "[Error] cannot find the container of $1" >&2; return 1; }
+    push_caddyfile "${node}" "${vmid}" "$(decl_get "$1" .runtime)" "$(resolve_template "$1")" "$(decl_path "$1")"
+}
+
 portal_token() {
     local id="$1" req="$2" site user owner
     site="$(jq -r .site <<<"${req}")"; user="$(jq -r .user <<<"${req}")"
@@ -161,7 +264,8 @@ portal_create() {
     entry="$(jq -c --arg n "${site}" --arg u "${user}" --arg t "${tpl}" --arg rt "${rt}" --arg d "${domain}" \
         '{name: $n, owner: $u, template: $t, runtime: $rt, public: ({domain: $d} + (if .public then {zones: ["internet"]} else {} end))}
          + (if .source.repo then {source: {repo: .source.repo, ref: (.source.ref // "main")}}
-            elif .source.upload then {source: {upload: true}} else {} end)' <<<"${req}")"
+            elif .source.upload then {source: {upload: true}} else {} end)
+         + (if (.dbInit // "") != "" then {options: {dbInit: .dbInit}} else {} end)' <<<"${req}")"
     tmp="$(mktemp)"
     jq --argjson e "${entry}" '.sites += [$e]' "${HM_DECL}" >"${tmp}"
     if ! line="$(hm_write "${tmp}" 2>&1)"; then
@@ -323,6 +427,8 @@ EOF
             create) portal_create "${id}" "${req}" ;;
             delete) portal_delete "${id}" "${req}" ;;
             token)  portal_token "${id}" "${req}" ;;
+            analytics) portal_analytics "${id}" "${req}" ;;
+            dbinit) portal_dbinit "${id}" "${req}" ;;
             restore) portal_restore "${id}" "${req}" ;;
             *) req_set "${id}" rejected "Unknown request." ;;
         esac

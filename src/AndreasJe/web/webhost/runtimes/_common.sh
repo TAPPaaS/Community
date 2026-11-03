@@ -58,8 +58,9 @@ install_site_agent() {
     case "$(jq -r '.runtime // empty' "$(decl_path "${site}")" 2>/dev/null)" in
         php) owner=www-data ;; node|python) owner=site ;; *) owner="" ;;
     esac
-    printf -v conf 'SITE=%q\nREPO=%q\nREF=%q\nSUBDIR=%q\nKEEP=3\nDATA_DIRS=%q\nDATA_OWNER=%q\n%s' \
-        "${site}" "${repo}" "${ref}" "${subdir}" "${dirs}" "${owner}" "${7:-}"
+    printf -v conf 'SITE=%q\nREPO=%q\nREF=%q\nSUBDIR=%q\nKEEP=3\nDATA_DIRS=%q\nDATA_OWNER=%q\nANALYTICS_TAG=%q\nDB_INIT=%q\nDB_ENGINE=%q\n%s' \
+        "${site}" "${repo}" "${ref}" "${subdir}" "${dirs}" "${owner}" "$(analytics_tag "${site}")" \
+        "$(jq -r '.options.dbInit // empty' "$(decl_path "${site}")" 2>/dev/null)" "$(jq -r '.database // "none"' "$(resolve_template "${site}")" 2>/dev/null)" "${7:-}"
     pct_exec_script "${node}" "${vmid}" "${conf}" <<'EOF'
 set -euo pipefail
 printf '%s' "$1" > /etc/site-agent.conf
@@ -72,6 +73,55 @@ EOF
 set -euo pipefail
 systemctl daemon-reload
 systemctl enable --now tappaas-site-agent.timer
+EOF
+}
+
+# analytics_line <site> — the analytics script line for a site with analytics
+# on (D25), empty otherwise.
+analytics_line() {
+    local decl wid
+    decl="$(decl_path "$1")"
+    [[ "$(jq -r '.options.analytics // false' "${decl}" 2>/dev/null)" == true ]] || return 0
+    wid="$(pct_exec_script "${WEBHOST_NODE}" "${WEBHOST_VMID}" "$1" <<<'jq -r --arg s "$1" ".[\$s] // empty" /etc/webhost/analytics-sites.json 2>/dev/null' || true)"
+    [[ -n "${wid}" ]] || return 0
+    printf '<script defer src="/_a/script.js" data-website-id="%s" data-domains="%s"></script>' "${wid}" "$(jq -r '.public.domain' "${decl}")"
+}
+
+# analytics_tag <site> — the line a static site's agent adds to its pages.
+analytics_tag() {
+    [[ "$(jq -r '.runtime // empty' "$(decl_path "$1")" 2>/dev/null)" == static ]] || return 0
+    analytics_line "$1"
+}
+
+# php_analytics <node> <vmid> <line> — PHP sites (WordPress included) get the
+# line from a file PHP-FPM runs before every request: it buffers the output and
+# adds the line before </head> in HTML responses. Empty takes it out.
+php_analytics() {
+    pct_exec_script "$1" "$2" "$3" <<'EOF'
+set -euo pipefail
+PHPV="$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')"
+P="/etc/php/${PHPV}/fpm/pool.d/site.conf"; F=/etc/php-webhost-analytics.php
+sed -i '/^php_admin_value\[auto_prepend_file\] = \/etc\/php-webhost-analytics.php$/d' "${P}"
+if [[ -n "$1" ]]; then
+    cat >"${F}" <<PHP
+<?php
+// webhost: visitor analytics (D25), managed by webhost. Adds the analytics line
+// before </head> in HTML responses; removed when analytics are turned off.
+ob_start(function (\$b) {
+    foreach (headers_list() as \$h) {
+        if (stripos(\$h, 'content-type:') === 0 && stripos(\$h, 'text/html') === false) return \$b;
+    }
+    if (stripos(\$b, '<html') === false && stripos(\$b, '<!doctype') === false) return \$b;
+    if (stripos(\$b, 'webhost-analytics') !== false || (\$i = stripos(\$b, '</head>')) === false) return \$b;
+    return substr_replace(\$b, $(php -r 'echo var_export($argv[1], true);' "$1") . "<!-- webhost-analytics -->\n", \$i, 0);
+});
+PHP
+    chmod 0644 "${F}"
+    printf 'php_admin_value[auto_prepend_file] = /etc/php-webhost-analytics.php\n' >>"${P}"
+else
+    rm -f "${F}"
+fi
+systemctl reload "php${PHPV}-fpm"
 EOF
 }
 
@@ -125,12 +175,12 @@ test -L /srv/site/current
 EOF
 }
 
-# render_caddyfile <runtime> <template.json> <csp> [docroot] [clean-urls] — prints the
+# render_caddyfile <runtime> <template.json> <csp> [docroot] [clean-urls] [analytics-host] — prints the
 # Caddyfile. Security floor (ground rule 7): HSTS, nosniff, referrer-policy,
 # CSP, no Server header, admin paths only from internal clients, masked
 # access log.
 render_caddyfile() {
-    local runtime="$1" tj="$2" csp="$3" docroot="${4:-.}" clean="${5:-false}" admin_paths root handler
+    local runtime="$1" tj="$2" csp="$3" docroot="${4:-.}" clean="${5:-false}" analytics="${6:-}" admin_paths root handler
     admin_paths="$(jq -r '(.adminPaths // []) | join(" ")' "${tj}")"
     case "${runtime}" in
         static) root="/srv/site/current"; handler="file_server" ;;
@@ -186,18 +236,32 @@ CADDY
 
 CADDY
     fi
+    if [[ -n "${analytics}" ]]; then
+        # Visitor analytics (D25): first-party, through the webhost container.
+        cat <<CADDY
+	handle /_a/* {
+		reverse_proxy http://${analytics} {
+			header_up Host {upstream_hostport}
+		}
+	}
+
+CADDY
+    fi
     printf '\t%s\n}\n' "${handler}"
 }
 
 # push_caddyfile <node> <vmid> <runtime> <template.json> [declaration.json]
 push_caddyfile() {
-    local node="$1" vmid="$2" runtime="$3" tj="$4" decl="${5:-/dev/null}" csp tmp docroot clean
+    local node="$1" vmid="$2" runtime="$3" tj="$4" decl="${5:-/dev/null}" csp tmp docroot clean analytics=""
     csp="$(build_csp "${runtime}" "${tj}" "${decl}")" || return 1
     docroot="$(jq -r '.options.docroot // empty' "${decl}" 2>/dev/null)"
     [[ -n "${docroot}" ]] || docroot="$(jq -r '.defaults.options.docroot // "."' "${tj}")"
     tmp="$(mktemp)"
     clean="$(jq -r '.options.cleanUrls // false' "${decl}" 2>/dev/null || echo false)"
-    render_caddyfile "${runtime}" "${tj}" "${csp}" "${docroot}" "${clean}" >"${tmp}"
+    if [[ "$(jq -r '.options.analytics // false' "${decl}" 2>/dev/null)" == true ]]; then
+        analytics="${WEBHOST_HOST:?analytics needs the webhost container}"
+    fi
+    render_caddyfile "${runtime}" "${tj}" "${csp}" "${docroot}" "${clean}" "${analytics}" >"${tmp}"
     pct_push "${node}" "${vmid}" "${tmp}" /etc/caddy/Caddyfile
     rm -f "${tmp}"
     pct_exec_script "${node}" "${vmid}" <<'EOF'

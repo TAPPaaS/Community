@@ -112,4 +112,5 @@ fi
 chmod 0640 "${P}"
 systemctl reload "php${PHPV}-fpm"
 EOF
+    php_analytics "${NODE}" "${VMID}" "$(analytics_line "${SITE}")"
 }

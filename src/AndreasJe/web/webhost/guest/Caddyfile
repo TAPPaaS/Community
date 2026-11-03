@@ -4,12 +4,22 @@
 {
 	auto_https off
 	admin localhost:2019
+	servers {
+		trusted_proxies static private_ranges
+	}
 }
 
 :80 {
 	root * /srv/webhost/www
 	@hidden path /git/*/config /git/*/hooks/* /git/*/logs/*
 	respond @hidden 404
+	# Visitor analytics (D25): the tracker and its endpoint only, for the sites' proxies.
+	route /_a/* {
+		uri strip_prefix /_a
+		@track path /script.js /api/send
+		reverse_proxy @track 127.0.0.1:3000
+		respond 404
+	}
 	file_server
 	log {
 		output stderr

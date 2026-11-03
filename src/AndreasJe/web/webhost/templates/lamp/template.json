@@ -38,7 +38,7 @@
       "group": "Database",
       "items": [
         "MariaDB runs on this container on loopback. `getenv()` gives `DB_HOST` (`127.0.0.1`), `DB_NAME`, `DB_USER`, `DB_PASSWORD` and `DATABASE_URL`.",
-        "Load your schema yourself: ask an administrator, or create the tables from your app on first start.",
+        "Your first schema: name a .sql file of your release under Database on the site page (options.dbInit). It is loaded once, while the database is empty.",
         "The database is dumped daily at 02:00 and the last 14 dumps are kept on the container."
       ]
     },

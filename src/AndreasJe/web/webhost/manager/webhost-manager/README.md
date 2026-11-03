@@ -33,6 +33,10 @@ Until `module-manager declaration validate` exists (ADR-038 D4), the module vali
 
 Per site, `owner` names the portal user who created it, `source.upload: true` marks a site whose content is uploaded packages, and `inspection.accept` lists findings accepted on purpose (a rule name such as `web-shell`, or an advisory id such as `CVE-…`).
 
+## Analytics
+
+`webhost-manager analytics sync` starts visitor analytics in the webhost container while a site has `options.analytics: true` (Umami and PostgreSQL are installed, the sites registered) and stops the service otherwise, keeping the data. Install, update and analytics requests from the portal run it too.
+
 ## Backups and restore
 
 - `webhost-manager site backups <name> [--json]` lists restore points (nightly, from the platform's backup job).
@@ -48,4 +52,6 @@ Per site, `owner` names the portal user who created it, `source.upload: true` ma
 - adds the site to the declaration with its `owner`, has its content inspected, and creates it only if the inspection passes; a blocked inspection rejects the request with the findings before any container exists
 - pushes the log of a running create or restore to `/srv/webhost/portal/logs/<request>.log` every 10 s, with colour codes stripped and secrets hidden
 - handles backup and restore requests from the owner or an installer
+- handles analytics requests (on or off for a site) from the owner or an installer: only the site's web server is reloaded; no update or restart
+- handles database schema requests (`options.dbInit`) from the owner or an installer
 - handles delete requests from the owner or an installer; deleting archives the site

@@ -22,6 +22,8 @@ import os
 import re
 import secrets
 import time
+import urllib.error
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
@@ -29,6 +31,9 @@ CONF = os.environ.get("WEBHOST_PORTAL_CONF", "/etc/webhost/portal.json")
 KEY = os.environ.get("WEBHOST_PORTAL_KEY", "/etc/webhost/portal-gate.json")
 DATA = os.environ.get("WEBHOST_PORTAL_DATA", "/srv/webhost/portal")
 INSPECT = os.environ.get("WEBHOST_INSPECT", "/srv/webhost/inspect")
+UMAMI = os.environ.get("WEBHOST_UMAMI", "http://127.0.0.1:3000/api")
+UMAMI_LOGIN = "/etc/webhost/portal-umami.json"
+ANALYTICS_MAP = "/etc/webhost/analytics-sites.json"
 LEEWAY = 60
 SITE_RE = re.compile(r"^[a-z][a-z0-9-]{0,30}$")
 DOMAIN_RE = re.compile(r"^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$")
@@ -138,6 +143,12 @@ input[type=file]{font:inherit;font-weight:400}.tick{display:flex;gap:10px;align-
 .guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;font-size:13px}.guide>div{padding:14px;border:1px solid var(--div);border-radius:12px}.guide h3{margin-bottom:6px}.guide ul{margin:0;padding-left:16px;display:flex;flex-direction:column;gap:5px}
 ul.files{margin:0;padding:0;list-style:none;border:1px solid var(--div);border-radius:10px;font:13px var(--mono)}.files li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;padding:8px 12px;border-top:1px solid var(--div);overflow-wrap:anywhere}.files li:first-child{border-top:0}.files span{color:var(--mute);font-family:inherit}
 ol.next{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:13px}ul.plain{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.seg{display:inline-flex;gap:4px;padding:4px;border-radius:12px;background:var(--div)}.seg a{padding:6px 14px;border-radius:9px;color:var(--ink);text-decoration:none;font-size:14px}.seg a.on{background:var(--card);font-weight:600}
+.chart{display:flex;align-items:flex-end;gap:6px;height:180px;border-bottom:1px solid var(--line);padding-top:8px}.chart .day{flex:1;display:flex;align-items:flex-end;justify-content:center;gap:3px;height:100%;min-width:0}.chart .pv,.chart .vi{width:min(18px,40%);border-radius:4px 4px 0 0}.chart .pv{background:#a9cdb9}.chart .vi{background:var(--acc)}
+.days{display:flex;gap:6px;font-size:12px;color:var(--mute);text-align:center}.days>div{flex:1;min-width:0;overflow:hidden;white-space:nowrap}.days .mono{font-size:11px}.key{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--mute)}.key i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.meters{display:flex;flex-direction:column;gap:10px;font-size:14px}.meters .m{display:flex;justify-content:space-between;gap:8px}.meters .m b{font-weight:600}.meter{height:6px;border-radius:3px;background:var(--div);margin-top:4px}.meter>i{display:block;height:100%;border-radius:3px;background:var(--acc)}
+.up{color:var(--ok)}.down{color:var(--bad)}.kv{display:grid;grid-template-columns:auto 1fr;gap:10px 20px;font-size:14px}.kv dt{color:var(--mute)}.kv dd{margin:0}
+.pane-db{display:none}form:has(input[data-db]:checked) .pane-db{display:flex;flex-direction:column;gap:6px}
 pre.log{margin:6px 0 0;max-height:420px;overflow:auto;padding:12px;border-radius:10px;background:#13261f;color:var(--calm);font:12px/1.45 var(--mono);white-space:pre-wrap;word-break:break-word}
 .path{padding:10px 12px;border-radius:10px;background:#13261f;color:var(--calm);font:12px var(--mono);overflow-wrap:anywhere}details summary{cursor:pointer;font-weight:600;min-height:24px}
 """
@@ -181,6 +192,12 @@ STEPS = {
     "delete": [("new", "New", "Your request is saved. webhost picks it up within a minute."),
                ("deleting", "Deleting", "The container is removed. The backup stays."),
                ("done", "Done", "The site is gone. It can come back from its backup.")],
+    "analytics": [("new", "New", "Your request is saved. webhost picks it up within a minute."),
+                  ("applying", "Applying", "The site's web server is reloaded with or without the analytics route. Visitors are not interrupted."),
+                  ("done", "Done", "The change is live.")],
+    "dbinit": [("new", "New", "Your request is saved. webhost picks it up within a minute."),
+               ("applying", "Loading", "The file is loaded into the database, but only while the database has no tables."),
+               ("done", "Done", "The database is ready.")],
     "token": [("new", "New", "Your request is saved. webhost picks it up within a minute."),
               ("done", "Done", "The next fetch uses the new token.")],
 }
@@ -198,11 +215,11 @@ def page(title, who, body, refresh=False, crumb="", nav="sites"):
     meta = '<meta http-equiv="refresh" content="8">' if refresh else ""
     me = f'<div class="who"><span aria-hidden="true">{esc(who[:1].upper())}</span>{esc(who)}</div>' if who else ""
     trail = f' / <b>{esc(crumb)}</b>' if crumb else ""
-    on = {k: ' class="on" aria-current="page"' if k == nav else "" for k in ("sites", "new")}
+    on = {k: ' class="on" aria-current="page"' if k == nav else "" for k in ("sites", "analytics")}
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">{meta}<title>{esc(title)} · webhost</title>
 <style>{STYLE}</style></head><body><div class="shell"><div class="side"><a class="brand" href="/">{MARK}<span><b>webhost</b><small>Self-hosted websites</small></span></a>
-<nav aria-label="webhost"><div class="navh">Websites</div><a href="/"{on['sites']}>Sites</a><a href="/new"{on['new']}>New site</a></nav></div>
+<nav aria-label="webhost"><div class="navh">Websites</div><a href="/"{on['sites']}>Sites</a><a href="/analytics"{on['analytics']}>Analytics</a></nav></div>
 <div class="body"><div class="top"><div><a href="/">Sites</a>{trail}</div>{me}</div><main>{body}</main></div></div></body></html>"""
 
 
@@ -266,6 +283,103 @@ def guide_block(conf, template):
         return ""
     return ("<section class='card'><div><h2>What your site gets</h2><p class='small mute'>What this template gives you, and what it expects from you.</p></div>"
             f"<div class='guide'>{cards}</div></section>")
+
+
+class Umami:
+    """Reads visitor numbers with the portal's view-only Umami account;
+    answers are kept for an hour (the pages say so)."""
+    token = None
+    cache = {}
+
+    @classmethod
+    def cached(cls, path):
+        hit = cls.cache.get(path)
+        if hit and time.time() - hit[0] < 3600:
+            return hit
+        data = cls.get(path)
+        cls.cache[path] = (time.time(), data)
+        if len(cls.cache) > 500:
+            cls.cache = {k: v for k, v in cls.cache.items() if time.time() - v[0] < 3600}
+        return cls.cache[path]
+
+    @classmethod
+    def get(cls, path, retry=True):
+        if not cls.token:
+            cred = load(UMAMI_LOGIN, None)
+            if not cred:
+                return None
+            req = urllib.request.Request(f"{UMAMI}/auth/login", method="POST",
+                                         data=json.dumps({"username": cred["username"], "password": cred["password"]}).encode(),
+                                         headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=5) as r:
+                cls.token = json.load(r)["token"]
+        try:
+            req = urllib.request.Request(f"{UMAMI}{path}", headers={"Authorization": f"Bearer {cls.token}"})
+            with urllib.request.urlopen(req, timeout=5) as r:
+                return json.load(r)
+        except urllib.error.HTTPError as e:
+            if e.code == 401 and retry:
+                cls.token = None
+                return cls.get(path, retry=False)
+            raise
+
+
+def auto_tag(s):
+    """Static and PHP sites (WordPress included) get the analytics line from
+    webhost; Node and Python apps build their pages themselves."""
+    return s.get("runtime") in ("static", "php")
+
+
+DBINIT_RE = re.compile(r"(?!.*\.\.)[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*\.(sql|js)")
+DB_NAMES = {"mariadb": "MariaDB", "postgresql": "PostgreSQL", "mongodb": "MongoDB"}
+
+
+PERIODS = {"24h": (1, "24 hours", "day"), "7d": (7, "7 days", "week"), "30d": (30, "30 days", "month"), "90d": (90, "90 days", "quarter")}
+COUNTRIES = {}
+
+
+def country(code):
+    if not COUNTRIES:
+        COUNTRIES.update(load("/opt/webhost-analytics/umami/public/intl/country/en-US.json", {}) or {"_": ""})
+    return COUNTRIES.get(code) or code or "Unknown"
+
+
+def change(now, before, kind="count"):
+    if kind == "points":
+        d = round(now - before)
+        return ("same as before", "") if d == 0 else (f"{abs(d)} points {'higher' if d > 0 else 'lower'}", "down" if d > 0 else "up")
+    if kind == "seconds":
+        d = round(now - before)
+        return ("same as before", "") if d == 0 else (f"{abs(d)} seconds {'longer' if d > 0 else 'shorter'}", "up" if d > 0 else "down")
+    if not before:
+        return ("new", "up") if now else ("–", "")
+    p = round(100 * (now - before) / before)
+    return ("same as before", "") if p == 0 else (f"{abs(p)}% {'more' if p > 0 else 'fewer'}", "up" if p > 0 else "down")
+
+
+def duration(sec):
+    sec = int(round(sec))
+    return f"{sec // 60}m {sec % 60:02d}s" if sec >= 60 else f"{sec}s"
+
+
+def meters(rows, pct=False, label=lambda x: x, mono=False, top=5):
+    if not rows:
+        return "<p class='small mute'>Nothing yet.</p>"
+    rows = sorted(rows, key=lambda m: -m.get("y", 0))
+    total = sum(m.get("y", 0) for m in rows) or 1
+    if pct and len(rows) > top:
+        rows = rows[:top - 1] + [{"x": None, "other": True, "y": sum(m.get("y", 0) for m in rows[top - 1:])}]
+    else:
+        rows = rows[:top]
+    peak = max(m.get("y", 0) for m in rows) or 1
+    out = ""
+    for m in rows:
+        name = "Other" if m.get("other") else label(m.get("x"))
+        val = f"{round(100 * m.get('y', 0) / total)}%" if pct else f"{m.get('y', 0):,}"
+        width = round(100 * m.get("y", 0) / (total if pct else peak))
+        out += (f"<div><div class='m'><span class='{'mono' if mono and not m.get('other') else ''}'>{esc(name)}</span><b>{val}</b></div>"
+                f"<div class='meter'><i style='width:{width}%'></i></div></div>")
+    return f"<div class='meters'>{out}</div>"
 
 
 def read_log(rid):
@@ -491,6 +605,11 @@ class Portal(BaseHTTPRequestHandler):
             return
         if path == "/":
             return self.home(who)
+        m = re.fullmatch(r"/sites/([a-z][a-z0-9-]{0,30})/analytics", path)
+        if m:
+            return self.site_analytics(who, m.group(1), parse_qs(urlparse(self.path).query))
+        if path == "/analytics":
+            return self.analytics(who, parse_qs(urlparse(self.path).query))
         if path == "/new":
             return self.new(who, query=parse_qs(url.query))
         m = re.fullmatch(r"/sites/([a-z][a-z0-9-]{0,30})", path)
@@ -512,10 +631,10 @@ class Portal(BaseHTTPRequestHandler):
         fields, files = got
         if path == "/new":
             return self.create(who, fields, files)
-        m = re.fullmatch(r"/sites/([a-z][a-z0-9-]{0,30})/(upload|delete|token|restore)", path)
+        m = re.fullmatch(r"/sites/([a-z][a-z0-9-]{0,30})/(upload|delete|token|restore|analytics|dbinit)", path)
         if m:
-            return {"upload": self.upload, "delete": self.delete, "token": self.token,
-                    "restore": self.restore}[m.group(2)](who, m.group(1), fields, files)
+            return {"upload": self.upload, "delete": self.delete, "token": self.token, "restore": self.restore,
+                    "analytics": self.analytics_toggle, "dbinit": self.dbinit}[m.group(2)](who, m.group(1), fields, files)
         m = re.fullmatch(r"/requests/([0-9TZ]+-[0-9a-f]{6})/retry", path)
         if m:
             return self.retry(who, m.group(1))
@@ -581,13 +700,16 @@ class Portal(BaseHTTPRequestHandler):
             if r and r.get("kind") == "create" and (who["admin"] or r.get("user") == who["user"]):
                 src = r.get("source") or {}
                 v = {"template": r.get("template"), "name": r.get("site"), "domain": r.get("domain"), "public": r.get("public"),
-                     "repo": src.get("repo", ""), "ref": src.get("ref", "main"), "mode": "package" if src.get("upload") else "git"}
+                     "repo": src.get("repo", ""), "ref": src.get("ref", "main"), "mode": "package" if src.get("upload") else "git",
+                     "dbInit": r.get("dbInit", "")}
 
         def card(t):
             checked = " checked" if v.get("template") == t["name"] else ""
             db = f" · {esc(t['database'])}" if t.get("database") not in (None, "", "none") else ""
-            wp = " data-wp" if t.get("app") == "wordpress" else ""
+            wp = " data-wp" if t.get("app") == "wordpress" else (" data-db" if t.get("database") not in (None, "", "none") else "")
             good = f'<small class="good">Good for: {esc(t["hint"])}</small>' if t.get("hint") else ""
+            if t.get("runtime") in ("node", "python"):
+                good += '<small class="mute">Analytics: you add one line to your app.</small>'
             return (f'<label class="tpl"><input type="radio" id="t-{esc(t["name"])}" name="template" value="{esc(t["name"])}"{checked}{wp} required>'
                     f'<b>{esc(t.get("label") or t["name"])}</b><small class="mono">{esc(t["name"])} · {esc(t["runtime"])}{db}</small>{good}<small>{esc(t["summary"])}</small></label>')
         tpls = self.server.conf.get("templates", [])
@@ -622,12 +744,15 @@ class Portal(BaseHTTPRequestHandler):
 <label class="f">Access token <small>Only for a private repository</small><input type="password" name="token" autocomplete="off"></label></div>
 <p class="small mute">Use a read-only deploy token. It is stored and never shown again.</p></div>
 <label class="pane-pkg drop">Choose a package<small>A .zip, .tgz or .tar.gz with the finished files.</small><input type="file" name="package" accept=".zip,.tgz,.tar.gz"></label>
+<label class="f pane-db">Database schema <small>Optional: a .sql file in your site that creates the tables (for MongoDB, a .js file)</small>
+<input type="text" name="dbInit" value="{esc(v.get('dbInit', ''))}" placeholder="schema.sql"></label>
+<p class="small mute pane-db">It is loaded once, with the first release, while the database is still empty.</p>
 </div>{again}</section></div>
 <aside class="aside"><section class="card"><div class="small mute">Before you create</div>
 <div class="small" style="padding:12px;border-radius:10px;background:var(--calm);color:var(--acc2)"><b>Every release is inspected before it goes live.</b> Server code in static sites, web shells, leaked keys and known critical vulnerabilities in dependencies stop it.</div>
 <button class="btn" type="submit">Create site</button>
 <p class="tiny mute">Creating takes about two to three minutes. You can follow each step on the next page.</p></section></aside></form>"""
-        self.send(200 if not error else 400, page("New site", who["user"], body, crumb="New site", nav="new"))
+        self.send(200 if not error else 400, page("New site", who["user"], body, crumb="New site"))
 
     def create(self, who, fields, files):
         conf = self.server.conf
@@ -666,6 +791,8 @@ class Portal(BaseHTTPRequestHandler):
             err = "An access token goes with a repository, as one line of printable characters."
         elif not repo and not has_pkg:
             err = "Give a repository or upload a package."
+        elif fields.get("dbInit") and not DBINIT_RE.fullmatch(fields["dbInit"]):
+            err = "The database schema is a .sql (or .js) file inside your site, such as schema.sql or db/schema.sql."
         elif has_pkg and not PACKAGE_RE.search(pkg[0]):
             err = "Packages are .zip, .tgz or .tar.gz files."
         if err:
@@ -675,7 +802,8 @@ class Portal(BaseHTTPRequestHandler):
         source = {"repo": repo, "ref": ref} if repo else ({"upload": True} if has_pkg else {})
         rid = self.write_request({"kind": "create", "user": who["user"], "groups": who["groups"], "site": name,
                                   "template": tpl["name"], "runtime": tpl["runtime"], "domain": domain,
-                                  "public": bool(fields.get("public")), "source": source},
+                                  "public": bool(fields.get("public")), "source": source,
+                                  "dbInit": fields.get("dbInit", "") if tpl.get("database") not in (None, "", "none") else ""},
                                  token=fields.get("token") or None)
         self.redirect(f"/requests/{rid}")
 
@@ -690,14 +818,48 @@ class Portal(BaseHTTPRequestHandler):
         msg = esc(r.get("message", ""))
         name = f"<span class='mono'>{esc(site)}</span>"
         if status == "failed":
-            at = {"restore": "restoring", "delete": "deleting"}.get(kind, "creating")
+            at = {"restore": "restoring", "delete": "deleting", "analytics": "applying"}.get(kind, "creating")
         elif status == "rejected":
             at = "inspecting" if stopped else ("checking" if kind == "create" else "new")
         else:
             at = None
         top, side = "", ""
         verb = {"create": "Creating", "restore": "Restoring", "delete": "Deleting", "token": "Saving the token of"}.get(kind, "Working on")
-        if status == "failed" and kind == "create":
+        if kind == "analytics" and status in ("new", "applying", "done", "failed"):
+            on = bool(r.get("enabled"))
+            back = f"<a class='btn ghost' href='/sites/{esc(site)}'>Go to site page</a>"
+            if status == "failed":
+                head = f"{name} <b>is unchanged.</b> Analytics could not be turned {'on' if on else 'off'}."
+                top = (f"<section class='call note'><div class='acts'><span class='pill bad'>FAIL</span><h2>Nothing changed on your site.</h2></div><p>{msg}</p>"
+                       "<p>The site serves as before. You can try again; if it fails the same way, ask an administrator and give them the log.</p>"
+                       f"<div class='acts'><a class='btn' href='/sites/{esc(site)}/analytics'>Try again</a>{back}</div></section>")
+            elif status == "done" and on and auto_tag(self.site(who, site) or {}):
+                head = f"Analytics are on for {name}. <b>Nothing else to do.</b>"
+                top = ("<section class='call calm'><h2>Your pages are counted from now on.</h2><p>webhost adds the analytics line to every page "
+                       "and takes it out again if you turn analytics off. The first visits show on the analytics page within an hour.</p>"
+                       f"<div class='acts'><a class='btn' href='/sites/{esc(site)}/analytics'>Open analytics</a>{back}</div></section>")
+            elif status == "done" and on:
+                wid = load(ANALYTICS_MAP, {}).get(site)
+                tag = (f"<pre class='log'>{esc(f'<script defer src="/_a/script.js" data-website-id="{wid}" data-domains="{r.get("domain") or ""}"></script>')}</pre>"
+                       if wid and r.get("domain") else "")
+                head = f"Analytics are on for {name}. <b>One step left.</b>"
+                top = ("<section class='call note'><h2>Add one line to your pages to start counting.</h2>"
+                       f"{tag}<p>Put it inside <code>&lt;head&gt;</code> on every page, then push or upload as usual. "
+                       "The first visits show on the analytics page within an hour.</p>"
+                       f"<div class='acts'><a class='btn' href='/sites/{esc(site)}/analytics'>Open the setup page</a>{back}</div></section>")
+            elif status == "done":
+                head = f"Analytics are off for {name}."
+                top = ("<section class='call calm'><h2>Visitors are no longer counted.</h2><p>The numbers collected so far are kept. "
+                       "The script tag left on your pages does nothing now; you can remove it with your next release.</p>"
+                       f"<div class='acts'><a class='btn' href='/sites/{esc(site)}'>Go to site page</a></div></section>")
+            else:
+                head = f"<b>Turning analytics {'on' if on else 'off'}</b> for {name}."
+                top = ("<section class='call calm'><p>Your site keeps serving the whole time. Only its web server reloads, "
+                       f"{'with' if on else 'without'} the analytics route, and visitors are not interrupted."
+                       + (" The first site to turn analytics on also starts the analytics service: allow a minute or two." if on else "") + "</p></section>")
+            side = ("<section class='card'><h2>About analytics</h2><dl class='kv'><dt>Service</dt><dd>Umami</dd>"
+                    "<dt>Address</dt><dd>your own site, under <code>/_a/</code></dd><dt>Cookies</dt><dd>none</dd><dt>Refresh</dt><dd>every hour</dd></dl></section>")
+        elif status == "failed" and kind == "create":
             head = f"{name} <b>was not created.</b> Setting up the site is what stopped."
             acts = (f"<form method='post' action='/requests/{esc(rid)}/retry' style='display:contents'><input type='hidden' name='csrf' value='{who['csrf']}'>"
                     f"<button class='btn' type='submit'>Try creating {esc(site)} again</button></form>") if self.retryable(r) else f"<a class='btn' href='/new?from={esc(rid)}'>Try creating {esc(site)} again</a>"
@@ -709,7 +871,7 @@ class Portal(BaseHTTPRequestHandler):
                     f"<section class='card'><h3>For an administrator</h3><p class='small mute'>Log on the mothership</p><div class='path'>/home/tappaas/logs/webhost-{esc(site)}-create.log</div></section>")
         elif status == "failed":
             head = f"{name} <b>did not finish.</b>"
-            top = f"<section class='call note'><div class='acts'><span class='pill bad'>FAIL</span><h2>{esc(kind)} failed.</h2></div><p>{msg}</p><div class='acts'><a class='btn' href='/'>Back to your sites</a></div></section>"
+            top = f"<section class='call note'><div class='acts'><span class='pill bad'>FAIL</span><h2>{esc({"dbinit": "Loading the database", "token": "Saving the token", "restore": "The restore", "delete": "The delete"}.get(kind, kind))} failed.</h2></div><p>{msg}</p><div class='acts'><a class='btn' href='/'>Back to your sites</a></div></section>"
         elif status == "rejected" and stopped:
             head = f"{name} <b>is not live yet.</b> Its first release was blocked at inspection."
             top = ("<section class='call note'><h2 style='font-size:16px'>Nothing is running at this address yet.</h2><p>The site goes live with the first release that passes inspection.</p>"
@@ -814,7 +976,7 @@ class Portal(BaseHTTPRequestHandler):
                 f"<div class='acts small mute' style='margin-top:8px'><a class='mono' href='https://{esc(s['domain'])}'>{esc(s['domain'])}</a>{pill(state)}<span class='pill'>{esc(s['template'])}</span><span>{reach}</span></div></div>"
                 f"<a class='btn' href='https://{esc(s['domain'])}'>Open {esc(name)}</a></div>{blocked}"
                 f"<div class='cols'><div class='wide'><section class='card'>{content}</section>{guide_block(self.server.conf, s['template'])}{delete}</div>"
-                f"<aside class='aside'>{inspection_card(insp)}{pull_log(name) if src else ''}<section class='card'><div><h2>Backups</h2><p class='small mute'>Taken nightly. Restoring puts the site back as it was at that moment.</p></div>{self.backup_list(who, name)}</section></aside></div>")
+                f"<aside class='aside'>{self.analytics_card(who, s)}{self.database_card(who, s)}{inspection_card(insp)}{pull_log(name) if src else ''}<section class='card'><div><h2>Backups</h2><p class='small mute'>Taken nightly. Restoring puts the site back as it was at that moment.</p></div>{self.backup_list(who, name)}</section></aside></div>")
         self.send(200, page(name, who["user"], body, crumb=name))
 
     def backup_list(self, who, name):
@@ -864,6 +1026,229 @@ class Portal(BaseHTTPRequestHandler):
             return self.fail(400, "A token is one line of printable characters.")
         rid = self.write_request({"kind": "token", "user": who["user"], "groups": who["groups"], "site": name}, token=t)
         self.redirect(f"/requests/{rid}")
+
+    def analytics_toggle(self, who, name, fields, files):
+        site = self.site(who, name)
+        if not site:
+            return self.fail(404, "No such site, or not yours.")
+        if fields.get("confirm") != "1":
+            return self.fail(400, "Confirm the change first.")
+        rid = self.write_request({"kind": "analytics", "user": who["user"], "groups": who["groups"], "site": name,
+                                  "enabled": fields.get("enabled") == "1", "domain": site.get("domain", "")})
+        self.redirect(f"/requests/{rid}")
+
+    def analytics_card(self, who, s):
+        name = s["name"]
+        if s.get("analytics"):
+            return (f"<section class='card'><div><h2>Analytics are on</h2><p class='small mute'>Visitors are counted without cookies.</p></div>"
+                    f"<div class='acts'><a class='btn' href='/sites/{esc(name)}/analytics'>Open analytics</a></div></section>")
+        if not auto_tag(s):
+            return ("<section class='card'><div><h2>Analytics</h2><p class='small mute'>Count visitors without cookies. "
+                    "Your app builds its own pages, so analytics need one line in it.</p></div>"
+                    f"<div class='acts'><a class='btn' href='/sites/{esc(name)}/analytics'>How to do it</a></div></section>")
+        return ("<section class='card'><div><h2>Analytics</h2><p class='small mute'>Count visitors without cookies. "
+                "The numbers stay on this server, and visitors only ever talk to your own site. webhost adds what your pages need.</p></div>"
+                f"{self.toggle_form(who, name, True)}</section>")
+
+    def database_card(self, who, s):
+        t = {t["name"]: t for t in self.server.conf.get("templates", [])}.get(s["template"]) or {}
+        db = t.get("database")
+        if db in (None, "", "none") or t.get("app") == "wordpress":
+            return ""
+        name, cur, ext = s["name"], s.get("dbInit") or "", ".js" if db == "mongodb" else ".sql"
+        now = (f"<p class='small'>First schema: <code>{esc(cur)}</code>. It was loaded if the database was empty.</p>" if cur
+               else f"<p class='small mute'>The database starts empty. Name a {ext} file in your site to create its tables.</p>")
+        return (f"<section class='card'><div><h2>Database</h2><p class='small mute'>{DB_NAMES.get(db, db)}, on this site's own server.</p></div>{now}"
+                f"<form method='post' action='/sites/{esc(name)}/dbinit' enctype='multipart/form-data' style='display:flex;flex-direction:column;gap:8px'>"
+                f"<input type='hidden' name='csrf' value='{who['csrf']}'>"
+                f"<label class='f small'>Schema file in your site<input type='text' name='file' value='{esc(cur)}' placeholder='schema{ext}'></label>"
+                "<p class='small mute'>Loaded once, and only while the database has no tables, so existing data is never touched.</p>"
+                "<div class='acts'><button class='btn' type='submit'>Load schema</button></div></form></section>")
+
+    def dbinit(self, who, name, fields, files):
+        if not self.site(who, name):
+            return self.fail(404, "No such site, or not yours.")
+        f = fields.get("file", "").strip()
+        if f and not DBINIT_RE.fullmatch(f):
+            return self.fail(400, "Give a .sql (or .js) file inside your site, such as schema.sql or db/schema.sql.")
+        rid = self.write_request({"kind": "dbinit", "user": who["user"], "groups": who["groups"], "site": name, "file": f})
+        self.redirect(f"/requests/{rid}")
+
+    def toggle_form(self, who, name, on):
+        return (f"<form method='post' action='/sites/{esc(name)}/analytics' enctype='multipart/form-data'>"
+                f"<input type='hidden' name='csrf' value='{who['csrf']}'><input type='hidden' name='enabled' value='{'1' if on else '0'}'>"
+                f"<label class='small'><input type='checkbox' name='confirm' value='1' required> "
+                f"{'Yes, reload my site with analytics. Visitors are not interrupted.' if on else 'Yes, stop counting visitors on this site.'}</label>"
+                f"<div class='acts'><button class='btn guarded{'' if on else ' ghost'}' type='submit'>{'Turn analytics on' if on else 'Turn off analytics'}</button></div></form>")
+
+    def analytics(self, who, query):
+        sites = [s for s in self.sites(who) if s.get("analytics")]
+        ids = load(ANALYTICS_MAP, {})
+        if not sites:
+            body = ("<h1><b>Analytics.</b> No site counts its visitors yet.</h1><section class='card'><p>Open a site and turn "
+                    "analytics on. Visitors are counted without cookies, and the numbers stay on this server.</p>"
+                    "<div class='acts'><a class='btn' href='/'>Your sites</a></div></section>")
+            return self.send(200, page("Analytics", who["user"], body, crumb="Analytics", nav="analytics"))
+        end = int(time.time() // 3600 * 3600 * 1000)
+        rows = ""
+        for s in sites:
+            wid, cell = ids.get(s["name"]), "<td class='mute'>being set up</td><td></td>"
+            if wid:
+                try:
+                    st = Umami.cached(f"/websites/{wid}/stats?startAt={end - 7 * 86400000}&endAt={end}")[1] or {}
+                    txt, cls = change(st.get("visitors", 0), (st.get("comparison") or {}).get("visitors", 0))
+                    cell = f"<td><b>{st.get('visitors', 0):,}</b></td><td class='{cls} small'>{esc(txt)}</td>"
+                except (OSError, ValueError, KeyError):
+                    cell = "<td class='mute'>not available</td><td></td>"
+            rows += (f"<tr><td><a class='mono' href='/sites/{esc(s['name'])}/analytics'>{esc(s['name'])}</a></td>"
+                     f"<td class='small mute'>{esc(s['domain'])}</td>{cell}</tr>")
+        body = ("<h1><b>Analytics.</b> Visitors to your sites in the last 7 days.</h1>"
+                "<section class='card flush'><div class='scroll'><table><tr><th>Site</th><th>Address</th><th>Visitors</th><th>Compared with the week before</th></tr>"
+                f"{rows}</table></div></section><p class='small mute'>Numbers from Umami, refreshed every hour. Open a site for its pages, sources and devices.</p>")
+        self.send(200, page("Analytics", who["user"], body, crumb="Analytics", nav="analytics"))
+
+    def site_analytics(self, who, name, query):
+        s = self.site(who, name)
+        if not s:
+            return self.fail(404, "No such site, or not yours.")
+        crumb = f"{name} / Analytics"
+        if not s.get("analytics"):
+            if auto_tag(s):
+                body = (f"<h1><b>Analytics are off</b> for <span class='mono'>{esc(name)}</span>.</h1><section class='card'>"
+                        "<p>Turn them on to count visitors without cookies. webhost adds what your pages need; there is nothing to change in your site.</p>"
+                        f"{self.toggle_form(who, name, True)}</section>")
+            else:
+                example = '<script defer src="/_a/script.js" data-website-id="…" data-domains="' + s["domain"] + '"></script>'
+                body = (f"<h1><b>How to count visitors</b> on <span class='mono'>{esc(name)}</span>.</h1>"
+                        "<div class='cols'><div class='wide'><section class='card'><h2>1. Turn analytics on</h2>"
+                        "<p>This adds the analytics route to your site and gives it its own id. Your site keeps serving; visitors are not interrupted.</p>"
+                        f"{self.toggle_form(who, name, True)}</section>"
+                        "<section class='card'><h2>2. Add one line to your app</h2><p>Your app builds its own pages, so webhost cannot add the line for you. "
+                        "Put it inside <code>&lt;head&gt;</code> in the layout or template every page uses:</p>"
+                        f"<pre class='log'>{esc(example)}</pre><p class='small mute'>The real line, with your site's id, appears here once analytics are on.</p></section>"
+                        "<section class='card'><h2>3. Release it</h2><p>Push to your branch or upload a new package. It is inspected and goes live as usual; "
+                        "the first visits show within an hour.</p></section></div>"
+                        "<aside class='aside'><section class='card'><h2>About analytics</h2><dl class='kv'><dt>Service</dt><dd>Umami</dd>"
+                        "<dt>Address</dt><dd>your own site, under <code>/_a/</code></dd><dt>Cookies</dt><dd>none</dd><dt>Refresh</dt><dd>every hour</dd></dl></section></aside></div>")
+            return self.send(200, page(crumb, who["user"], body, crumb=crumb))
+        wid = load(ANALYTICS_MAP, {}).get(name)
+        if not wid:
+            body = (f"<h1><b>Analytics are being set up</b> for <span class='mono'>{esc(name)}</span>.</h1>"
+                    "<section class='card'><p class='mute'>This takes a minute or two the first time. This page shows the next step when it is ready.</p></section>")
+            return self.send(200, page(crumb, who["user"], body, refresh=True, crumb=crumb))
+        key = query.get("period", ["7d"])[0]
+        key = key if key in PERIODS else "7d"
+        days, words, unit_word = PERIODS[key]
+        end = int(time.time() // 3600 * 3600 * 1000)
+        span = f"startAt={end - days * 86400000}&endAt={end}"
+        try:
+            fetched, st = Umami.cached(f"/websites/{wid}/stats?{span}")
+            ever = Umami.cached(f"/websites/{wid}/stats?startAt={end - 90 * 86400000}&endAt={end}")[1] or {}
+        except (OSError, ValueError, KeyError):
+            body = (f"<h1><b>The numbers are not available right now.</b></h1><section class='card'><p class='mute'>"
+                    "Umami does not answer. Try again in a few minutes; if it stays like this, an administrator can check the analytics service.</p></section>")
+            return self.send(503, page(crumb, who["user"], body, crumb=crumb))
+        if not ever.get("pageviews"):
+            return self.analytics_setup(who, s, wid, crumb)
+        st = st or {}
+        prev = st.get("comparison") or {}
+        get = lambda k: [Umami.cached(f"/websites/{wid}/metrics?type={k}&{span}&limit=20")[1] or [] for _ in (0,)][0]
+        try:
+            series = Umami.cached(f"/websites/{wid}/pageviews?{span}&unit={'hour' if days == 1 else 'day'}&timezone=UTC")[1] or {}
+            lists = {k: get(k) for k in ("path", "referrer", "country", "device", "browser", "event")}
+        except (OSError, ValueError, KeyError):
+            series, lists = {}, {k: [] for k in ("path", "referrer", "country", "device", "browser", "event")}
+        v, pv, vs = st.get("visitors", 0), st.get("pageviews", 0), st.get("visits", 0)
+        bounce = 100 * st.get("bounces", 0) / vs if vs else 0
+        pbounce = 100 * prev.get("bounces", 0) / prev.get("visits", 1) if prev.get("visits") else 0
+        avg = st.get("totaltime", 0) / vs if vs else 0
+        pavg = prev.get("totaltime", 0) / prev.get("visits", 1) if prev.get("visits") else 0
+        vtxt, _ = change(v, prev.get("visitors", 0))
+        lead = f"{vtxt[0].upper()}{vtxt[1:]} than the {unit_word} before." if prev.get("visitors") else ""
+        tile = lambda label, val, ch: f"<div class='tile'>{label}<b>{val}</b><small class='{ch[1]}'>{esc(ch[0])}</small></div>"
+        tiles = ("<div class='tiles'>" + tile("Visitors", f"{v:,}", change(v, prev.get("visitors", 0)))
+                 + tile("Visits", f"{vs:,}", change(vs, prev.get("visits", 0)))
+                 + tile("Pageviews", f"{pv:,}", change(pv, prev.get("pageviews", 0)))
+                 + tile("Bounce rate", f"{round(bounce)}%", change(bounce, pbounce, "points") if prev.get("visits") else ("–", ""))
+                 + tile("Average visit", duration(avg), change(avg, pavg, "seconds") if prev.get("visits") else ("–", "")) + "</div>")
+        # visitors and pageviews per day (per hour for 24 hours), filled with zeros
+        step = 3600 if days == 1 else 86400
+        slots = [end // 1000 - (n - 1) * step for n in range(24 if days == 1 else days, 0, -1)]
+        def by_slot(rows):
+            out = {}
+            for r in rows or []:
+                try:
+                    t = time.mktime(time.strptime(str(r["x"])[:19], "%Y-%m-%dT%H:%M:%S" if "T" in str(r["x"]) else "%Y-%m-%d %H:%M:%S")) - time.timezone
+                except (ValueError, KeyError):
+                    continue
+                out[int(t // step)] = out.get(int(t // step), 0) + r.get("y", 0)
+            return out
+        pvs, ses = by_slot(series.get("pageviews")), by_slot(series.get("sessions"))
+        top = max([pvs.get(t // step, 0) for t in slots] + [1])
+        bars = days_row = ""
+        dense = len(slots) > 14
+        for i, t in enumerate(slots):
+            a, b = pvs.get(t // step, 0), ses.get(t // step, 0)
+            bars += (f"<div class='day' title='{b} visitors · {a} pageviews'><i class='pv' style='height:{round(100 * a / top)}%'></i>"
+                     f"<i class='vi' style='height:{round(100 * b / top)}%'></i></div>")
+            label = time.strftime("%H:00" if days == 1 else "%a %-d %b", time.gmtime(t))
+            show = not dense or i % 7 == len(slots) % 7
+            days_row += (f"<div>{esc(label) if show else ''}" + ("" if dense else f"<div class='mono'>{b} · {a}</div>") + "</div>")
+        chart = (f"<section class='card'><div class='row'><h2 class='grow'>Visitors and pageviews per {'hour' if days == 1 else 'day'}</h2>"
+                 "<span class='key'><i style='background:#a9cdb9'></i>Pageviews</span><span class='key'><i style='background:var(--acc)'></i>Visitors</span></div>"
+                 f"<div class='chart'>{bars}</div><div class='days'>{days_row}</div>"
+                 + ("" if dense else "<p class='small mute'>Under each day: visitors · pageviews.</p>") + "</section>")
+        card = lambda title, inner, note="": f"<section class='card'><h2>{title}</h2>{note}{inner}</section>"
+        grid = ("<div class='tiles' style='grid-template-columns:repeat(auto-fit,minmax(280px,1fr))'>"
+                + card("Top pages", meters(lists["path"], mono=True))
+                + card("Referrers", meters(lists["referrer"], label=lambda x: x or "Direct / none"))
+                + card("Countries", meters(lists["country"], pct=True, label=country))
+                + card("Devices", meters(lists["device"], pct=True, label=lambda x: (x or "Unknown").capitalize()))
+                + card("Browsers", meters(lists["browser"], pct=True, label=lambda x: (x or "Unknown").replace("-", " ").capitalize()))
+                + card("Events", meters(lists["event"], mono=True), "<p class='small mute'>Counted from <code>data-umami-event</code> attributes on your pages.</p>")
+                + "</div>")
+        periods = "".join(f"<a class='{'on' if k == key else ''}' href='?period={k}'>{p[1]}</a>" for k, p in PERIODS.items())
+        body = (f"<div><h1><span class='mono'>{esc(name)}</span> <b>had {v:,} visitor{'' if v == 1 else 's'} in the last {words}.</b> {esc(lead)}</h1>"
+                f"<p class='small mute' style='margin-top:6px'>Numbers from Umami, refreshed every hour · last update {time.strftime('%H:%M UTC', time.gmtime(fetched))}</p></div>"
+                f"<div class='seg'>{periods}</div>{tiles}{chart}{grid}"
+                "<section class='call calm'><p>Umami sets no cookies and stores no names or IP addresses. Visitors are counted per day per site.</p></section>")
+        self.send(200, page(crumb, who["user"], body, crumb=crumb))
+
+    def analytics_setup(self, who, s, wid, crumb):
+        name, domain = s["name"], s["domain"]
+        tag = f'<script defer src="/_a/script.js" data-website-id="{wid}" data-domains="{domain}"></script>'
+        auto = auto_tag(s)
+        how = ("webhost adds the analytics line to every page of your site: it is in the release now and in every new one."
+               if s.get("runtime") == "static" else "PHP adds the analytics line to every page your site sends, through a hook webhost manages. Nothing is added to your code.")
+        opts = "".join(f"<dt class='mono small'>{k}</dt><dd>{v}</dd>" for k, v in (
+            ("data-exclude-search", "do not record the part of the address after ?"),
+            ("data-exclude-hash", "do not record the part after #"),
+            ("data-do-not-track", "skip visitors whose browser asks not to be tracked"),
+            ("data-domains", "count only on these addresses (already set)")))
+        step = ("<section class='call calm'><h2>Nothing to do: your pages are counted from now on.</h2>"
+                f"<p>{how} Turning analytics off takes it out again.</p>"
+                "<p><span class='pill'>waiting</span> No visits recorded yet. This page shows the first ones within an hour.</p></section>"
+                if auto else
+                "<section class='call note'><h2>Step left: add this line to every page, inside &lt;head&gt;.</h2>"
+                f"<pre class='log'>{esc(tag)}</pre>"
+                "<p>Your app builds its pages itself, so webhost cannot add the line for you. Put it in the template or layout every page uses, "
+                "then push to your branch or upload a new package. It is inspected and goes live as usual.</p>"
+                "<p><span class='pill'>waiting</span> No visits recorded yet. This page shows the first ones within an hour.</p></section>")
+        body = (f"<div><h1><b>Analytics are on.</b> {'Your pages are being counted.' if auto else 'Add one line to your pages to start counting.'}</h1>"
+                f"<div class='acts small mute' style='margin-top:8px'><a class='mono' href='https://{esc(domain)}'>{esc(domain)}</a>"
+                f"<span class='pill'>{esc(s['template'])}</span><span>{'Public' if s.get('public') else 'Your networks only'}</span></div></div>"
+                "<div class='cols'><div class='wide'>"
+                f"{step}"
+                "<section class='card'><h2>Count clicks and forms (optional)</h2><p>Add a <code>data-umami-event</code> attribute. No script of your own is needed.</p>"
+                f"<pre class='log'>{esc('<a href=\"/cv.pdf\" data-umami-event=\"cv-download\">Download my CV</a>')}</pre></section>"
+                f"<section class='card'><h2>Options you can add to the script tag</h2><dl class='kv'>{opts}</dl></section></div>"
+                "<aside class='aside'><section class='card'><h2>About analytics</h2><dl class='kv'>"
+                "<dt>Service</dt><dd>Umami</dd><dt>Address</dt><dd>your own site, under <code>/_a/</code></dd>"
+                "<dt>Cookies</dt><dd>none</dd><dt>Refresh</dt><dd>every hour</dd></dl></section>"
+                "<section class='card dangerzone'><h2>Turn off analytics</h2><p class='small'>Stops counting and removes <code>/_a/</code> from your site. "
+                f"{'webhost takes the line out of your pages again.' if auto else 'The script tag left on your pages then does nothing.'} Collected numbers are kept.</p>"
+                f"{self.toggle_form(who, name, False)}</section></aside></div>")
+        self.send(200, page(crumb, who["user"], body, crumb=crumb))
 
     def delete(self, who, name, fields, files):
         s = self.site(who, name)
