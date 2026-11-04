@@ -41,13 +41,13 @@
       "group": "Files and uploads",
       "items": [
         "Persistent files go in `/srv/site/data` (the rest is read-only).",
-        "Files your app writes (uploads) must go in folders listed in `options.dataDirs`: kept across releases and backed up. Every push replaces the release itself."
+        "Files your app writes (uploads) must go in data folders, which an installer sets up for your site: they are kept across releases and backed up. Every push replaces the release itself."
       ]
     },
     {
       "group": "Routing",
       "items": [
-        "The app listens on `127.0.0.1:3000` behind Caddy: set `options.start` (default `gunicorn app:app`); gunicorn is bound to `$PORT` for you."
+        "The app listens on `127.0.0.1:3000` behind Caddy: the start command is `gunicorn app:app` unless an installer changes it; gunicorn is bound to `$PORT` for you."
       ]
     }
   ],

@@ -348,6 +348,12 @@ for c in pulls-newest-first-escaped pulls-empty-is-fine failed-escapes-message f
     expect "portal: ${c}" "grep -qx '${c} ok' '${WORK}/pages.out'"
 done
 
+# One file per page area: each prints "<name> ok|FAIL" lines and exits non-zero on a failure.
+for t in "${ROOT}"/tests/portal/test_*.py; do
+    [[ -e "${t}" ]] || continue
+    expect "portal pages: $(basename "${t}")" "python3 '${t}' >'${WORK}/$(basename "${t}").out' 2>&1 || { cat '${WORK}/$(basename "${t}").out' >&2; false; }"
+done
+
 echo "custom templates"
 # shellcheck source=../lib/templates.sh
 . "${ROOT}/lib/templates.sh"

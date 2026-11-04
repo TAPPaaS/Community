@@ -3,12 +3,12 @@
 | | |
 |---|---|
 | **Status** | **Proposed** — every decision is built and tested on a TAPPaaS cluster. |
-| **Version** | 0.6 |
-| **Date** | 2026-11-03 |
+| **Version** | 0.7 |
+| **Date** | 2026-11-04 |
 | **Authors** | see [AUTHORS.md](AUTHORS.md) |
 | **Scope** | Community module `src/AndreasJe/web/webhost`: the `webhost` module and the `website` module it ships. |
 | **Depends on** | ADR-007b (Apps), ADR-007f (Manager → Controller → Service), ADR-020 (declared-field change model), ADR-023 (proxy access rules), ADR-035 (module managers), ADR-038 (declarations; under review), ADR-039 (alert rules). |
-| **Changelog** | v0.6 (2026-11-03) — D25 states how the line reaches pages and that toggling only reloads the site's web server; D26 a site's first schema comes from its release. v0.5 (2026-11-02) — D25 visitor analytics, bundled and off until a site asks. v0.4 (2026-10-31) — D24 a portal people can read on their own; D20 extended with the pull log. v0.3 (2026-10-31) — D21 data folders, D22 PHP-FPM reload, D23 deploy target; D19 and D7 checked against the code. v0.2 (2026-10-31) — D17 site portal, D18 release inspection; webhost-manager registered by the platform. v0.1 (2026-10-31) — first published version. |
+| **Changelog** | v0.7 (2026-11-04) — D24 extended with the portal's second design: dashboard home, mobile-first layouts, one time format. v0.6 (2026-11-03) — D25 states how the line reaches pages and that toggling only reloads the site's web server; D26 a site's first schema comes from its release. v0.5 (2026-11-02) — D25 visitor analytics, bundled and off until a site asks. v0.4 (2026-10-31) — D24 a portal people can read on their own; D20 extended with the pull log. v0.3 (2026-10-31) — D21 data folders, D22 PHP-FPM reload, D23 deploy target; D19 and D7 checked against the code. v0.2 (2026-10-31) — D17 site portal, D18 release inspection; webhost-manager registered by the platform. v0.1 (2026-10-31) — first published version. |
 
 This is a living document: a decision is changed in place, its status updated and the change noted in the changelog. How each decision is built is in [DESIGN.md](DESIGN.md).
 
@@ -165,6 +165,8 @@ The intent in Context stands: no build step, no editor, no shell in the site. Te
 ### D24 — A portal people can read on their own
 
 The portal is redesigned for people who are not experts. It shares the look of the TAPPaaS console but stays a standalone app: it does not join the console's navigation. Every page opens with a sentence that states the situation. The pipeline is a stepper with a line on what each step does. A failed or blocked request says in plain words what happened, what to do next and that a live site is unaffected, with the log as a secondary detail. The portal holds a plain explanation and fix for each inspection rule.
+
+The home page is a Sites dashboard with analytics folded in, not a separate page. Layouts are mobile-first and follow the width of their container. Every time is relative, with the exact UTC time on hover. Technical detail shows only behind "Show technical log".
 
 The portal's CSP stays as it was: no scripts, no web fonts. Forms change through CSS `:has()`, and restore and delete rely on browser validation plus the checks on the server.
 

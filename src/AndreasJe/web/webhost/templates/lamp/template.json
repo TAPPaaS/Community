@@ -38,21 +38,21 @@
       "group": "Database",
       "items": [
         "MariaDB runs on this container on loopback. `getenv()` gives `DB_HOST` (`127.0.0.1`), `DB_NAME`, `DB_USER`, `DB_PASSWORD` and `DATABASE_URL`.",
-        "Your first schema: name a .sql file of your release under Database on the site page (options.dbInit). It is loaded once, while the database is empty.",
+        "Your first schema: name a .sql file of your release under Database on the site page. It is loaded once, while the database is empty.",
         "The database is dumped daily at 02:00 and the last 14 dumps are kept on the container."
       ]
     },
     {
       "group": "Files and uploads",
       "items": [
-        "Files your app writes (uploads) must go in folders listed in `options.dataDirs`: kept across releases and backed up. Every push replaces the release itself."
+        "Files your app writes (uploads) must go in data folders, which an installer sets up for your site: they are kept across releases and backed up. Every push replaces the release itself."
       ]
     },
     {
       "group": "Routing",
       "items": [
         "The web root is the docroot (default `public/`) inside your repo; PHP-FPM runs your code behind Caddy.",
-        "Caddy does not read `.htaccess`. For `/page` to run `page.php`, set `options.cleanUrls`; to serve the repo root instead of `public/`, set `options.docroot` to `\".\"`."
+        "The web server does not read `.htaccess`. For `/page` to run `page.php`, or to serve your repository's root instead of `public/`, ask an installer to switch on clean addresses or change the served folder."
       ]
     }
   ],

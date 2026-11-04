@@ -28,12 +28,13 @@ People who are not administrators can create their own sites at `https://webhost
 - A status page follows the request as a stepper: new, checking, inspecting, creating, live. It says in plain words what stopped a request and what to do next. A failed create can be tried again.
 - While a site is created or restored, the request page shows the last lines of the progress log and, on failure, the error; "Show the log" opens the whole log (colour codes stripped, values after password, secret, token and api_key hidden).
 - When a site goes live, the page lists "What your site gets": what the template provides and how to use it. The site page shows it too.
-- "Your sites" lists each site, its state and its latest release. A blocked release shows what was found and how to fix it. An upload site takes a new version on its site page; a site can be deleted there.
+- The home page is a Sites dashboard: what needs a person first, then the sites (cards on a phone, a table on wider screens; installers also see the owner) and visitor numbers summed over the sites that count them, refreshed every minute, with pages being viewed right now. A blocked release shows what was found and how to fix it. An upload site takes a new version on its site page; a site can be deleted there.
 - The site page has a Recent pulls card: the last 20 revisions webhost fetched, each passed or blocked, and when it last looked for changes.
 - Replacing a repository's access token sits behind its own step; saving it empty removes the token.
-- The site page has a Backups card: nightly backups, each restorable in place after a confirm. "Deleted sites" on the home page lists sites that can be brought back.
-- The Analytics page lists the user's sites with analytics on, with 7-day visitors and the change on the week before. Each site has its own analytics page (see Analytics). The site page has a card that turns analytics on or off, behind a confirm checkbox.
+- The site page has a Backups card: nightly backups, one choice and one confirm to restore in place. "Deleted sites" on the home page lists sites that can be brought back.
+- Analytics are part of the home page; `/analytics` redirects there. Each site has its own analytics page (24h, 7d, 30d, 90d; see Analytics). The site page has a card that turns analytics on or off, behind a confirm checkbox.
 - The site page has a Database card for templates with a database (not WordPress): the schema file to load (`options.dbInit`). The New site form has the same optional field.
+- All times are relative ("3 h ago") with the exact UTC time on hover. Technical detail is only under "Show technical log". The pages use no scripts and no web fonts.
 - Members of the `webhost` group see only their own sites, at most 10. Members of `installer` see and manage all.
 - The portal is reached only from your own zones and the admin VPN, behind the Authentik login. It is not on the internet, and it can only ask for sites: every request is checked and every release inspected.
 
@@ -75,7 +76,7 @@ In the site's declaration:
 
 ## Analytics
 
-- Visitors are counted with Umami: no cookies, one instance for every site, inside the webhost container. Numbers are read in the portal's Analytics page; owners never log in to Umami.
+- Visitors are counted with Umami: no cookies, one instance for every site, inside the webhost container. Numbers are read in the portal (home page and each site's analytics page); owners never log in to Umami.
 - A site with `options.analytics: true` proxies `/_a/` to the webhost container, so the tracker is first-party and the site's CSP stays `'self'`. Only `/_a/script.js` and `/_a/api/send` are served; everything else under `/_a/` is 404.
 - Turn it on in the portal (site page, confirm checkbox) or with `webhost-manager site modify <site> --set options.analytics=true`. The change is instant: only the site's web server is reloaded gracefully with or without the `/_a/` route. No site update, no restart; if it fails, the previous setting is put back.
 - How the script line (`<script defer src="/_a/script.js" data-website-id="…"></script>`) reaches the pages depends on the template:

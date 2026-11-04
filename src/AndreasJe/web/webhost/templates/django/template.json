@@ -37,19 +37,19 @@
       "group": "Database",
       "items": [
         "PostgreSQL runs on this container on loopback. `os.environ` has `DB_HOST` (`127.0.0.1`), `DB_NAME`, `DB_USER`, `DB_PASSWORD` and `DATABASE_URL`.",
-        "Your first schema: name a .sql file of your release under Database on the site page (options.dbInit). It is loaded once, while the database is empty."
+        "Your first schema: name a .sql file of your release under Database on the site page. It is loaded once, while the database is empty."
       ]
     },
     {
       "group": "Files and uploads",
       "items": [
-        "Files your app writes (uploads) must go in folders listed in `options.dataDirs`: kept across releases and backed up. Every push replaces the release itself."
+        "Files your app writes (uploads) must go in data folders, which an installer sets up for your site: they are kept across releases and backed up. Every push replaces the release itself."
       ]
     },
     {
       "group": "Routing",
       "items": [
-        "The app listens on `127.0.0.1:3000` behind Caddy: set `options.start` (default `gunicorn app:app`); gunicorn is bound to `$PORT` for you.",
+        "The app listens on `127.0.0.1:3000` behind Caddy: the start command is `gunicorn app:app` unless an installer changes it; gunicorn is bound to `$PORT` for you.",
         "`/admin/*` is only reachable from your own networks."
       ]
     }

@@ -41,7 +41,7 @@
       "group": "Files and uploads",
       "items": [
         "Persistent files go in `/srv/site/data` (the rest is read-only).",
-        "Files your app writes (uploads) must go in folders listed in `options.dataDirs`: kept across releases and backed up. Every push replaces the release itself."
+        "Files your app writes (uploads) must go in data folders, which an installer sets up for your site: they are kept across releases and backed up. Every push replaces the release itself."
       ]
     },
     {

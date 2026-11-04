@@ -39,13 +39,13 @@
       "group": "Database",
       "items": [
         "MongoDB (Percona 8.0) runs on this container on loopback. `process.env` has `DB_HOST` (`127.0.0.1`), `DB_NAME`, `DB_USER`, `DB_PASSWORD` and `DATABASE_URL`.",
-        "Your first schema: name a .js file of your release under Database on the site page (options.dbInit). It is loaded once, while the database is empty."
+        "Your first schema: name a .js file of your release under Database on the site page. It is loaded once, while the database is empty."
       ]
     },
     {
       "group": "Files and uploads",
       "items": [
-        "Files your app writes (uploads) must go in folders listed in `options.dataDirs`: kept across releases and backed up. Every push replaces the release itself."
+        "Files your app writes (uploads) must go in data folders, which an installer sets up for your site: they are kept across releases and backed up. Every push replaces the release itself."
       ]
     },
     {

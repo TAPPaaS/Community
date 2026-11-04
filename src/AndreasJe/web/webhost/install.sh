@@ -76,6 +76,9 @@ pct_push "${NODE}" "${VMID}" "${SCRIPT_DIR}/guest/webhost-mirror.sh" /usr/local/
 pct_push "${NODE}" "${VMID}" "${SCRIPT_DIR}/guest/webhost-inspect.py" /usr/local/sbin/webhost-inspect 0755
 pct_push "${NODE}" "${VMID}" "${SCRIPT_DIR}/guest/webhost-ingest.py" /usr/local/sbin/webhost-ingest 0755
 pct_push "${NODE}" "${VMID}" "${SCRIPT_DIR}/guest/webhost-portal.py" /usr/local/sbin/webhost-portal 0755
+for f in "${SCRIPT_DIR}"/guest/portal_*.py; do
+    pct_push "${NODE}" "${VMID}" "${f}" "/usr/local/lib/webhost-portal/${f##*/}" 0644
+done
 for f in tappaas-webhost-mirror.service tappaas-webhost-mirror.timer tappaas-webhost-portal.service; do
     pct_push "${NODE}" "${VMID}" "${SCRIPT_DIR}/guest/${f}" "/etc/systemd/system/${f}"
 done

@@ -45,14 +45,14 @@
       "group": "Files and uploads",
       "items": [
         "Uploads up to 32M and 256M memory per request by default.",
-        "Files your app writes (uploads) must go in folders listed in `options.dataDirs`: kept across releases and backed up. Every push replaces the release itself."
+        "Files your app writes (uploads) must go in data folders, which an installer sets up for your site: they are kept across releases and backed up. Every push replaces the release itself."
       ]
     },
     {
       "group": "Routing",
       "items": [
         "The web root is the docroot (default `public/`) inside your repo; PHP-FPM runs your code behind Caddy.",
-        "Caddy does not read `.htaccess`. For `/page` to run `page.php`, set `options.cleanUrls`; to serve the repo root instead of `public/`, set `options.docroot` to `\".\"`."
+        "The web server does not read `.htaccess`. For `/page` to run `page.php`, or to serve your repository's root instead of `public/`, ask an installer to switch on clean addresses or change the served folder."
       ]
     }
   ],

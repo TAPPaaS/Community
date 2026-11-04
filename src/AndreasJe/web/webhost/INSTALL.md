@@ -54,11 +54,11 @@ Add each person:
 - The mothership picks up requests every minute (`webhost-portal-sync.timer`, a user timer). Check it with `systemctl --user status webhost-portal-sync.timer`; run it by hand with `webhost-manager portal sync`.
 
 - The site page has a Backups card and the home page lists deleted sites; restoring needs a confirm checkbox. Both use `webhost-manager site backups` and `site restore`.
-- The request page shows progress, the error of a failed request and the full log. A failed create can be tried again from there; if it used an access token or a package, the form opens instead and asks for them again.
+- The request page shows the result, the steps, a plain-language log and, only under "Show technical log", the full log. A failed create can be tried again from there; if it used an access token or a package, the form opens instead and asks for them again.
 
 ## Visitor analytics
 
-- An owner turns analytics on from the site page in the portal, or you set `options.analytics: true` in the declaration (`webhost-manager site modify <site> --set options.analytics=true`). The change reloads only the site's web server; no site update or restart. Static and PHP sites get the script line from webhost; Node and Python owners add it themselves (the site page says how). Numbers are under Analytics in the portal.
+- An owner turns analytics on from the site page in the portal, or you set `options.analytics: true` in the declaration (`webhost-manager site modify <site> --set options.analytics=true`). The change reloads only the site's web server; no site update or restart. Static and PHP sites get the script line from webhost; Node and Python owners add it themselves (the site page says how). Numbers are on the portal's home page and each site's analytics page.
 - The first site that turns it on builds Umami from nixpkgs on the mothership (needs `nix`) and copies it into the webhost container, which takes a few minutes. When the last site turns it off the service stops; the data stays. `webhost-manager analytics sync` applies the current state by hand; install and update run it too.
 - Umami listens on `127.0.0.1:3000` inside the webhost container only. For its admin pages, open a tunnel from inside that container; the admin login is in `/etc/webhost/umami-admin.json`.
 - Files in the container: `/etc/webhost/umami.env`, `/etc/webhost/umami-admin.json` (both 0600), `/etc/webhost/portal-umami.json` (the portal's view-only account, 0640), `/etc/webhost/analytics-sites.json` (site to Umami website). Service: `webhost-analytics.service`.
