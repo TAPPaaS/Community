@@ -59,17 +59,14 @@ else
     fi
 fi
 
-# ── Pinhole rules (ports from pinhole.json) ──────────────────────────
+# ── Pinhole rules ────────────────────────────────────────────────────
 
-for PORT in 7000 7000-7100/UDP; do
-    RULE="tappaas-svcdep:${CONSUMER}:airplay:sonos:${PORT}"
-    if rules-manager list-rules --no-ssl-verify 2>/dev/null | grep -qF "${RULE}"; then
-        info "  Pinhole ${PORT} (${CONSUMER}→sonos): ${GN}present${CL}"
-    else
-        error "  Pinhole ${PORT} (${CONSUMER}→sonos): ${RD}MISSING${CL}"
-        (( FAILURES++ )) || true
-    fi
-done
+# Whether a rule is due depends on the consumer's zone, this zone's access-to
+# and pinhole-allowed-from, and services/airplay/pinhole.json — not on this test.
+# Asking rules-manager means a consumer whose zone already reaches sonos passes
+# instead of failing on a rule that was never written (#689).
+
+check_service_pinholes "${CONSUMER}" "sonos:airplay" || (( FAILURES++ )) || true
 
 # ── Result ───────────────────────────────────────────────────────────
 

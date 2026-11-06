@@ -37,17 +37,14 @@ FAILURES=0
 # presence (below) is the only thing this test can verify without racing the
 # live integration.
 
-# ── Pinhole rules (ports from pinhole.json) ──────────────────────────
+# ── Pinhole rules ────────────────────────────────────────────────────
 
-for PORT in 502; do
-    RULE="tappaas-svcdep:${CONSUMER}:modbus:alfen:${PORT}"
-    if rules-manager list-rules --no-ssl-verify 2>/dev/null | grep -qF "${RULE}"; then
-        info "  Pinhole ${PORT} (${CONSUMER}→alfen): ${GN}present${CL}"
-    else
-        error "  Pinhole ${PORT} (${CONSUMER}→alfen): ${RD}MISSING${CL}"
-        (( FAILURES++ )) || true
-    fi
-done
+# Whether a rule is due depends on the consumer's zone, this zone's access-to
+# and pinhole-allowed-from, and services/modbus/pinhole.json — not on this test.
+# Asking rules-manager means a consumer whose zone already reaches alfen passes
+# instead of failing on a rule that was never written (#689).
+
+check_service_pinholes "${CONSUMER}" "alfen:modbus" || (( FAILURES++ )) || true
 
 # ── Result ───────────────────────────────────────────────────────────
 

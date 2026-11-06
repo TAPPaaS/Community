@@ -59,17 +59,14 @@ else
     fi
 fi
 
-# ── Pinhole rules (ports from pinhole.json) ──────────────────────────
+# ── Pinhole rules ────────────────────────────────────────────────────
 
-for PORT in 80 443 8000 9000; do
-    RULE="tappaas-svcdep:${CONSUMER}:api:reolink:${PORT}"
-    if rules-manager list-rules --no-ssl-verify 2>/dev/null | grep -qF "${RULE}"; then
-        info "  Pinhole ${PORT} (${CONSUMER}→reolink): ${GN}present${CL}"
-    else
-        error "  Pinhole ${PORT} (${CONSUMER}→reolink): ${RD}MISSING${CL}"
-        (( FAILURES++ )) || true
-    fi
-done
+# Whether a rule is due depends on the consumer's zone, this zone's access-to
+# and pinhole-allowed-from, and services/api/pinhole.json — not on this test.
+# Asking rules-manager means a consumer whose zone already reaches reolink passes
+# instead of failing on a rule that was never written (#689).
+
+check_service_pinholes "${CONSUMER}" "reolink:api" || (( FAILURES++ )) || true
 
 # ── Result ───────────────────────────────────────────────────────────
 

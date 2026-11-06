@@ -40,17 +40,14 @@ FAILURES=0
 # to connect to. Reachability is covered by the pinhole check below.
 info "  no TCP port declared — reachability check not applicable"
 
-# ── Pinhole rules (ports from pinhole.json) ──────────────────────────
+# ── Pinhole rules ────────────────────────────────────────────────────
 
-for PORT in 36549/UDP; do
-    RULE="tappaas-svcdep:${CONSUMER}:discovery:alfen:${PORT}"
-    if rules-manager list-rules --no-ssl-verify 2>/dev/null | grep -qF "${RULE}"; then
-        info "  Pinhole ${PORT} (${CONSUMER}→alfen): ${GN}present${CL}"
-    else
-        error "  Pinhole ${PORT} (${CONSUMER}→alfen): ${RD}MISSING${CL}"
-        (( FAILURES++ )) || true
-    fi
-done
+# Whether a rule is due depends on the consumer's zone, this zone's access-to
+# and pinhole-allowed-from, and services/discovery/pinhole.json — not on this test.
+# Asking rules-manager means a consumer whose zone already reaches alfen passes
+# instead of failing on a rule that was never written (#689).
+
+check_service_pinholes "${CONSUMER}" "alfen:discovery" || (( FAILURES++ )) || true
 
 # ── Result ───────────────────────────────────────────────────────────
 

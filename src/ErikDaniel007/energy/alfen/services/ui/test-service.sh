@@ -36,17 +36,14 @@ FAILURES=0
 # is no retry window that reliably finds a gap. Pinhole presence (below) is
 # the only thing this test can verify without racing the live integration.
 
-# ── Pinhole rules (ports from pinhole.json) ──────────────────────────
+# ── Pinhole rules ────────────────────────────────────────────────────
 
-for PORT in 80 443; do
-    RULE="tappaas-svcdep:${CONSUMER}:ui:alfen:${PORT}"
-    if rules-manager list-rules --no-ssl-verify 2>/dev/null | grep -qF "${RULE}"; then
-        info "  Pinhole ${PORT} (${CONSUMER}→alfen): ${GN}present${CL}"
-    else
-        error "  Pinhole ${PORT} (${CONSUMER}→alfen): ${RD}MISSING${CL}"
-        (( FAILURES++ )) || true
-    fi
-done
+# Whether a rule is due depends on the consumer's zone, this zone's access-to
+# and pinhole-allowed-from, and services/ui/pinhole.json — not on this test.
+# Asking rules-manager means a consumer whose zone already reaches alfen passes
+# instead of failing on a rule that was never written (#689).
+
+check_service_pinholes "${CONSUMER}" "alfen:ui" || (( FAILURES++ )) || true
 
 # ── Result ───────────────────────────────────────────────────────────
 
